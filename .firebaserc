@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "kensyu10149"
+  },
+  "targets": {
+    "kensyu10149": {
+      "hosting": {
+        "social-insurance": [
+          "social-insurance"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

@@ -1,0 +1,44 @@
+:host {
+    display: block;
+}
+
+.app-shell-toolbar {
+    display: flex;
+    justify-content: space-between;
+    min-height: 56px;
+}
+
+.jomon-logo-button {
+    background-color: transparent;
+    border: none;
+    min-width: 0;
+    padding: 0;
+    line-height: normal;
+    font-size: 40px;
+    font-weight: bold;
+    color: #000000;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.material-symbols-outlined {
+    font-size: 48px;
+    font-weight: 800;
+    vertical-align: bottom;
+}
+
+.jomon-logo-button:hover {
+    opacity: 0.8;
+    cursor: pointer;
+}
+
+.login-button {
+    font-size: 16px;
+    font-weight: bold;
+    color: #ffffff;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.login-button:hover {
+    opacity: 0.8;
+    cursor: pointer;
+}

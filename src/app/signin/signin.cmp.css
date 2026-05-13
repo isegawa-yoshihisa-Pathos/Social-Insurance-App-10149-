@@ -1,0 +1,46 @@
+:host {
+  display: block;
+  min-height: calc(100vh - 56px);
+}
+
+.signin {
+  width: 100%;
+  min-height: calc(100vh - 56px);
+  background-color: rgb(121, 236, 188);
+  text-align: center;
+}
+.pane {
+  width: 300px;
+  display: inline-block;
+  background-color: rgb(241, 241, 241);
+  margin-top: 100px;
+  margin-bottom: 100px;
+  padding: 30px;
+  border-radius: 10px;
+}
+
+.subtitle {
+  color: black;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.message {
+  color: black;
+  font-size: 15px;
+  font-weight: bold;
+}
+
+.input-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 30px;
+}
+
+.button-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 60px;
+}
