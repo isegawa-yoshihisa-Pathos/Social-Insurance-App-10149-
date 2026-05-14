@@ -3,6 +3,17 @@
         <div class="input-container">
             <label class="subtitle">ログイン</label>
             <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                <mat-label>会社名</mat-label>
+                <mat-select class="establishments-select" name="establishment">
+                    <mat-select-trigger>
+                        <span>会社名1</span>
+                    </mat-select-trigger>
+                    <mat-option value="establishment">会社名1</mat-option>
+                    <mat-option value="establishment">会社名2</mat-option>
+                    <mat-option value="establishment">会社名3</mat-option>
+                </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
                 <mat-label>メールアドレス</mat-label>
                 <input 
                     matInput 
@@ -26,9 +37,7 @@
             </mat-form-field>
         </div>
         <div class="button-container">
-            <button mat-flat-button color="primary" type='submit'>ログイン</button>
-            <label class="message">アカウントがない方はこちら</label>
-            <button matButton="outlined">アカウント作成</button>
+            <button mat-flat-button color="primary" class="signin-button" type='submit'>ログイン</button>
         </div>
     </div>
 </div>

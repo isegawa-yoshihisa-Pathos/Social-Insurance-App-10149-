@@ -1,10 +1,18 @@
 <mat-toolbar class="app-shell-toolbar">
-    <button class="jomon-logo-button">
+    <button class="jomon-logo-button" (click)="navigateToHome()">
         <!-- <img src="assets/images/jomon-logo.png" alt="Jomon Logo" class="jomon-logo" /> -->
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=moving" />
         縄文<span class="material-symbols-outlined">moving</span>
     </button>
-    <button mat-flat-button color="primary" class="login-button">
-        ログイン
-    </button>
+    <div class="button-container">
+        <div class="signup-container">
+            <p class="signup-text">初めてご利用の方はこちら</p>
+            <button mat-flat-button class="signup-button" (click)="navigateToSignup()">
+                利用を開始する
+            </button>   
+        </div>
+        <button matButton="outlined" class="signin-button" (click)="navigateToSignin()">
+            ログイン
+        </button>
+    </div>
 </mat-toolbar>

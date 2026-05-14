@@ -1,0 +1,77 @@
+:host {
+  display: block;
+}
+
+.home {
+  width: 100%;
+  min-height: calc(100vh - 56px);
+  background-color: rgb(121, 236, 188);
+}
+
+.home-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  background-color: rgb(159, 232, 241);
+}
+
+.text-container {
+  font-size: 24px;
+  font-weight: bold;
+  color: white;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.material-symbols-outlined {
+  font-size: 30px;
+  font-weight: 800;
+}
+
+.button-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.signup-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  margin-top: 20px;
+}
+
+.signup-button {
+  font-size: 18px;
+  font-weight: 600;
+  color: black;
+  background-color: rgb(255, 156, 76);
+  height: 50px;
+  width: 100%;
+}
+
+.signin-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  margin-top: 20px;
+}
+
+.signin-button {
+  font-size: 16px;
+  font-weight: bold;
+  color: black;
+  transition: opacity 0.3s ease-in-out;
+}

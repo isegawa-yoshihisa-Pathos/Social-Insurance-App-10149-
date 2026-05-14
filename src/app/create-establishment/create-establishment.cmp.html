@@ -1,0 +1,175 @@
+<div class="create-establishment">
+    <div class="pane">
+        <label class="subtitle">事業所設定</label>
+        <div class="input-container">
+            <div class="field-container">
+                <label class="label-name">事業所名：</label>
+                <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                    <mat-label>事業所名</mat-label>
+                    <input 
+                        matInput 
+                        type="text" 
+                        placeholder="㈱縄文商事" 
+                        [(ngModel)]="establishmentName"
+                        #establishmentNameRef="ngModel"
+                        name="establishmentName"
+                        required
+                    />
+                    @if(establishmentNameRef.invalid && (establishmentNameRef.touched || establishmentNameRef.dirty)){
+                        @if(establishmentNameRef.errors?.['required']){
+                            <p class="error-message">事業所名は必須です</p>
+                        }
+                    }
+                </mat-form-field>
+            </div>
+            <div class="field-container">
+                <label class="label-name">所在地：</label>
+                <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                    <mat-label>郵便番号</mat-label>
+                    <input 
+                        matInput 
+                        type="text" 
+                        placeholder="100-0001" 
+                        #zipcodeRef="ngModel"
+                        [(ngModel)]="displayZipcode"
+                        maxlength="8"
+                        name="zipcode"
+                        required
+                    />
+                    @if(zipcodeRef.invalid && (zipcodeRef.touched || zipcodeRef.dirty)){
+                        @if(zipcodeRef.errors?.['required']){
+                            <p class="error-message">郵便番号は必須です</p>
+                        }
+                    }
+                </mat-form-field>
+                <button class="autofill-button" (click)="getAddress(zipcode)">
+                    <span>住所自動入力</span>
+                </button>
+            </div>
+            <div class="field-container">
+                <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                    <input 
+                        matInput 
+                        type="text" 
+                        placeholder="(例)東京都千代田区千代田" 
+                        [(ngModel)]="address.address1"
+                        name="address1"
+                        required
+                    />
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                    <input 
+                        matInput 
+                        type="text" 
+                        placeholder="(例)1-1-1" 
+                        [(ngModel)]="address.address2"
+                        name="address2"
+                        required
+                    />
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                    <input 
+                        matInput 
+                        type="text" 
+                        placeholder="(例)縄文ハイツ101号室" 
+                        [(ngModel)]="address.address3"
+                        name="address3"
+                    />
+                </mat-form-field>
+            </div>
+            <div class="field-container">
+                <label class="label-name">事業主（代表者）氏名：</label>
+                <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                    <mat-label>事業主（代表者）氏名</mat-label>
+                    <input 
+                        matInput 
+                        type="text" 
+                        placeholder="山田太郎" 
+                        [(ngModel)]="ownerName"
+                        #ownerNameRef="ngModel"
+                        name="ownerName" 
+                        required
+                    />
+                    @if(ownerNameRef.invalid && (ownerNameRef.touched || ownerNameRef.dirty)){
+                        @if(ownerNameRef.errors?.['required']){
+                            <p class="error-message">事業主（代表者）氏名は必須です</p>
+                        }
+                    }
+                </mat-form-field>
+            </div>
+            <div class="field-container">
+                <label class="label-name">電話番号：</label>
+                <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                    <mat-label>電話番号</mat-label>
+                    <input 
+                        matInput 
+                        type="tel" 
+                        placeholder="03-1234-5678" 
+                        [(ngModel)]="phoneNumberRaw"
+                        #phoneNumberRef="ngModel"
+                        name="phoneNumberRaw"
+                        required
+                        pattern="^(?:\d{2,5}-\d{1,4}-\d{4}|\d{3}-\d{4}-\d{4})$"
+                    />
+                    @if(phoneNumberRef.invalid && (phoneNumberRef.touched || phoneNumberRef.dirty)){
+                        @if(phoneNumberRef.errors?.['required']){
+                            <p class="error-message">電話番号は必須です</p>
+                        }
+                        @if(phoneNumberRef.errors?.['pattern']){
+                            <p class="error-message">電話番号を正しく入力してください</p>
+                        }
+                    }
+                </mat-form-field>
+                <div class="comment-text">※ハイフン(-)を含めて入力してください</div>
+            </div>
+            <div class="field-container">
+                <label class="label-name">法人番号：</label>
+                <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                    <mat-label>法人番号</mat-label>
+                    <input 
+                        matInput 
+                        type="text" 
+                        placeholder="1234567890123" 
+                        [(ngModel)]="corporateNumber"
+                        #corporateNumberRef="ngModel"
+                        name="corporateNumber" 
+                    />
+                </mat-form-field>
+            </div>
+            <div class="field-container">
+                <label class="label-name">健康保険タイプ：</label>
+                <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                    <mat-label>健康保険タイプ</mat-label>
+                    <mat-select [(ngModel)]="healthInsuranceType">
+                        <mat-option value="association">協会けんぽ</mat-option>
+                        <mat-option value="combination">組合健康保険</mat-option>
+                    </mat-select>
+                </mat-form-field>
+                @if(healthInsuranceType === 'combination'){
+                    <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                        <mat-label>組合名</mat-label>
+                        <input 
+                            matInput 
+                            type="text"
+                            placeholder="組合名" 
+                            [(ngModel)]="combinationName" 
+                            #combinationNameRef="ngModel" 
+                            name="combinationName" 
+                            required
+                        />
+                    </mat-form-field>
+                }
+            </div>
+        </div>
+        <div class="button-container">
+            <button 
+                mat-flat-button 
+                color="primary" 
+                class="create-establishment-button" 
+                type='button'
+            >
+                事業所情報の登録
+            </button>
+        </div>
+    </div>
+</div>

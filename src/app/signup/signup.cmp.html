@@ -1,1 +1,104 @@
-<p>signup works!</p>
+<div class="signup">
+    <div class="signup-text">
+        初めてご利用の方
+    </div>
+    <div class="pane">
+        <div class="input-container">
+            <label class="subtitle">アカウント作成</label>
+            <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                <mat-label>氏名</mat-label>
+                <input 
+                    matInput 
+                    type="text" 
+                    placeholder="山田太郎" 
+                    [(ngModel)]="name"
+                    #nameRef="ngModel"
+                    name="name" 
+                    autocomplete="name" 
+                    required
+                />
+                @if(nameRef.invalid && (nameRef.touched || nameRef.dirty)){
+                    @if(nameRef.errors?.['required']){
+                        <p class="error-message">氏名は必須です</p>
+                    }
+                }
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                <mat-label>メールアドレス</mat-label>
+                <input 
+                    matInput 
+                    type="email" 
+                    placeholder="sample@example.com" 
+                    [(ngModel)]="email"
+                    #emailRef="ngModel"
+                    name="email" 
+                    autocomplete="email" 
+                    required
+                    pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+                />
+                @if(emailRef.invalid && (emailRef.touched || emailRef.dirty)){
+                    @if(emailRef.errors?.['required']){
+                        <p class="error-message">メールアドレスは必須です</p>
+                    }
+                    @if(emailRef.errors?.['pattern']){
+                        <p class="error-message">メールアドレスを正しく入力して下さい</p>
+                    }
+                }
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                <mat-label>パスワード</mat-label>
+                <input 
+                    matInput 
+                    [type]="passwordVisible ? 'text' : 'password'" 
+                    placeholder="********" 
+                    [(ngModel)]="password"
+                    #passwordRef="ngModel"
+                    name="password" 
+                    autocomplete="new-password" 
+                    required
+                    pattern="[A-Za-z\d@$!%*?&]{8,}$"
+                />
+                @if(passwordRef.invalid && (passwordRef.touched || passwordRef.dirty)){
+                    @if(passwordRef.errors?.['required']){
+                        <p class="error-message">パスワードは必須です</p>
+                    }
+                    @if(passwordRef.errors?.['pattern']){
+                        <p class="error-message">パスワードは8文字以上で入力してください</p>
+                    }
+                }
+                <button 
+                    mat-icon-button 
+                    matSuffix
+                    class="password-toggle"
+                    aria-label="押している間だけパスワードを表示"
+                    (pointerdown)="showPassword($event)"
+                >
+                    <mat-icon>{{ passwordVisible ? 'visibility' : 'visibility_off' }}</mat-icon>
+                </button>
+            </mat-form-field>
+        </div>
+        <div class="button-container">
+            <button 
+                mat-flat-button 
+                color="primary" 
+                class="signup-button" 
+                type='button'
+                [disabled]="nameRef.invalid || emailRef.invalid || passwordRef.invalid"
+                (click)="navigateToCreateEstablishment()"
+            >
+                事業所情報の入力へ進む
+            </button>
+        </div>
+    </div>
+    <div class="signin-container">
+        <div class="signin-text">
+            すでにアカウントをお持ちの方は
+                <span type="button" class="signin-button" (click)="navigateToSignin()">
+                    こちら
+                </span>
+            からログインし、
+            <br>
+            マイページの「新たな事業所を追加」から事業所情報を入力してください。
+        </div>
+    </div>
+</div>

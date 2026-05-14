@@ -3,7 +3,7 @@
   min-height: calc(100vh - 80px);
 }
 
-.signup {
+.create-establishment {
   width: 100%;
   min-height: calc(100vh - 80px);
   background-color: rgb(121, 236, 188);
@@ -11,24 +11,12 @@
   padding-top: 80px;
 }
 
-.signup-text {
-  font-size: 20px;
-  color: black;
-  margin-bottom: 40px;
-}
-
 .pane {
-  width: 320px;
+  width: 80%;
   display: inline-block;
   background-color: rgb(241, 241, 241);
   padding: 30px;
   border-radius: 10px;
-}
-
-.message {
-  color: black;
-  font-size: 15px;
-  font-weight: bold;
 }
 
 .input-container {
@@ -45,6 +33,28 @@
   margin-bottom: 10px;
 }
 
+.field-container {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: center;
+}
+
+.label-name {
+  color: black;
+  font-size: 15px;
+  font-weight: bold;
+}
+
+.autofill-button {
+  height: 28px;
+  margin-left: 10px;
+}
+
+.field{
+  width: 240px;
+}
+
 .error-message {
   color: #b91624;
   font-size: 12px;
@@ -59,30 +69,8 @@
   margin-top: 60px;
 }
 
-.signup-button {
+.create-establishment-button {
   font-size: 16px;
   font-weight: bold;
   transition: opacity 0.3s ease-in-out;
-}
-
-.signin-container {
-  padding-top: 40px;
-  padding-bottom: 80px;
-}
-
-.signin-text {
-  font-size: 15px;
-  color: black;
-}
-
-.signin-button {
-  font-size: 15px;
-  color: var(--mat-sys-primary);
-  border: none;
-  background-color: transparent;
-}
-
-.signin-button:hover {
-  text-decoration: underline;
-  cursor: pointer;
 }
