@@ -14,14 +14,15 @@ export class AuthService {
 
   constructor() {}
 
-  async signIn(email: string, password: string): Promise<void> {
-    await signInWithEmailAndPassword(this.auth, email, password);
-    const user = this.auth.currentUser;
+  async signIn(email: string, password: string): Promise<string | null> {
+    const credential = await signInWithEmailAndPassword(this.auth, email, password);
+    const user = credential.user;
     if (user) {
       this.userId.set(user.uid);
       this.userName.set(user.displayName);
       this.authEmail.set(user.email);
     }
+    return user?.uid ?? null;
   }
 
   async signOut(): Promise<void> {

@@ -1,6 +1,5 @@
 <mat-toolbar class="app-shell-toolbar">
     <button class="jomon-logo-button" (click)="navigateToHome()">
-        <!-- <img src="assets/images/jomon-logo.png" alt="Jomon Logo" class="jomon-logo" /> -->
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=moving" />
         縄文<span class="material-symbols-outlined">moving</span>
     </button>
@@ -18,10 +17,31 @@
         </div>
     } @else {
         <div class="button-container">
-            <p class="user-name">{{ auth.currentUser.displayName }}</p>
-            <button mat-flat-button class="signout-button" (click)="signOut()">
-                サインアウト
+            <button mat-button class="establishment-name" [matMenuTriggerFor]="establishmentMenu">
+                <span>{{ currentAffiliation()?.establishmentName ?? '事業所未選択' }}</span>
+                <mat-icon>arrow_drop_down</mat-icon>
             </button>
+            <mat-menu #establishmentMenu="matMenu">
+                @for (aff of currentEstService.getAffiliations(); track aff.eid) {
+                    <button mat-menu-item type="button" (click)="switchEstablishment(aff.eid)"
+                    [disabled]="aff.eid === currentEstService.getEstablishment()">
+                        {{ aff.establishmentName }}
+                    </button>
+                }
+            </mat-menu>
+            <button mat-button class="notification-button">
+                <mat-icon>notifications</mat-icon>
+                <mat-icon>arrow_drop_down</mat-icon>
+            </button>
+            <button mat-button class="user-name" [matMenuTriggerFor]="accountMenu">
+                <span class="user-name-text">{{ auth.currentUser.displayName || 'ユーザー名未設定' }}</span>
+                <mat-icon>arrow_drop_down</mat-icon>
+            </button>
+            <mat-menu #accountMenu="matMenu" class="account-menu">
+                <button mat-menu-item type="button" >通知</button>
+                <button mat-menu-item type="button" >個人設定</button>
+                <button mat-menu-item type="button" (click)="signOut()">サインアウト</button>
+            </mat-menu>
         </div>
     }
 </mat-toolbar>

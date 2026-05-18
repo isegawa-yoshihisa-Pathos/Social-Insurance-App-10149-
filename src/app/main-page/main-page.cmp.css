@@ -1,3 +1,7 @@
 :host {
   display: block;
 }
+
+.main-page {
+  height: auto;
+}

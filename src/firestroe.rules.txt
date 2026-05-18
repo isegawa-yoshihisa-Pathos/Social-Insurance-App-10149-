@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 中間コレクション自体は、ログインしている人なら自分の分だけ読み書きできる
+    match /affiliations/{affiliationId} {
+      allow read, write: if request.auth != null && 
+                           resource.data.uid == request.auth.uid;
+    }
+
+    // 各事業所のデータ
+    match /establishments/{eid} {
+      // 会社データを読もうとしたとき、直接「uid_eid」のドキュメントが存在するかだけを確認する
+      allow read, write: if request.auth != null && 
+        exists(/databases/$(database)/documents/affiliations/$(request.auth.uid + '_' + eid));
+    }
+    
+    // 従業員の個人情報や社会保険データなど
+    match /employees/{employeeId} {
+      // その従業員が所属する会社(eid)に対して、自分が権限を持っているか
+      allow read, write: if request.auth != null &&
+        exists(/databases/$(database)/documents/affiliations/$(request.auth.uid + '_' + resource.data.establishmentId));
+    }
+  }
+}

@@ -7,5 +7,4 @@ import { Component } from '@angular/core';
   styleUrl: './main-page.cmp.css',
 })
 export class MainPageCmp {
-
 }

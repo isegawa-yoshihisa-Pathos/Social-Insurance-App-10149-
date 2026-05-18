@@ -38,7 +38,7 @@
                     name="email" 
                     autocomplete="email" 
                     required
-                    pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+                    pattern="^[a-zA-Z0-9._%\+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$"
                 />
                 @if(emailRef.invalid && (emailRef.touched || emailRef.dirty)){
                     @if(emailRef.errors?.['required']){
@@ -60,14 +60,14 @@
                     name="password" 
                     autocomplete="new-password" 
                     required
-                    pattern="[A-Za-z\d@$!%*?&]{8,}$"
+                    pattern="[A-Za-z\d@$!%*?&]{6,}$"
                 />
                 @if(passwordRef.invalid && (passwordRef.touched || passwordRef.dirty)){
                     @if(passwordRef.errors?.['required']){
                         <p class="error-message">パスワードは必須です</p>
                     }
                     @if(passwordRef.errors?.['pattern']){
-                        <p class="error-message">パスワードは8文字以上で入力してください</p>
+                        <p class="error-message">パスワードは6文字以上で入力してください</p>
                     }
                 }
                 <button 

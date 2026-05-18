@@ -1,11 +1,16 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Auth } from '@angular/fire/auth';
+import { Auth, authState } from '@angular/fire/auth';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { RoutesService } from '../routes.service';
 import { AuthService } from '../auth.service';
+import { CurrentEstablishmentService } from '../current-establishment.service';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { filter } from 'rxjs/operators';
+import { take } from 'rxjs/operators';
 
 @Component({
   selector: 'app-header',
@@ -15,14 +20,35 @@ import { AuthService } from '../auth.service';
     MatToolbarModule,
     MatButtonModule,
     MatIconModule,
+    MatMenuModule,
   ],
   templateUrl: './app-header.cmp.html',
   styleUrl: './app-header.cmp.css',
 })
-export class AppHeaderCmp {
+export class AppHeaderCmp implements OnInit {
   private readonly routesService = inject(RoutesService);
   private readonly authService = inject(AuthService);
   readonly auth = inject(Auth);
+  readonly currentEstService = inject(CurrentEstablishmentService);
+
+  currentAffiliation = toSignal(this.currentEstService.currentAffiliation$, { initialValue: null });
+
+  async ngOnInit(): Promise<void> {
+    authState(this.auth).pipe(filter(Boolean), take(1)).subscribe(async (user) => {
+      await user.getIdToken(true);
+      if (this.currentEstService.getAffiliations().length === 0) {
+        await this.currentEstService.fetchAffiliations(user.uid);
+      }
+      if (this.currentAffiliation() === null) {
+        this.routesService.redirectToHome();
+      }
+    });
+  }
+
+  switchEstablishment(eid: string): void {
+    this.currentEstService.setEstablishment(eid);
+    this.routesService.redirectToMainPage(eid);
+  }
 
   signOut(): void {
     this.authService.signOut();
@@ -31,7 +57,7 @@ export class AppHeaderCmp {
 
   navigateToHome(): void {
     if (this.auth.currentUser) {
-      this.routesService.redirectToMainPage();
+      this.routesService.redirectToMainPage(this.currentEstService.getEstablishment() || '');
     } else {
       this.routesService.redirectToHome();
     }

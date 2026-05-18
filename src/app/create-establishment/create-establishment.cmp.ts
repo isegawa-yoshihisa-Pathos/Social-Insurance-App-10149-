@@ -8,12 +8,14 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog } from '@angular/material/dialog';
-import { ErrorDialogCmp } from '../error-dialog/error-dialog.cmp';
+import { ErrorDialogCmp, mapFirebaseError } from '../error-dialog/error-dialog.cmp';
 import { EstablishmentsDataService } from '../establishments-data.service';
 import { SharedDataService } from '../shared-data.service';
 import { RoutesService } from '../routes.service';
 import { FunctionsService } from '../functions.service';
 import { AuthService } from '../auth.service';
+import { CurrentEstablishmentService } from '../current-establishment.service';
+import { Auth } from '@angular/fire/auth';
 
 @Component({
   selector: 'app-create-establishments',
@@ -29,6 +31,8 @@ export class CreateEstablishmentCmp implements OnInit {
   private readonly functionsService = inject(FunctionsService);
   private readonly authService = inject(AuthService);
   private readonly dialog = inject(MatDialog);
+  private readonly currentEstablishmentService = inject(CurrentEstablishmentService);
+  readonly auth = inject(Auth);
 
   submitBusy = false;
 
@@ -75,13 +79,12 @@ export class CreateEstablishmentCmp implements OnInit {
   }
 
   phoneNumberFormat(value: string):void {
+    if (!value) return;
     const parts = value.split('-');
     if (parts.length === 3) {
       this.phoneNumber.tel1 = parts[0];
       this.phoneNumber.tel2 = parts[1];
       this.phoneNumber.tel3 = parts[2];
-    } else{
-      throw new Error('電話番号を正しく入力してください');
     }
   }
 
@@ -109,29 +112,40 @@ export class CreateEstablishmentCmp implements OnInit {
     if (!signupData) {
       this.routesService.redirectToSignup();
       return;
-    }
-    this.phoneNumberFormat(this.phoneNumberRaw);
-    const payload = {
-      ...signupData,
-      establishmentName: this.establishmentName,
-      zipcode: this.zipcode,
-      address: this.address,
-      ownerName: this.ownerName,
-      phoneNumber: this.phoneNumber,
-      corporateNumber: this.corporateNumber,
-    };
-
-    try {
+    }try {
       this.submitBusy = true;
+      this.phoneNumberFormat(this.phoneNumberRaw);
+      const payload = {
+        ...signupData,
+        establishmentName: this.establishmentName,
+        zipcode: this.zipcode,
+        address: this.address,
+        ownerName: this.ownerName,
+        phoneNumber: this.phoneNumber,
+        corporateNumber: this.corporateNumber,
+      };
       const result = await this.functionsService.registerAdminAndEstablishment(payload);
-      const { email, password } = result.data as { email: string, password: string };
+      const { uid, email, password, eid } = result.data as {
+        uid: string;
+        email: string;
+        password: string;
+        eid: string;
+      };
       await this.authService.signIn(email, password);
+      await this.auth.currentUser?.getIdToken(true);
+      this.currentEstablishmentService.setEstablishment(eid);
+      try {
+        await this.currentEstablishmentService.fetchAffiliations(uid);
+      } catch (fetchError) {
+        this.dialog.open(ErrorDialogCmp, {
+          data: { message: mapFirebaseError(fetchError) },
+        });
+      }
       this.sharedDataService.clearSignupData();
-      this.routesService.redirectToMainPage();
+      this.routesService.redirectToMainPage(eid);
     } catch (error) {
-      console.error(error);
       this.dialog.open(ErrorDialogCmp, {
-        data: { message: '事業所登録に失敗しました' },
+        data: { message: mapFirebaseError(error) },
       });
     } finally {
       this.submitBusy = false;

@@ -6,9 +6,11 @@ import { MatSelectModule } from '@angular/material/select';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../auth.service';
 import { RoutesService } from '../routes.service';
-import { MatDialog } from '@angular/material/dialog';
-import { ErrorDialogCmp, mapFirebaseAuthError } from '../error-dialog/error-dialog.cmp';
+import { CurrentEstablishmentService } from '../current-establishment.service';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { ErrorDialogCmp, mapFirebaseError } from '../error-dialog/error-dialog.cmp';
+import { MatDialog } from '@angular/material/dialog';
+import { Auth } from '@angular/fire/auth';
 
 @Component({
   selector: 'app-signin',
@@ -17,10 +19,13 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
   templateUrl: './signin.cmp.html',
   styleUrl: './signin.cmp.css',
 })
+
 export class SigninCmp {
   private readonly authService = inject(AuthService);
   private readonly routesService = inject(RoutesService);
+  private readonly currentEstablishmentService = inject(CurrentEstablishmentService);
   private readonly dialog = inject(MatDialog);
+  readonly auth = inject(Auth);
   email = '';
   password = '';
 
@@ -29,11 +34,26 @@ export class SigninCmp {
   async signIn(): Promise<void> {
     try {
       this.submitBusy = true;
-      await this.authService.signIn(this.email, this.password);
-      this.routesService.redirectToMainPage();
+      const uid = await this.authService.signIn(this.email, this.password);
+      if (!uid) return;
+      await this.auth.currentUser?.getIdToken(true);
+      const affiliations = await this.currentEstablishmentService.fetchAffiliations(uid);
+      if (affiliations.length === 0) {
+        this.dialog.open(ErrorDialogCmp, {
+          data: { message: '所属事業所が見つかりません' },
+        });
+        return;
+      }
+      if (affiliations.length > 0) {
+        const eid = affiliations[0].eid;
+        this.currentEstablishmentService.setEstablishment(eid);
+        this.routesService.redirectToMainPage(eid);
+        return;
+      }
     } catch (error) {
+      console.error(error);
       this.dialog.open(ErrorDialogCmp, {
-        data: { message: mapFirebaseAuthError(error as string) },
+        data: { message: mapFirebaseError(error) },
       });
     } finally {
       this.submitBusy = false;

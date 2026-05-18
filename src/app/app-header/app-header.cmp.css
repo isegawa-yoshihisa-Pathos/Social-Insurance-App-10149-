@@ -10,6 +10,8 @@
 }
 
 .jomon-logo-button {
+    display: inline-flex;
+    align-items: center;
     background-color: transparent;
     border: none;
     min-width: 0;
@@ -35,9 +37,37 @@
 
 .button-container {
     display: flex;
-    gap: 18px;
     font-size: 16px;
     align-items: center;
+    gap: 18px;
+}
+
+.establishment-name {
+    display: inline-flex;
+    flex-direction: row-reverse;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.user-name {
+    display: inline-flex;
+    flex-direction: row-reverse;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.user-name-text {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.notification-button {
+    background-color: transparent;
+    border: none;
 }
 
 .signup-container {
@@ -55,7 +85,7 @@
 .signup-button {
     font-size: 16px;
     font-weight: bold;
-    color: black;
+    color: black!important;
     background-color: rgb(255, 156, 76)!important;
     transition: opacity 0.3s ease-in-out;
 }

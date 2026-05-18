@@ -1,0 +1,36 @@
+<mat-sidenav-container class="sidenav-container">
+    <mat-sidenav #sidenav mode="over" class="sidebar">
+        <div class="sidebar-content">
+            <button mat-icon-button type="button" (click)="sidenav.toggle()" class="menu-toggle-button">
+            <mat-icon>menu</mat-icon>
+            </button>
+            <h3>
+            {{ auth.currentUser?.displayName }}
+            @if (isAdmin()) {
+                <span class="admin-badge">管理者</span>
+            } @else {
+                <span class="member-badge">一般</span>
+            }
+            </h3>
+
+            <button mat-flat-button class="menu-button" type="button" (click)="navigateToMainPage()">マイページ</button>
+            <button mat-flat-button class="menu-button" type="button">手続き一覧</button>
+
+            @if (isAdmin()) {
+            <hr class="menu-divider" />
+            <button mat-flat-button class="menu-button" type="button" (click)="navigateToSettingEstablishment()">事業所設定</button>
+            <button mat-flat-button class="menu-button" type="button" (click)="navigateToSettingEmployees()">ユーザー管理</button>
+            }
+        </div>
+    </mat-sidenav>
+
+    <mat-sidenav-content class="main-content">
+        <button mat-icon-button type="button" (click)="sidenav.toggle()" class="menu-toggle-button">
+            <mat-icon>menu</mat-icon>
+        </button>
+
+        <div class="page-body">
+            <router-outlet />
+        </div>
+    </mat-sidenav-content>
+</mat-sidenav-container>

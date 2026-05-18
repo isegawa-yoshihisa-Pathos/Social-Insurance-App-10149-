@@ -1,0 +1,27 @@
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  max-height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.app-header,
+.app-footer {
+  flex-shrink: 0;
+}
+
+.app-main {
+  flex: 1 1 auto;
+  overflow: visible;
+  display: block;
+}

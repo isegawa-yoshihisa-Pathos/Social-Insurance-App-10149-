@@ -1,10 +1,12 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
+import { CurrentEstablishmentService } from './current-establishment.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class RoutesService {
+  readonly currentEstService = inject(CurrentEstablishmentService);
   constructor(private router: Router) {}
 
   redirectToHome(): void {
@@ -23,7 +25,27 @@ export class RoutesService {
     void this.router.navigate(['/create-establishment']);
   }
 
-  redirectToMainPage(): void {
-    void this.router.navigate(['/main-page']);
+  redirectToMainPage(eid: string): void {
+    void this.router.navigate(['/main-page'], {
+      queryParams: {
+        eid: eid,
+      },
+    });
+  }
+
+  redirectToSettingEstablishment(): void {
+    void this.router.navigate(['/setting-establishment'], {
+      queryParams: {
+        eid: this.currentEstService.getEstablishment() || '',
+      },
+    });
+  }
+
+  redirectToSettingEmployees(): void {
+    void this.router.navigate(['setting-employees'], {
+      queryParams: {
+        eid: this.currentEstService.getEstablishment() || '',
+      },
+    });
   }
 }
