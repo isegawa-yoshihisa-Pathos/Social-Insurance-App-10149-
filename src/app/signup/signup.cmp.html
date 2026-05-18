@@ -10,16 +10,20 @@
                 <input 
                     matInput 
                     type="text" 
-                    placeholder="山田太郎" 
+                    placeholder="山田　太郎" 
                     [(ngModel)]="name"
                     #nameRef="ngModel"
                     name="name" 
                     autocomplete="name" 
                     required
+                    pattern="^[ぁ-んァ-ン一-龥]+\s+[ぁ-んァ-ン一-龥]+$"
                 />
                 @if(nameRef.invalid && (nameRef.touched || nameRef.dirty)){
                     @if(nameRef.errors?.['required']){
                         <p class="error-message">氏名は必須です</p>
+                    }
+                    @if(nameRef.errors?.['pattern']){
+                        <p class="error-message">姓と名の間にスペースを入力してください</p>
                     }
                 }
             </mat-form-field>

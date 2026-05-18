@@ -22,4 +22,8 @@ export class RoutesService {
   redirectToCreateEstablishment(): void {
     void this.router.navigate(['/create-establishment']);
   }
+
+  redirectToMainPage(): void {
+    void this.router.navigate(['/main-page']);
+  }
 }

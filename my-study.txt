@@ -81,3 +81,7 @@ establishments (collection)  <-- 登録会社（事業所）
       │
       └ requests (sub-collection) <-- 申請データ（扶養追加、異議申し立て等）
           └ {requestId}: { type, status, content... }
+
+
+smartHR
+ジョブカン

@@ -5,6 +5,7 @@
 .app-shell-toolbar {
     display: flex;
     justify-content: space-between;
+    background-color: rgb(54, 199, 139);
     min-height: 80px;
 }
 
@@ -16,7 +17,8 @@
     line-height: normal;
     font-size: 40px;
     font-weight: bold;
-    color: #000000;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
     transition: opacity 0.3s ease-in-out;
 }
 

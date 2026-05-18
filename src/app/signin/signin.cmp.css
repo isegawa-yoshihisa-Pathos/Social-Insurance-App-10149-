@@ -26,12 +26,6 @@
   font-weight: bold;
 }
 
-.message {
-  color: black;
-  font-size: 15px;
-  font-weight: bold;
-}
-
 .input-container {
   display: flex;
   flex-direction: column;
@@ -46,8 +40,20 @@
   margin-top: 60px;
 }
 
+.error-message {
+  color: #b91624;
+  font-size: 12px;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
 .signin-button {
   font-size: 16px;
   font-weight: bold;
   transition: opacity 0.3s ease-in-out;
+}
+
+.signin-button.busy {
+  cursor: wait;
+  pointer-events: none;
 }

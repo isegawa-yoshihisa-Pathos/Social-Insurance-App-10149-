@@ -1,7 +1,6 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
-import { FirebaseError } from 'firebase/app';
 
 export function mapFirebaseAuthError(errorcode: string): string {
   switch (errorcode) {

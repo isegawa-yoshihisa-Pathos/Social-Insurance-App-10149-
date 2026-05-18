@@ -15,6 +15,10 @@
         "@schematics/angular:service": {
           "type": "service",
           "skipTests": true
+        },
+        "@schematics/angular:guard": {
+          "typeSeparator": ".",
+          "skipTests": true
         }
       },
       "root": "",

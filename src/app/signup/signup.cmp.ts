@@ -6,9 +6,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
 import { FormsModule } from '@angular/forms';
 import { RoutesService } from '../routes.service';
-import { AuthService } from '../auth.service';
-import { ErrorDialogCmp, mapFirebaseAuthError } from '../error-dialog/error-dialog.cmp';
-import { MatDialog } from '@angular/material/dialog';
+import { SharedDataService } from '../shared-data.service';
 
 @Component({
   selector: 'app-signup',
@@ -19,11 +17,12 @@ import { MatDialog } from '@angular/material/dialog';
 })
 export class SignupCmp {
   private readonly routesService = inject(RoutesService);
-  private readonly authService = inject(AuthService);
-  private readonly dialog = inject(MatDialog);
-  name = '';
-  email = '';
-  password = '';
+  private readonly sharedDataService = inject(SharedDataService);
+
+  private readonly signupData = this.sharedDataService.getSignupData();
+  name = this.signupData?.name || '';
+  email = this.signupData?.email || '';
+  password = this.signupData?.password || '';
   passwordVisible = false;
 
   navigateToSignin(): void {
@@ -31,15 +30,12 @@ export class SignupCmp {
   }
 
   async navigateToCreateEstablishment(): Promise<void> {
-    try {
-      await this.authService.signUp(this.email, this.name, this.password);
-      this.routesService.redirectToCreateEstablishment();
-    } catch (error: any) {
-      const errorMessage = mapFirebaseAuthError(error.code);
-      this.dialog.open(ErrorDialogCmp, {
-        data: { message: errorMessage },
-      });
-    }
+    this.sharedDataService.setSignupData({
+      name: this.name,
+      email: this.email,
+      password: this.password,
+    });
+    this.routesService.redirectToCreateEstablishment();
   }
 
   showPassword(event: PointerEvent): void {

@@ -3,26 +3,26 @@
         <div class="input-container">
             <label class="subtitle">ログイン</label>
             <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
-                <mat-label>会社名</mat-label>
-                <mat-select class="establishments-select" name="establishment">
-                    <mat-select-trigger>
-                        <span>会社名1</span>
-                    </mat-select-trigger>
-                    <mat-option value="establishment">会社名1</mat-option>
-                    <mat-option value="establishment">会社名2</mat-option>
-                    <mat-option value="establishment">会社名3</mat-option>
-                </mat-select>
-            </mat-form-field>
-            <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
                 <mat-label>メールアドレス</mat-label>
                 <input 
                     matInput 
                     type="email" 
                     placeholder="sample@example.com" 
+                    [(ngModel)]="email"
+                    #emailRef="ngModel"
                     name="email" 
                     autocomplete="username" 
                     required
+                    pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
                 />
+                @if(emailRef.invalid && (emailRef.touched || emailRef.dirty)){
+                    @if(emailRef.errors?.['required']){
+                        <p class="error-message">メールアドレスは必須です</p>
+                    }
+                    @if(emailRef.errors?.['pattern']){
+                        <p class="error-message">メールアドレスを正しく入力して下さい</p>
+                    }
+                }
             </mat-form-field>
             <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
                 <mat-label>パスワード</mat-label>
@@ -30,14 +30,39 @@
                     matInput 
                     type="password" 
                     placeholder="********" 
+                    [(ngModel)]="password"
+                    #passwordRef="ngModel"
                     name="password" 
                     autocomplete="current-password" 
                     required
+                    pattern="[A-Za-z\d@$!%*?&]{8,}$"
                 />
+                @if(passwordRef.invalid && (passwordRef.touched || passwordRef.dirty)){
+                    @if(passwordRef.errors?.['required']){
+                        <p class="error-message">パスワードは必須です</p>
+                    }
+                    @if(passwordRef.errors?.['pattern']){
+                        <p class="error-message">パスワードは8文字以上で入力してください</p>
+                    }
+                }
             </mat-form-field>
         </div>
         <div class="button-container">
-            <button mat-flat-button color="primary" class="signin-button" type='submit'>ログイン</button>
+            <button 
+                mat-flat-button 
+                color="primary" 
+                class="signin-button" 
+                [class.busy]="submitBusy"
+                type='submit'
+                [disabled]="emailRef.invalid || passwordRef.invalid || submitBusy"
+                (click)="signIn()"
+            >
+                @if(submitBusy) {
+                    <mat-spinner diameter="24" strokeWidth="3"></mat-spinner>
+                } @else {
+                    ログイン
+                }
+            </button>
         </div>
     </div>
 </div>
