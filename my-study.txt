@@ -64,24 +64,94 @@
 3ヶ月とも11日未満	以前決定した標準報酬月額を継続
 
 
-establishments (collection)  <-- 登録会社（事業所）
-  └ {establishmentId} (document)
-      ├ profile: { 名前, 所在地, 加入組合... }
-      ├ settings: { 徴収時期, 端数処理ルール... }
-      │
-      ├ rates (sub-collection) <-- その会社が使う保険料率マスタ
-      │   └ {yearMonth}: { healthRate, pensionRate... }
-      │
-      ├ employees (sub-collection) <-- 従業員マスタ
-      │   └ {employeeId} (document)
-      │       ├ profile: { 名前, 生年月日, 入社日... }
-      │       │
-      │       └ payrolls (sub-collection) <-- 給与・保険料計算履歴
-      │           └ {yearMonth}: { basePay, overtimePay, socialInsurance... }
-      │
-      └ requests (sub-collection) <-- 申請データ（扶養追加、異議申し立て等）
-          └ {requestId}: { type, status, content... }
 
-
-smartHR
-ジョブカン
+/ (root)
+│
+├── system_constants (collection) <-- 🌟追加：全国一律の法廷マスタ（全社共通）
+│     └ laws_{yyyymm} (document): {
+│         "employmentInsurance": { "workerRate": 0.006, "employerRate": 0.0095 },
+│         "standardRemunerationTable": [ { "grade": 1, "rangeMin": 0, "rangeMax": 63000, "baseAmount": 58000 }, ... ]
+│       }
+│
+├── unions (collection) <-- 🌟追加：加入組合マスタ（表記揺れ防止）
+│     └ {unionId} (document): { "name": "〇〇関東IT健康保険組合", "code": "01234567" }
+│
+├── accounts (collection)
+│     └ {userId} (document): {
+│         "email": "user@example.com",
+│         "currentEstablishmentId": "est_999", <-- 🌟追加：現在表示中の事業所ID
+│         "lastview": "2026-05-19...",
+│         "personalSettings": { ... }
+│       }
+│
+├── affiliations (collection)
+│     └ {userId_establishmentId} (document): {
+│         "role": "admin",
+│         "permissions": ["payroll:write", "employee:read"], <-- 🌟追加：詳細な権限配列
+│         "status": "active",                               <-- 🌟追加：所属ステータス
+│         "displayName": "山田 管理者"
+│       }
+│
+└── establishments (collection) <-- 登録会社（事業所）
+      └ {establishmentId} (document): {
+          "name": "株式会社サンプル",
+          "location": "東京都千代田区...",
+          "unionId": "union_123", <-- 🌟変更：文字列ではなく組合マスタのIDで紐付け
+          "settings": {
+            "collectionTiming": "current_month", // 当月徴収 or 翌月徴収
+            "roundingRule": "ROUND_DOWN"         // 端数処理ルール
+          }
+        }
+          │
+          ├── insurance rates (sub-collection) <-- その会社固有の保険料率マスタ
+          │     └ {rateId} (document): {
+          │         "appliedAt": "2026-04-01",
+          │         "healthRate": 0.05,
+          │         "pensionRate": 0.0915
+          │       }
+          │
+          ├── employees (sub-collection) <-- 従業員マスタ
+          │     └ {employeeId} (document): {
+          │         "uId": "userId_123", // accountsのuserId（紐付いている場合）
+          │         "name": "田中 太郎",
+          │         "birthDate": "1990-01-01",
+          │         "hireDate": "2024-04-01",
+          │         "employmentType": "full_time",       <-- 🌟追加：雇用形態（正社員/パート等）
+          │         "dependentsCount": 1,                <-- 🌟追加：扶養人数（所得税計算用）
+          │         "residenceTax": 12500,               <-- 🌟追加：住民税（個人毎に毎月異なる）
+          │         "bankAccount": {                     <-- 🌟追加：振込口座情報（FBデータ出力用）
+          │           "bankCode": "0001", "branchCode": "101", "accountNumber": "1234567", "holderName": "ﾀﾅｶ ﾀﾛｳ"
+          │         }
+          │       }
+          │
+          ├── payrolls (sub-collection) <-- 給与・保険料計算履歴
+          │     └ {yyyymm} (document): {
+          │         "status": "LOCK",                    <-- 🌟追加：月次ステータス（OPEN/LOCK/APPROVED）
+          │         "totalEarnings": 15200000,           <-- 🌟追加：その月の事業所総支給額（ダッシュボード用）
+          │         "totalDeductions": 3400000,          <-- 🌟追加：その月の事業所総控除額
+          │         "updatedAt": "2026-05-19...",
+          │         "updatedBy": "userId_555"
+          │       }
+          │         │
+          │         └ items (sub-collection)
+          │             └ {employeeId} (document): {
+          │                 "employeeName": "田中 太郎",  <-- 🌟重複保持：当時の氏名スナップショット
+          │                 "attendance": {              <-- 🌟重複保持：計算の根拠となった変動勤怠
+          │                   "workDays": 20, "overtimeHours": 10.5
+          │                 },
+          │                 "snapshotRules": {           <-- 🌟重複保持：計算時点のマスター単価・各種料率
+          │                   "baseSalary": 300000,
+          │                   "healthInsuranceRate": 0.05,
+          │                   "pensionInsuranceRate": 0.0915,
+          │                   "roundingRule": "ROUND_DOWN"
+          │                 },
+          │                 "earnings": { "basePay": 300000, "overtimePay": 22000, "total": 322000 },
+          │                 "deductions": { "healthInsurance": 15000, "pension": 27450, "total": 42450 },
+          │                 "netPay": 279550
+          │               }
+          │
+          ├── invites (sub-collection)
+          │     └ {inviteId} (document): { "email": "new-emp@example.com", "token": "xxx", "invitedBy": "uid", "invitedAt": "..." }
+          │
+          └── requests (sub-collection) <-- 申請データ
+                └ {requestId} (document): { "type": "dependent_add", "status": "pending", "content": { ... } }
