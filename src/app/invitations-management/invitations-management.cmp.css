@@ -1,0 +1,62 @@
+:host {
+  display: block;
+}
+
+.invitations-management {
+  padding: 20px;
+}
+
+.invitation-button-container {
+  width: 100%;
+  padding: 20px;
+  background-color: white;
+  box-sizing: border-box;
+  box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+.invitation-form-container {
+  margin-top: 10px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.invitation-form-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.invitation-form-item {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.invitation-action-buttons {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-height: 56px;
+}
+
+.invitation-form-field {
+  width: 400px;
+}
+
+.invitation-list-item {
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.invitation-list-container {
+  margin-top: 10px;
+  width: 100%;
+  padding: 20px;
+  background-color: white;
+  box-sizing: border-box;
+  box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}

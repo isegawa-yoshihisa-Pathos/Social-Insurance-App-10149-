@@ -1,25 +1,16 @@
-import { Injectable, inject, EnvironmentInjector, runInInjectionContext } from '@angular/core';
-import { Firestore, collection, where, getDocs, query } from '@angular/fire/firestore';
+import { Injectable, inject } from '@angular/core';
+import { Firestore, getDoc, updateDoc, doc, serverTimestamp, getDocs, query, collection, where } from '@angular/fire/firestore';
 import { BehaviorSubject, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
-
-export interface UserAffiliation {
-  id: string;
-  uid: string;
-  eid: string;
-  establishmentName: string;
-  role: string;
-  joinedAt: Date;
-}
+import { AffiliationDocument, AccountDocument } from './document-interfaces';
 
 @Injectable({
   providedIn: 'root',
 })
 export class CurrentEstablishmentService {
   private readonly firestore = inject(Firestore);
-  private readonly injector = inject(EnvironmentInjector);
   
-  private affiliations = new BehaviorSubject<UserAffiliation[]>([]);
+  private affiliations = new BehaviorSubject<AffiliationDocument[]>([]);
   private currentEid = new BehaviorSubject<string | null>(null);
   private loading = new BehaviorSubject<boolean>(false);
 
@@ -36,34 +27,69 @@ export class CurrentEstablishmentService {
     )
   );
 
-  async fetchAffiliations(uid: string): Promise<UserAffiliation[]> {
-    return runInInjectionContext(this.injector, async () => {
-      const affiliationsRef = collection(this.firestore, 'affiliations');
-      const q = query(affiliationsRef, where('uid', '==', uid));
-      const snapshot = await getDocs(q);
-      const affiliations = snapshot.docs.map(
-        (doc) => ({ id: doc.id, ...doc.data() } as UserAffiliation),
+  async initialize(uid: string): Promise<void> {
+    this.loading.next(true);
+
+    try {
+      const accountSnap = await getDoc(doc(this.firestore, 'accounts', uid));
+      if (!accountSnap.exists()) {
+        throw new Error('アカウントが見つかりません。');
+      }
+      const accountData = accountSnap.data() as AccountDocument;
+
+      const affilationsSnap = await getDocs(
+        query(
+          collection(this.firestore, 'affiliations'),
+          where('uid', '==', uid),
+          where('status', '==', 'active'),
+        ),
       );
+
+      const affiliations = affilationsSnap.docs.map(
+        (doc) => ({ ...doc.data() }) as AffiliationDocument,
+      );
+
       this.affiliations.next(affiliations);
-      return affiliations;
-    });
-  }
 
-  resolveDefaultEid(affiliations: UserAffiliation[]): string | null {
-    const savedEid = localStorage.getItem('stored_eid');
-    const hasSavedEid = affiliations.some(aff => aff.eid === savedEid);
-    if (savedEid && hasSavedEid) {
-      return savedEid;
+      const savedEid = accountData.currentEstablishmentId;
+      const validEid = affiliations.some((aff) => aff.eid === savedEid)
+        ? savedEid
+        : affiliations.length > 0
+          ? affiliations[0].eid
+          : null;
+
+      this.currentEid.next(validEid);
+
+      if(validEid && validEid !== savedEid) {
+        await updateDoc(doc(this.firestore, 'accounts', uid), {
+          currentEstablishmentId: validEid,
+          lastView: serverTimestamp(),
+        });
+      }
+    } catch (error) {
+      throw error;
+    } finally {
+      this.loading.next(false);
     }
-    return affiliations.length > 0 ? affiliations[0].eid : null;
   }
 
-  setEstablishment(eid: string): void {
+  async setEstablishment(uid: string, eid: string): Promise<void> {
+    const affiliation = this.affiliations.value.find(
+      (aff) => aff.uid === uid && aff.eid === eid && aff.status === 'active',
+    );
+    if (!affiliation) {
+      throw new Error('この事業所への所属が見つかりません。');
+    }
+
+    await updateDoc(doc(this.firestore, 'accounts', uid), {
+      currentEstablishmentId: eid,
+      lastView: serverTimestamp(),
+    });
+
     this.currentEid.next(eid);
-    localStorage.setItem('stored_eid', eid);
   }
 
-  getAffiliations(): UserAffiliation[] {
+  getAffiliations(): AffiliationDocument[] {
     return this.affiliations.value;
   }
 
@@ -71,7 +97,7 @@ export class CurrentEstablishmentService {
     return this.currentEid.value;
   }
 
-  getCurrentAffiliation(): UserAffiliation | null {
+  getCurrentAffiliation(): AffiliationDocument | null {
     const eid = this.getEstablishment();
     if (!eid) return null;
     return this.affiliations.value.find(aff => aff.eid === eid) || null;

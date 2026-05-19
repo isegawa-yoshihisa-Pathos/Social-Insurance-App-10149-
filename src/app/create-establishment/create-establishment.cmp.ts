@@ -89,8 +89,15 @@ export class CreateEstablishmentCmp implements OnInit {
   }
 
   getAddress(zipcode: string): void {
-    this.establishmentsDataService.getAddress(zipcode).then(address => {
-      this.address.address1 = address;
+    this.establishmentsDataService.getAddress(zipcode).then((address) => {
+      this.address = {
+        ...this.address,
+        address1: address,
+      };
+    }).catch((error) => {
+      this.dialog.open(ErrorDialogCmp, {
+        data: { message: mapFirebaseError(error) },
+      });
     });
   }
 
@@ -125,24 +132,17 @@ export class CreateEstablishmentCmp implements OnInit {
         corporateNumber: this.corporateNumber,
       };
       const result = await this.functionsService.registerAdminAndEstablishment(payload);
-      const { uid, email, password, eid } = result.data as {
+      const { uid, email, password } = result.data as {
         uid: string;
         email: string;
         password: string;
-        eid: string;
       };
       await this.authService.signIn(email, password);
       await this.auth.currentUser?.getIdToken(true);
-      this.currentEstablishmentService.setEstablishment(eid);
-      try {
-        await this.currentEstablishmentService.fetchAffiliations(uid);
-      } catch (fetchError) {
-        this.dialog.open(ErrorDialogCmp, {
-          data: { message: mapFirebaseError(fetchError) },
-        });
-      }
+      await this.currentEstablishmentService.initialize(uid);
+      
       this.sharedDataService.clearSignupData();
-      this.routesService.redirectToMainPage(eid);
+      this.routesService.redirectToMainPage();
     } catch (error) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: mapFirebaseError(error) },

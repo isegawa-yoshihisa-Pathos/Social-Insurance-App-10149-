@@ -1,6 +1,5 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
 import { Auth } from '@angular/fire/auth';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -43,9 +42,8 @@ import {
 })
 export class SettingEstablishmentCmp implements OnInit {
   private readonly establishmentsDataService = inject(EstablishmentsDataService);
-  private readonly currentEstablishmentService = inject(CurrentEstablishmentService);
+  private readonly currentEstService = inject(CurrentEstablishmentService);
   private readonly routesService = inject(RoutesService);
-  private readonly route = inject(ActivatedRoute);
   private readonly dialog = inject(MatDialog);
   private readonly auth = inject(Auth);
 
@@ -55,10 +53,19 @@ export class SettingEstablishmentCmp implements OnInit {
 
   form: EstablishmentFormData = createEmptyEstablishmentForm();
 
+  get displayZipcode(): string {
+    if (this.form.zipcode.length > 3) {
+      return `${this.form.zipcode.slice(0, 3)}-${this.form.zipcode.slice(3)}`;
+    }
+    return this.form.zipcode;
+  }
+
+  set displayZipcode(value: string) {
+    this.form.zipcode = value.replace(/[^\d]/g, '');
+  }
+
   async ngOnInit(): Promise<void> {
-    const eid =
-      this.route.snapshot.queryParams['eid'] ||
-      this.currentEstablishmentService.getEstablishment();
+    const eid = this.currentEstService.getEstablishment();
 
     if (!eid) {
       this.routesService.redirectToHome();
@@ -110,8 +117,8 @@ export class SettingEstablishmentCmp implements OnInit {
 
     try {
       this.submitBusy = true;
-      await this.establishmentsDataService.saveEstablishment(this.eid, uid, payload);
-      await this.currentEstablishmentService.fetchAffiliations(uid);
+      await this.establishmentsDataService.saveEstablishment(this.eid, payload);
+      await this.currentEstService.initialize(uid);
     } catch (error) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: mapFirebaseError(error) },

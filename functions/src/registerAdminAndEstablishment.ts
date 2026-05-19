@@ -24,22 +24,22 @@ export const registerAdminAndEstablishment = onCall({
         const userRecord = await admin.auth().createUser({
             email,
             password,
-            displayName: name,
         });
 
         const uid = userRecord.uid;
 
         const db = admin.firestore();
 
-        const userRef = await db.collection('users').doc(uid);
+        const accountRef = db.collection('accounts').doc(uid);
         const establishmentRef = db.collection('establishments').doc();
         const eid = establishmentRef.id;
 
         const batch = db.batch();
 
-        batch.set(userRef, {
-            name,
+        batch.set(accountRef, {
             email,
+            currentEstablishmentId: eid,
+            lastView: admin.firestore.FieldValue.serverTimestamp(),
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
@@ -51,22 +51,21 @@ export const registerAdminAndEstablishment = onCall({
             phoneNumber,
             corporateNumber,
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
         const affiliationRef = db.collection('affiliations').doc(`${uid}_${eid}`);
         batch.set(affiliationRef, {
             uid,
             eid,
+            displayName:name,
             establishmentName,
             role: 'admin',
+            status: 'active',
             joinedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
         await batch.commit();
-
-        await admin.auth().setCustomUserClaims(uid, {
-            role: 'admin',
-        });
 
         return { success: true, uid, email, password, eid };
     } catch (error) {

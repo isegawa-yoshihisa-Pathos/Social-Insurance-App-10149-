@@ -25,27 +25,23 @@ export class RoutesService {
     void this.router.navigate(['/create-establishment']);
   }
 
-  redirectToMainPage(eid: string): void {
-    void this.router.navigate(['/main-page'], {
-      queryParams: {
-        eid: eid,
-      },
-    });
+  redirectToMainPage(): void {
+    void this.router.navigate(['/main-page']);
+  }
+
+  redirectToTaskBoard(): void {
+    void this.router.navigate(['/task-board']);
   }
 
   redirectToSettingEstablishment(): void {
-    void this.router.navigate(['/setting-establishment'], {
-      queryParams: {
-        eid: this.currentEstService.getEstablishment() || '',
-      },
-    });
+    void this.router.navigate(['/setting-establishment']);
   }
 
-  redirectToSettingEmployees(): void {
-    void this.router.navigate(['setting-employees'], {
-      queryParams: {
-        eid: this.currentEstService.getEstablishment() || '',
-      },
-    });
+  redirectToEmployeesManagement(): void {
+    void this.router.navigate(['/employees-management']);
+  }
+
+  redirectToInvitationsManagement(): void {
+    void this.router.navigate(['/invitations-management']);
   }
 }

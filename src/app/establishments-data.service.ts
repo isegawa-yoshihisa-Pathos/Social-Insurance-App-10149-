@@ -44,7 +44,6 @@ export class EstablishmentsDataService {
 
   async saveEstablishment(
     eid: string,
-    uid: string,
     data: EstablishmentSavePayload,
   ): Promise<void> {
     return runInInjectionContext(this.injector, async () => {
@@ -52,11 +51,6 @@ export class EstablishmentsDataService {
       await updateDoc(establishmentRef, {
         ...data,
         updatedAt: serverTimestamp(),
-      });
-
-      const affiliationRef = doc(this.firestore, 'affiliations', `${uid}_${eid}`);
-      await updateDoc(affiliationRef, {
-        establishmentName: data.establishmentName,
       });
     });
   }

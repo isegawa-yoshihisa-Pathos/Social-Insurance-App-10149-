@@ -1,0 +1,82 @@
+<mat-tab-group>
+    <mat-tab label="招待管理">
+        <div class="invitations-management">
+            <div class="invitation-button-container">
+                <div class="content-text">
+                    招待する方のメールアドレスを入力してください。
+                    <br>
+                    一括で招待する際は「招待を追加」ボタンを押してください。
+                    <br>
+                    または、CSVファイルをアップロードしてください。
+                </div>
+                <div class="invitation-form-container">
+                    <div class="invitation-form-list">
+                        @for (email of invitationEmails; track $index) {
+                            <div class="invitation-form-item">
+                                <mat-form-field appearance="outline" class="invitation-form-field" subscriptSizing="dynamic">
+                                    <mat-label>メールアドレス</mat-label>
+                                    <input 
+                                        matInput 
+                                        type="email" 
+                                        placeholder="メールアドレス" 
+                                        [(ngModel)]="invitationEmails[$index]"
+                                        #invitationEmailRef="ngModel"
+                                        name="'email' + $index"
+                                        pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+                                    />
+                                    @if(invitationEmailRef.invalid && (invitationEmailRef.touched || invitationEmailRef.dirty)){
+                                        @if(invitationEmailRef.errors?.['pattern']){
+                                            <p class="error-message">メールアドレスは有効な形式ではありません</p>
+                                        }
+                                    }
+                                </mat-form-field>
+                                @if ($index > 0) {
+                                    <button 
+                                        mat-icon-button
+                                        class="delete-invitation-email-button"
+                                        (click)="deleteInvitationEmail($index)">
+                                        <mat-icon>delete</mat-icon>
+                                    </button>
+                                }
+                            </div>
+                        }
+                    </div>
+                    <div class="invitation-action-buttons">
+                        <input
+                            #csvFileInput
+                            type="file"
+                            accept=".csv,text/csv"
+                            hidden
+                            (change)="attachFile($event)">
+                        <button 
+                            mat-icon-button 
+                            type="button"
+                            class="import-invitation-emails-button" 
+                            (click)="csvFileInput.click()">
+                            <mat-icon>attach_file</mat-icon>
+                        </button>
+                        <button matButton="outlined" class="add-invitation-email-button" (click)="addInvitationEmail()">
+                            <span>招待を追加</span>
+                            <mat-icon>add</mat-icon>
+                        </button>
+                        <button mat-flat-button class="send-invitation-button" (click)="sendInvitation()">
+                            <span>招待リンクを送信する</span>
+                            <mat-icon>send</mat-icon>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="invitation-list-container">
+                @for (invitation of invitations; track invitation.id) {
+                    <mat-list-item>
+                        <p>{{ invitation.email }}</p>
+                    </mat-list-item>
+                }
+            </div>
+        </div>
+    </mat-tab>
+    <mat-tab label="設定">
+        <p>設定</p>
+    </mat-tab>
+</mat-tab-group>
+

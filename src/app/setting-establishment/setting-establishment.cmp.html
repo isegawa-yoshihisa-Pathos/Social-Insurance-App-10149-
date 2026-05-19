@@ -32,7 +32,7 @@
                                 type="text" 
                                 placeholder="（例）100-0001" 
                                 #zipcodeRef="ngModel"
-                                [(ngModel)]="form.zipcode"
+                                [(ngModel)]="displayZipcode"
                                 maxlength="8"
                                 name="zipcode"
                                 required
@@ -43,7 +43,7 @@
                                 }
                             }
                         </mat-form-field>
-                        <button class="autofill-button" (click)="getAddress(form.zipcode)">
+                        <button matButton="outlined" class="autofill-button" (click)="getAddress(displayZipcode)">
                             <span>住所自動入力</span>
                         </button>
                     </div>
@@ -93,7 +93,7 @@
                                 #ownerNameRef="ngModel"
                                 name="ownerName" 
                                 required
-                                pattern="^[ぁ-んァ-ン一-龥]+\s+[ぁ-んァ-ン一-龥]+$"
+                                pattern="^[a-zA-Zぁ-んァ-ン一-龥]+\s+[a-zA-Zぁ-んァ-ン一-龥]+$"
                             />
                             @if(ownerNameRef.invalid && (ownerNameRef.touched || ownerNameRef.dirty)){
                                 @if(ownerNameRef.errors?.['required']){
@@ -242,6 +242,14 @@
                                 name="closingDay" 
                                 pattern="^(末日|[0-9]{1,2}日)$"
                             />
+                            @if(closingDayRef.invalid && (closingDayRef.touched || closingDayRef.dirty)){
+                                @if(closingDayRef.errors?.['required']){
+                                    <p class="error-message">給与締め日は必須です</p>
+                                }
+                                @if(closingDayRef.errors?.['pattern']){
+                                    <p class="error-message">「日」を含めて入力してください</p>
+                                }
+                            }
                         </mat-form-field>
                         <div class="comment-text">※月末締めの場合は「末日」と入力してください</div>
                     </div>
@@ -258,6 +266,14 @@
                                 name="payday" 
                                 pattern="^(末日|[0-9]{1,2}日)$"
                             />
+                            @if(paydayRef.invalid && (paydayRef.touched || paydayRef.dirty)){
+                                @if(paydayRef.errors?.['required']){
+                                    <p class="error-message">給与支給日は必須です</p>
+                                }
+                                @if(paydayRef.errors?.['pattern']){
+                                    <p class="error-message">「日」を含めて入力してください</p>
+                                }
+                            }
                         </mat-form-field>
                         <div class="comment-text">※月末締めの場合は「末日」と入力してください</div>
                     </div>

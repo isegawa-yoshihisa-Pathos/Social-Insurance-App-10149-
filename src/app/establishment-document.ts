@@ -15,14 +15,14 @@ export interface SocialInsuranceSettings {
   socialInsuranceCollectionMonth: string,
   specificInsuranceCollectionType: string,
 
-  healthInsuranceRate: string,
-  healthInsuranceIndividualRate: string,
+  healthInsuranceRate: number|null,
+  healthInsuranceIndividualRate: number|null,
 
-  careInsuranceRate: string,
-  careInsuranceIndividualRate: string,
+  careInsuranceRate: number|null,
+  careInsuranceIndividualRate: number|null,
 
-  pensionInsuranceRate: string,
-  pensionInsuranceIndividualRate: string,
+  pensionInsuranceRate: number|null,
+  pensionInsuranceIndividualRate: number|null,
 }
 
 

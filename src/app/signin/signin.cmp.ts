@@ -37,7 +37,8 @@ export class SigninCmp {
       const uid = await this.authService.signIn(this.email, this.password);
       if (!uid) return;
       await this.auth.currentUser?.getIdToken(true);
-      const affiliations = await this.currentEstablishmentService.fetchAffiliations(uid);
+      await this.currentEstablishmentService.initialize(uid);
+      const affiliations = this.currentEstablishmentService.getAffiliations();
       if (affiliations.length === 0) {
         this.dialog.open(ErrorDialogCmp, {
           data: { message: '所属事業所が見つかりません' },
@@ -46,8 +47,8 @@ export class SigninCmp {
       }
       if (affiliations.length > 0) {
         const eid = affiliations[0].eid;
-        this.currentEstablishmentService.setEstablishment(eid);
-        this.routesService.redirectToMainPage(eid);
+        await this.currentEstablishmentService.setEstablishment(uid, eid);
+        this.routesService.redirectToMainPage();
         return;
       }
     } catch (error) {

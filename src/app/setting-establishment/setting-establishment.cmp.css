@@ -55,9 +55,9 @@
 }
 
 .autofill-button {
-  align-self: center;
-  height: 28px;
-  white-space: nowrap;
+  width: fit-content;
+  min-width: max-content;
+  justify-self: start;
 }
 
 .comment-text {
@@ -65,6 +65,12 @@
   color: #666;
   align-self: center;
   grid-column: 3 / -1;
+}
+
+.comment-text.grid-full-width {
+  text-align: center;
+  font-size: 16px;
+  color: #000;
 }
 
 .grid-full-width {

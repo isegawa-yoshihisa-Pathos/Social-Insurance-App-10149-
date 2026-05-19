@@ -39,12 +39,12 @@ import {
       pensionInsuranceEstablishmentRecordNumber: '',
       socialInsuranceCollectionMonth: 'nextMonth',
       specificInsuranceCollectionType: 'false',
-      healthInsuranceRate: '',
-      healthInsuranceIndividualRate: '',
-      careInsuranceRate: '',
-      careInsuranceIndividualRate: '',
-      pensionInsuranceRate: '',
-      pensionInsuranceIndividualRate: '',
+      healthInsuranceRate: null,
+      healthInsuranceIndividualRate: null,
+      careInsuranceRate: null,
+      careInsuranceIndividualRate: null,
+      pensionInsuranceRate: null,
+      pensionInsuranceIndividualRate: null,
     };
   }
   

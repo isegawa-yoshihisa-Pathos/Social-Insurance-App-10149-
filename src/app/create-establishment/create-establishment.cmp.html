@@ -92,7 +92,7 @@
                         #ownerNameRef="ngModel"
                         name="ownerName" 
                         required
-                        pattern="^[ぁ-んァ-ン一-龥]+\s+[ぁ-んァ-ン一-龥]+$"
+                        pattern="^[a-zA-Zぁ-んァ-ン一-龥]+\s+[a-zA-Zぁ-んァ-ン一-龥]+$"
                     />
                     @if(ownerNameRef.invalid && (ownerNameRef.touched || ownerNameRef.dirty)){
                         @if(ownerNameRef.errors?.['required']){

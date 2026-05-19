@@ -37,7 +37,7 @@ export class AppHeaderCmp implements OnInit {
     authState(this.auth).pipe(filter(Boolean), take(1)).subscribe(async (user) => {
       await user.getIdToken(true);
       if (this.currentEstService.getAffiliations().length === 0) {
-        await this.currentEstService.fetchAffiliations(user.uid);
+        await this.currentEstService.initialize(user.uid);
       }
       if (this.currentAffiliation() === null) {
         this.routesService.redirectToHome();
@@ -45,9 +45,14 @@ export class AppHeaderCmp implements OnInit {
     });
   }
 
-  switchEstablishment(eid: string): void {
-    this.currentEstService.setEstablishment(eid);
-    this.routesService.redirectToMainPage(eid);
+  async switchEstablishment(eid: string): Promise<void> {
+    const user = this.auth.currentUser;
+    if (!user) {
+      this.routesService.redirectToHome();
+      return;
+    }
+    await this.currentEstService.setEstablishment(user.uid, eid);
+    this.routesService.redirectToMainPage();
   }
 
   signOut(): void {
@@ -57,7 +62,7 @@ export class AppHeaderCmp implements OnInit {
 
   navigateToHome(): void {
     if (this.auth.currentUser) {
-      this.routesService.redirectToMainPage(this.currentEstService.getEstablishment() || '');
+      this.routesService.redirectToMainPage();
     } else {
       this.routesService.redirectToHome();
     }
