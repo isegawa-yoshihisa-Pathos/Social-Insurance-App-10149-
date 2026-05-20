@@ -1,7 +1,9 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 
-admin.initializeApp();
+if (!admin.apps.length) {
+    admin.initializeApp();
+}
 
 export function getErrorCode(error: unknown): string | undefined {
     if (error && typeof error === 'object' && 'code' in error) {
@@ -52,6 +54,13 @@ export const registerAdminAndEstablishment = onCall({
             corporateNumber,
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        const invitationSettingRef = db.collection('establishments').doc(eid).collection('settings').doc('invitationSetting');
+        batch.set(invitationSettingRef, {
+            templateText: '',
+            nameHeaders: ['名前', '氏名', 'name'],
+            emailHeaders: ['メールアドレス', 'メール', 'email', 'mail'],
         });
 
         const affiliationRef = db.collection('affiliations').doc(`${uid}_${eid}`);

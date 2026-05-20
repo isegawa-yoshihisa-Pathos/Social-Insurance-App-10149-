@@ -155,3 +155,23 @@
           │
           └── requests (sub-collection) <-- 申請データ
                 └ {requestId} (document): { "type": "dependent_add", "status": "pending", "content": { ... } }
+
+
+
+
+招待リンク先は必要です。今 Functions はこのURLを作っています。
+
+const inviteLink = `${frontendUrl}/invitation?token=${encodeURIComponent(rawToken)}`;
+なので Angular 側にこのルートが必要です。
+
+{ path: 'invitation', component: InvitationAcceptCmp }
+この画面でやることは：
+
+URLの token を読む
+token を Functions に渡す
+Functions 側で tokenHash を照合
+期限切れ・使用済みを確認
+未ログインならサインアップ/ログインへ誘導
+承認後に affiliations/{uid}_{eid} を作る
+invitation を accepted に更新
+つまり、次に作るべきは 送信ボタンから sendInvitationMail を呼ぶ処理、その次に /invitation?token=... の受け入れ画面と承認Functions です。

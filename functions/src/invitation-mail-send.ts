@@ -1,0 +1,197 @@
+import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import * as admin from 'firebase-admin';
+import { Resend } from 'resend';
+import { createHash, randomUUID } from 'crypto';
+
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
+
+let resend: Resend;
+
+interface SendInvitationInput {
+  eid: string;
+  email: string;
+  name: string;
+  role: 'admin' | 'member';
+  templateText: string;
+}
+
+export const sendInvitationMail = onCall<SendInvitationInput>(
+  {
+    region: 'asia-northeast1',
+    cors: true,
+    secrets: ['RESEND_API_KEY'],
+  },
+  async (request) => {
+    const uid = request.auth?.uid;
+    const adminEmail = request.auth?.token.email as string | undefined;
+
+    if (!uid || !adminEmail) {
+      throw new HttpsError('unauthenticated', 'ログインが必要です。');
+    }
+
+    const { eid, email, name, role, templateText } = request.data;
+
+    if (!eid || !email || !name || !templateText) {
+      throw new HttpsError('invalid-argument', '必要なパラメータが不足しています。');
+    }
+
+    if (!isValidEmail(email)) {
+      throw new HttpsError('invalid-argument', 'メールアドレスの形式が正しくありません。');
+    }
+
+    if (role !== 'admin' && role !== 'member') {
+      throw new HttpsError('invalid-argument', '権限が正しくありません。');
+    }
+
+    if (!resend) {
+      resend = new Resend(process.env.RESEND_API_KEY);
+    }
+
+    const frontendUrl = process.env.FRONTEND_URL;
+    if (!frontendUrl) {
+      throw new HttpsError('failed-precondition', 'FRONTEND_URL が設定されていません。');
+    }
+
+    const db = admin.firestore();
+
+    const affiliationSnap = await db
+      .collection('affiliations')
+      .doc(`${uid}_${eid}`)
+      .get();
+
+    if (!affiliationSnap.exists) {
+      throw new HttpsError('permission-denied', 'この事業所への所属がありません。');
+    }
+
+    const affiliation = affiliationSnap.data();
+
+    if (affiliation?.role !== 'admin' || affiliation?.status !== 'active') {
+      throw new HttpsError('permission-denied', '管理者権限が必要です。');
+    }
+
+    const establishmentSnap = await db.collection('establishments').doc(eid).get();
+
+    if (!establishmentSnap.exists) {
+      throw new HttpsError('not-found', '事業所が見つかりません。');
+    }
+
+    const establishment = establishmentSnap.data();
+    const establishmentName = String(establishment?.establishmentName ?? '');
+
+    if (!establishmentName) {
+      throw new HttpsError('failed-precondition', '事業所名が設定されていません。');
+    }
+
+    const rawToken = randomUUID();
+    const tokenHash = hashToken(rawToken);
+    const inviteLink = `${frontendUrl}/invitation?token=${encodeURIComponent(rawToken)}`;
+    const expiresAt = admin.firestore.Timestamp.fromMillis(
+      Date.now() + 24 * 60 * 60 * 1000,
+    );
+
+    const inviteRef = db
+      .collection('establishments')
+      .doc(eid)
+      .collection('invitations')
+      .doc();
+
+    await inviteRef.set({
+      email,
+      name,
+      tokenHash,
+      status: 'pending',
+      role,
+      invitedBy: uid,
+      invitedByEmail: adminEmail,
+      establishmentId: eid,
+      establishmentName,
+      expiresAt,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    try {
+      const editableBody = renderTemplate(templateText, {
+        name,
+        email,
+        establishmentName,
+        adminEmail,
+      });
+
+      const html = `
+        <div style="font-family: Arial, sans-serif; color: #333;">
+          ${escapeAndConvertNewlines(editableBody)}
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${escapeHtml(inviteLink)}" style="background-color: #3f51b5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px;">
+              アカウント初期設定を行う
+            </a>
+          </div>
+
+          <p style="font-size: 12px; color: #666;">
+            ※このリンクの有効期限は24時間です。<br>
+            ※このメールに心当たりがない場合は、このメールを破棄してください。<br>
+            ※ご不明な点がある場合は、管理者（${escapeHtml(adminEmail)}）へお問い合わせください。
+          </p>
+        </div>
+      `;
+
+      const result = await resend.emails.send({
+        from: '縄文 社会保険アプリ <no-reply@your-domain.com>',
+        to: [email],
+        replyTo: adminEmail,
+        subject: `【重要】${establishmentName} から社会保険管理システムへの招待`,
+        html,
+      });
+
+      await inviteRef.update({
+        status: 'sent',
+        sentAt: admin.firestore.FieldValue.serverTimestamp(),
+        resendMessageId: result.data?.id ?? null,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      return {
+        success: true,
+        inviteId: inviteRef.id,
+        messageId: result.data?.id ?? null,
+      };
+    } catch (error: any) {
+      await inviteRef.update({
+        status: 'failed',
+        errorMessage: error?.message ?? 'メール送信に失敗しました。',
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      console.error('Resend Mail Error:', error);
+      throw new HttpsError('internal', 'メールの送信に失敗しました。');
+    }
+  },
+);
+
+function renderTemplate(template: string, values: Record<string, string>): string {
+  return template.replace(/\{(\w+)\}/g, (_, key) => values[key] ?? '');
+}
+
+function escapeAndConvertNewlines(text: string): string {
+  return escapeHtml(text).replace(/\n/g, '<br>');
+}
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
+
+function isValidEmail(email: string): boolean {
+  return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email);
+}

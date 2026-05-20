@@ -87,19 +87,16 @@
                     <input 
                         matInput 
                         type="text" 
-                        placeholder="（例）山田　太郎" 
+                        placeholder="（例）山田太郎" 
                         [(ngModel)]="ownerName"
                         #ownerNameRef="ngModel"
                         name="ownerName" 
                         required
-                        pattern="^[a-zA-Zぁ-んァ-ン一-龥]+\s+[a-zA-Zぁ-んァ-ン一-龥]+$"
+                        pattern="^[a-zA-Zぁ-んァ-ン一-龥\s]+$"
                     />
                     @if(ownerNameRef.invalid && (ownerNameRef.touched || ownerNameRef.dirty)){
                         @if(ownerNameRef.errors?.['required']){
                             <p class="error-message">事業主（代表者）氏名は必須です</p>
-                        }
-                        @if(ownerNameRef.errors?.['pattern']){
-                            <p class="error-message">姓と名の間にスペースを入力してください</p>
                         }
                     }
                 </mat-form-field>

@@ -2,6 +2,12 @@
   display: block;
 }
 
+.content-text {
+  font-size: 14px;
+  color: #666;
+  display: flex;
+}
+
 .invitations-management {
   padding: 20px;
 }
@@ -42,8 +48,12 @@
   min-height: 56px;
 }
 
+.delete-invitation-email-button {
+  color: #bb1e1b
+}
+
 .invitation-form-field {
-  width: 400px;
+  width: 280px;
 }
 
 .invitation-list-item {

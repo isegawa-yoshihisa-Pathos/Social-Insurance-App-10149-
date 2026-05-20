@@ -1,0 +1,97 @@
+<div class="invitation-setting">
+    <div class="invitation-setting-content">
+        <div class="invitation-setting-label">
+            メール設定
+        </div>
+        <div class="invitation-mail-setting">
+            <div class="invitation-mail-setting-content">
+                テンプレートのメール内容を入力してください。
+            </div>
+            
+            <div class="mail-textarea-container">
+                <mat-form-field appearance="outline" class="mail-textarea-field">
+                    <mat-label>メール本文テンプレート</mat-label>
+                    <textarea 
+                        matInput 
+                        class="invitation-mail-setting-textarea" 
+                        placeholder="ここにメールの本文を入力してください..."
+                        [(ngModel)]="mailTemplateText"
+                        name="mailTemplateText"></textarea>
+                </mat-form-field>
+            </div>
+            
+            <div class="save-setting-button">
+                <button mat-flat-button type="button" (click)="saveInvitationTemplate()" [disabled]="saveBusy">
+                    @if (saveBusy) {
+                        <mat-progress-spinner mode="indeterminate" diameter="20"></mat-progress-spinner>
+                    } @else {
+                        保存
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="invitation-setting-content">
+        <div class="invitation-setting-label">
+            CSVファイルインポート設定
+        </div>
+        <div class="import-file-setting">
+            <div class="import-file-setting-content">
+                ヘッダー名を指定してください。
+            </div>
+            <div class="header-setting">
+                <label class="header-label">名前ヘッダー名：</label>
+                <div class="header-chip-list">
+                @for (header of nameHeaders; track header) {
+                    <div class="header-chip">
+                        <span class="header-chip-text">{{ header }}</span>
+                    @if (nameHeaders.length > 1) {
+                        <button type="button" (click)="deleteNameHeader(header)" class="delete-header-button">
+                            <mat-icon>close</mat-icon>
+                        </button>
+                    }
+                    </div>
+                }
+                </div>
+                <mat-form-field appearance="outline">
+                    <mat-label>名前ヘッダーを追加</mat-label>
+                    <input matInput [(ngModel)]="newNameHeader" name="newNameHeader" />
+                </mat-form-field>
+                <button matButton="outlined" type="button" (click)="addNameHeader()" class="add-header-button">
+                    追加
+                </button>
+            </div>
+            <div class="header-setting">
+                <label class="header-label">メールアドレスヘッダー名：</label>
+                <div class="header-chip-list">
+                @for (header of emailHeaders; track header) {
+                    <div class="header-chip">
+                        <span class="header-chip-text">{{ header }}</span>
+                    @if (emailHeaders.length > 1) {
+                        <button type="button" (click)="deleteEmailHeader(header)" class="delete-header-button">
+                            <mat-icon>close</mat-icon>
+                        </button>
+                    }
+                    </div>
+                }
+                </div>
+                <mat-form-field appearance="outline">
+                    <mat-label>メールアドレスヘッダーを追加</mat-label>
+                    <input matInput [(ngModel)]="newEmailHeader" name="newEmailHeader" />
+                </mat-form-field>
+                <button matButton="outlined" type="button" (click)="addEmailHeader()" class="add-header-button">
+                    追加
+                </button>
+            </div>
+            <div class="save-setting-button">
+                <button mat-flat-button type="button" (click)="saveInvitationImportSettings()" [disabled]="saveBusy">
+                    @if (saveBusy) {
+                        <mat-progress-spinner mode="indeterminate" diameter="20"></mat-progress-spinner>
+                    } @else {
+                        保存
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

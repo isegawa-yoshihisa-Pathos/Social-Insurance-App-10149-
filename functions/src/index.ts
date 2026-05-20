@@ -9,6 +9,9 @@
 
 import {setGlobalOptions} from "firebase-functions";
 export { registerAdminAndEstablishment } from './registerAdminAndEstablishment';
+export { saveInvitationTemplate } from './invitation-functions';
+export { saveInvitationImportSettings } from './invitation-functions';
+export { sendInvitationMail } from './invitation-mail-send';
 // import {onRequest} from "firebase-functions/https";
 // import * as logger from "firebase-functions/logger";
 
