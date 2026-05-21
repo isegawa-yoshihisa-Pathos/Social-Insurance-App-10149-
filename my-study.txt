@@ -175,3 +175,125 @@ Functions 側で tokenHash を照合
 承認後に affiliations/{uid}_{eid} を作る
 invitation を accepted に更新
 つまり、次に作るべきは 送信ボタンから sendInvitationMail を呼ぶ処理、その次に /invitation?token=... の受け入れ画面と承認Functions です。
+
+
+その方針、かなり現実的で安全寄りです。  
+**招待メールの宛先アドレスを本人確認用に使い、その後のログイン用アカウントは別メールでもOK** という設計ですね。
+
+流れはこう整理できます。
+
+```text
+1. 会社が従業員の連絡先メールに招待を送る
+2. 従業員が招待リンクを開く
+3. 画面で「招待を受け取ったメールアドレス」を入力
+4. token + 入力メールアドレスを照合
+5. 一致したら招待確認画面へ
+6. アカウント作成 or 既存アカウントでログイン
+7. ログイン後に招待を承認
+8. affiliations/{uid}_{eid} を作成
+```
+
+この場合、Firestore の invitation はこう持つのがよいです。
+
+```ts
+{
+  contactEmail: "employee@example.com", // 招待メールを送った宛先
+  inviteeName: "山田 太郎",
+  tokenHash,
+  status: "sent",
+  role: "member",
+  establishmentId,
+  establishmentName,
+  invitedBy,
+  invitedByEmail,
+  expiresAt,
+  createdAt,
+  sentAt
+}
+```
+
+`checkInvitationToken` は token だけでは詳細を出しすぎず、まずメール入力を促す程度でOKです。
+
+```ts
+checkInvitationToken({ token })
+```
+
+返す情報：
+
+```ts
+{
+  valid: true,
+  requiresContactEmail: true
+}
+```
+
+次に、入力されたメールで確認します。
+
+```ts
+verifyInvitationContactEmail({ token, contactEmail })
+```
+
+やること：
+
+```text
+1. tokenHash で invitation 検索
+2. status が sent/pending か確認
+3. expiresAt 確認
+4. contactEmail と invitation.contactEmail を比較
+5. 一致したら invitation概要を返す
+```
+
+返す情報：
+
+```ts
+{
+  verified: true,
+  inviteeName,
+  contactEmail,
+  establishmentName,
+  role
+}
+```
+
+その後、ユーザーに選ばせます。
+
+```text
+この招待は 山田 太郎 さん宛です。
+株式会社〇〇 に参加します。
+
+[アカウント作成]
+[ログイン]
+```
+
+最後にログイン済み状態で：
+
+```ts
+acceptInvitation({ token, contactEmail })
+```
+
+ここでも必ず再チェックします。
+
+```text
+1. auth.uid 必須
+2. tokenHash 検索
+3. contactEmail 一致確認
+4. status / expiresAt 確認
+5. affiliations/{uid}_{eid} 作成
+6. accounts/{uid} 更新
+7. invitation を accepted に更新
+```
+
+この設計の良い点は、リンクを転送された人が勝手に参加しにくいことです。  
+token だけでなく「招待を受け取ったメールアドレス」も必要になるからです。
+
+注意点は、入力メールの比較時に正規化することです。
+
+```ts
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+```
+
+保存時も比較時も小文字化してください。
+
+結論として、この仕様なら **ログイン用メールと招待先メールを分離しつつ、招待先メールによる本人確認もできる**のでバランスが良いです。

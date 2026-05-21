@@ -16,9 +16,9 @@ export const registerAdminAndEstablishment = onCall({
     region: 'asia-northeast1',
     cors: true,
 }, async (request) => {
-    const { name, email, password, establishmentName, zipcode, address, ownerName, phoneNumber, corporateNumber } = request.data;
+    const { email, password, establishmentName, establishmentNameKana, zipcode, address, ownerName, phoneNumber } = request.data;
 
-    if (!name || !email || !password || !establishmentName || !zipcode || !address || !ownerName || !phoneNumber || !corporateNumber) {
+    if (!email || !password || !establishmentName || !establishmentNameKana || !zipcode || !address || !ownerName || !phoneNumber) {
         throw new HttpsError('invalid-argument', '入力内容を確認してください。');
     }
 
@@ -35,39 +35,43 @@ export const registerAdminAndEstablishment = onCall({
         const accountRef = db.collection('accounts').doc(uid);
         const establishmentRef = db.collection('establishments').doc();
         const eid = establishmentRef.id;
+        const employeeRef = db.collection('establishments').doc(eid).collection('employees').doc();
+        const employeeId = employeeRef.id;
 
         const batch = db.batch();
 
         batch.set(accountRef, {
             email,
             currentEstablishmentId: eid,
+            affiliations: {
+                [eid]: employeeId,
+            },
             lastView: admin.firestore.FieldValue.serverTimestamp(),
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
         batch.set(establishmentRef, {
             establishmentName,
+            establishmentNameKana,
             zipcode,
             address,
             ownerName,
             phoneNumber,
-            corporateNumber,
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
-        const invitationSettingRef = db.collection('establishments').doc(eid).collection('settings').doc('invitationSetting');
-        batch.set(invitationSettingRef, {
-            templateText: '',
-            nameHeaders: ['名前', '氏名', 'name'],
-            emailHeaders: ['メールアドレス', 'メール', 'email', 'mail'],
+        batch.set(employeeRef, {
+            uid,
+            role: 'admin',
+            status: 'active',
+            joinedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
         const affiliationRef = db.collection('affiliations').doc(`${uid}_${eid}`);
         batch.set(affiliationRef, {
             uid,
             eid,
-            displayName:name,
             establishmentName,
             role: 'admin',
             status: 'active',

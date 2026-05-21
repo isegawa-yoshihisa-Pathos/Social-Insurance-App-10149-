@@ -98,15 +98,13 @@ export const sendInvitationMail = onCall<SendInvitationInput>(
       .doc();
 
     await inviteRef.set({
-      email,
+      contactEmail: email,
       name,
       tokenHash,
       status: 'pending',
       role,
       invitedBy: uid,
       invitedByEmail: adminEmail,
-      establishmentId: eid,
-      establishmentName,
       expiresAt,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),

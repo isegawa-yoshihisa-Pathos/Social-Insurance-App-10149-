@@ -39,7 +39,7 @@
             </button>
             <mat-menu #accountMenu="matMenu" class="account-menu">
                 <button mat-menu-item type="button" >通知</button>
-                <button mat-menu-item type="button" >個人設定</button>
+                <button mat-menu-item type="button" (click)="navigateToPersonalSetting()">個人設定</button>
                 <button mat-menu-item type="button" (click)="signOut()">サインアウト</button>
             </mat-menu>
         </div>

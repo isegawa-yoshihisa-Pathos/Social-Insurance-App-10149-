@@ -20,7 +20,6 @@ export class SignupCmp {
   private readonly sharedDataService = inject(SharedDataService);
 
   private readonly signupData = this.sharedDataService.getSignupData();
-  name = this.signupData?.name || '';
   email = this.signupData?.email || '';
   password = this.signupData?.password || '';
   passwordVisible = false;
@@ -31,7 +30,6 @@ export class SignupCmp {
 
   async navigateToCreateEstablishment(): Promise<void> {
     this.sharedDataService.setSignupData({
-      name: this.name,
       email: this.email,
       password: this.password,
     });

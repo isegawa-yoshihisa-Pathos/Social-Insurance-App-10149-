@@ -14,40 +14,35 @@ export interface SocialInsuranceSettings {
 
   socialInsuranceCollectionMonth: string,
   specificInsuranceCollectionType: string,
-
-  healthInsuranceRate: number|null,
-  healthInsuranceIndividualRate: number|null,
-
-  careInsuranceRate: number|null,
-  careInsuranceIndividualRate: number|null,
-
-  pensionInsuranceRate: number|null,
-  pensionInsuranceIndividualRate: number|null,
 }
 
-
+export interface OwnerName {
+  ownerLastName: string;
+  ownerFirstName: string;
+  ownerLastNameKana: string;
+  ownerFirstNameKana: string;
+}
 export interface EstablishmentDocument {
-    establishmentName: string,
-    zipcode: string,
-    address: {
-      address1: string,
-      address2: string,
-      address3: string,
-    },
-    ownerName: string,
-    phoneNumber: {
-      tel1: string,
-      tel2: string,
-      tel3: string,
-    },
-    corporateNumber: string,
-
-    createdAt?: Timestamp,
-    updatedAt?: Timestamp,
-
-    payrollSettings?: PayrollSettings,
-    socialInsuranceSettings?: SocialInsuranceSettings,
-  }
+  establishmentName: string;
+  establishmentNameKana: string;
+  zipcode: string;
+  address: {
+    address1: string;
+    address2: string;
+    address3: string;
+  };
+  ownerName: OwnerName;
+  phoneNumber: {
+    tel1: string;
+    tel2: string;
+    tel3: string;
+  };
+  corporateNumber: string;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+  payrollSettings?: PayrollSettings;
+  socialInsuranceSettings?: SocialInsuranceSettings;
+}
 
 export type EstablishmentSavePayload = Omit<
   EstablishmentDocument,

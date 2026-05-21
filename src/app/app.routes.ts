@@ -11,6 +11,8 @@ import { SettingEstablishmentCmp } from './setting-establishment/setting-establi
 import { EmployeesManagementCmp } from './employees-management/employees-management.cmp';
 import { InvitationsManagementCmp } from './invitations-management/invitations-management.cmp';
 import { TaskBoardCmp } from './task-board/task-board.cmp';
+import { InvitationAcceptCmp } from './invitation-accept/invitation-accept.cmp';
+import { PersonalSettingCmp } from './personal-setting/personal-setting.cmp';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -25,9 +27,11 @@ export const routes: Routes = [
     children: [
       { path: 'main-page', component: MainPageCmp },
       { path: 'task-board', component: TaskBoardCmp },
+      { path: 'personal-setting', component: PersonalSettingCmp },
       { path: 'setting-establishment', component: SettingEstablishmentCmp, canActivate: [adminGuard] },
       { path: 'employees-management', component: EmployeesManagementCmp, canActivate: [adminGuard] },
       { path: 'invitations-management', component: InvitationsManagementCmp, canActivate: [adminGuard] },
     ]
   },
+  { path: 'invitation', component: InvitationAcceptCmp },
 ];

@@ -9,13 +9,19 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog } from '@angular/material/dialog';
 import { ErrorDialogCmp, mapFirebaseError } from '../error-dialog/error-dialog.cmp';
-import { EstablishmentsDataService } from '../establishments-data.service';
 import { SharedDataService } from '../shared-data.service';
 import { RoutesService } from '../routes.service';
 import { FunctionsService } from '../functions.service';
 import { AuthService } from '../auth.service';
 import { CurrentEstablishmentService } from '../current-establishment.service';
 import { Auth } from '@angular/fire/auth';
+import { ZipcodeToAddressService } from '../zipcode-to-address.service';
+import {
+  createEmptyEstablishmentForm,
+  establishmentFormToSavePayload,
+  parsePhoneNumberRaw,
+  EstablishmentFormData,
+} from '../establishment-form-data';
 
 @Component({
   selector: 'app-create-establishments',
@@ -25,7 +31,6 @@ import { Auth } from '@angular/fire/auth';
   styleUrl: './create-establishment.cmp.css',
 })
 export class CreateEstablishmentCmp implements OnInit {
-  private readonly establishmentsDataService = inject(EstablishmentsDataService);
   private readonly sharedDataService = inject(SharedDataService);
   private readonly routesService = inject(RoutesService);
   private readonly functionsService = inject(FunctionsService);
@@ -33,66 +38,62 @@ export class CreateEstablishmentCmp implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly currentEstablishmentService = inject(CurrentEstablishmentService);
   readonly auth = inject(Auth);
+  private readonly zipcodeToAddressService = inject(ZipcodeToAddressService);
 
   submitBusy = false;
 
   laterInput = false;
 
-  establishmentName: string = '';
-  zipcode: string = '';
-  address = {
-    address1: '',
-    address2: '',
-    address3: '',
-  };
-  ownerName: string = '';
-  phoneNumber = {
-    tel1: '',
-    tel2: '',
-    tel3: '',
-  };
-  phoneNumberRaw: string = '';
-  corporateNumber: string = '';
+  form: EstablishmentFormData = createEmptyEstablishmentForm();
 
   ngOnInit(): void {
     const establishmentData = this.sharedDataService.getEstablishmentData();
     if (establishmentData) {
-      this.establishmentName = establishmentData.establishmentName;
-      this.zipcode = establishmentData.zipcode;
-      this.address = establishmentData.address;
-      this.ownerName = establishmentData.ownerName;
-      this.phoneNumber = establishmentData.phoneNumber;
-      this.phoneNumberRaw = establishmentData.phoneNumber.tel1 + '-' + establishmentData.phoneNumber.tel2 + '-' + establishmentData.phoneNumber.tel3;
-      this.corporateNumber = establishmentData.corporateNumber;
+      this.form = {
+        ...createEmptyEstablishmentForm(),
+        ...establishmentData,
+        address: {
+          ...createEmptyEstablishmentForm().address,
+          ...establishmentData.address,
+        },
+        ownerName: {
+          ...createEmptyEstablishmentForm().ownerName,
+          ...establishmentData.ownerName,
+        },
+        phoneNumber: {
+          ...createEmptyEstablishmentForm().phoneNumber,
+          ...establishmentData.phoneNumber,
+        },
+        phoneNumberRaw: establishmentData.phoneNumberRaw ?? (
+          establishmentData.phoneNumber?.tel1 &&
+          establishmentData.phoneNumber?.tel2 &&
+          establishmentData.phoneNumber?.tel3
+            ? `${establishmentData.phoneNumber.tel1}-${establishmentData.phoneNumber.tel2}-${establishmentData.phoneNumber.tel3}`
+            : ''
+        ),
+      };
     }
   }
 
   get displayZipcode(): string {
-    if (this.zipcode.length > 3) {
-      return `${this.zipcode.slice(0, 3)}-${this.zipcode.slice(3)}`;
+    if (this.form.zipcode.length > 3) {
+      return `${this.form.zipcode.slice(0, 3)}-${this.form.zipcode.slice(3)}`;
     }
-    return this.zipcode;
+    return this.form.zipcode;
   }
 
   set displayZipcode(value: string) {
-    this.zipcode = value.replace(/[^\d]/g, '');
-  }
-
-  phoneNumberFormat(value: string):void {
-    if (!value) return;
-    const parts = value.split('-');
-    if (parts.length === 3) {
-      this.phoneNumber.tel1 = parts[0];
-      this.phoneNumber.tel2 = parts[1];
-      this.phoneNumber.tel3 = parts[2];
-    }
+    this.form.zipcode = value.replace(/[^\d]/g, '');
   }
 
   getAddress(zipcode: string): void {
-    this.establishmentsDataService.getAddress(zipcode).then((address) => {
-      this.address = {
-        ...this.address,
-        address1: address,
+    this.zipcodeToAddressService.getAddress(zipcode).then((address) => {
+      this.form = {
+        ...this.form,
+        address: {
+          ...this.form.address,
+          address1: address,
+        },
       };
     }).catch((error) => {
       this.dialog.open(ErrorDialogCmp, {
@@ -102,15 +103,8 @@ export class CreateEstablishmentCmp implements OnInit {
   }
 
   navigateToSignup(): void {
-    this.phoneNumberFormat(this.phoneNumberRaw);
-    this.sharedDataService.setEstablishmentData({
-      establishmentName: this.establishmentName,
-      zipcode: this.zipcode,
-      address: this.address,
-      ownerName: this.ownerName,
-      phoneNumber: this.phoneNumber,
-      corporateNumber: this.corporateNumber,
-    });
+    this.form.phoneNumber = parsePhoneNumberRaw(this.form.phoneNumberRaw);
+    this.sharedDataService.setEstablishmentData(this.form);
     this.routesService.redirectToSignup();
   }
 
@@ -121,15 +115,16 @@ export class CreateEstablishmentCmp implements OnInit {
       return;
     }try {
       this.submitBusy = true;
-      this.phoneNumberFormat(this.phoneNumberRaw);
+      this.form.phoneNumber = parsePhoneNumberRaw(this.form.phoneNumberRaw);
+      const establishmentPayload = establishmentFormToSavePayload(this.form);
       const payload = {
         ...signupData,
-        establishmentName: this.establishmentName,
-        zipcode: this.zipcode,
-        address: this.address,
-        ownerName: this.ownerName,
-        phoneNumber: this.phoneNumber,
-        corporateNumber: this.corporateNumber,
+        establishmentName: establishmentPayload.establishmentName,
+        establishmentNameKana: establishmentPayload.establishmentNameKana,
+        zipcode: establishmentPayload.zipcode,
+        address: establishmentPayload.address,
+        ownerName: establishmentPayload.ownerName,
+        phoneNumber: establishmentPayload.phoneNumber,
       };
       const result = await this.functionsService.registerAdminAndEstablishment(payload);
       const { uid, email, password } = result.data as {

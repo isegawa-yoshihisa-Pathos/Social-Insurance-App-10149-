@@ -6,25 +6,6 @@
         <div class="input-container">
             <label class="subtitle">アカウント作成</label>
             <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
-                <mat-label>氏名</mat-label>
-                <input 
-                    matInput 
-                    type="text" 
-                    placeholder="山田太郎" 
-                    [(ngModel)]="name"
-                    #nameRef="ngModel"
-                    name="name" 
-                    autocomplete="name" 
-                    required
-                    pattern="^[a-zA-Zぁ-んァ-ン一-龥\s]+$"
-                />
-                @if(nameRef.invalid && (nameRef.touched || nameRef.dirty)){
-                    @if(nameRef.errors?.['required']){
-                        <p class="error-message">氏名は必須です</p>
-                    }
-                }
-            </mat-form-field>
-            <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
                 <mat-label>メールアドレス</mat-label>
                 <input 
                     matInput 
@@ -84,7 +65,7 @@
                 color="primary" 
                 class="signup-button" 
                 type='button'
-                [disabled]="nameRef.invalid || emailRef.invalid || passwordRef.invalid"
+                [disabled]="emailRef.invalid || passwordRef.invalid"
                 (click)="navigateToCreateEstablishment()"
             >
                 事業所情報の入力へ進む

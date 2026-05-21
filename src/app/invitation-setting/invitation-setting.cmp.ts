@@ -21,6 +21,11 @@ import { RoutesService } from '../routes.service';
 export class InvitationSettingCmp implements OnInit {
   readonly defaultNameHeaders = ['名前', '氏名', 'name'];
   readonly defaultEmailHeaders = ['メールアドレス', 'メール', 'email', 'mail'];
+  readonly defaultTemplateText = `{name} 様
+  
+  {establishmentName} より、社会保険管理システム「縄文」への招待が届いています。
+  
+  以下のボタンからアカウントの初期設定を行い、必要な情報の登録をお願いします。`;
 
   private dialog = inject(MatDialog);
   private functionsService = inject(FunctionsService);
@@ -32,10 +37,10 @@ export class InvitationSettingCmp implements OnInit {
 
   nameHeaders: string[] = [...this.defaultNameHeaders];
   emailHeaders: string[] = [...this.defaultEmailHeaders];
+  mailTemplateText = this.defaultTemplateText;
 
   newNameHeader = '';
   newEmailHeader = '';
-  mailTemplateText = '';
 
   saveBusy = false;
   loading = true;
@@ -53,9 +58,9 @@ export class InvitationSettingCmp implements OnInit {
       this.loading = true;
       const doc = await this.invitationDataService.loadInvitationDocument(eid);
       if (!doc) {
-        this.dialog.open(ErrorDialogCmp, {
-          data: { message: '事業所データが見つかりませんでした' },
-        });
+        this.mailTemplateText = this.defaultTemplateText;
+        this.nameHeaders = [...this.defaultNameHeaders];
+        this.emailHeaders = [...this.defaultEmailHeaders];
         return;
       }
       this.mailTemplateText = doc.templateText;

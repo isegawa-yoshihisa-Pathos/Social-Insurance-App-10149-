@@ -24,6 +24,30 @@
                         </mat-form-field>
                     </div>
                     <div class="field-container">
+                        <label class="label-name">事業所名(フリガナ)：</label>
+                        <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                            <mat-label>事業所名(フリガナ)</mat-label>
+                            <input 
+                                matInput 
+                                type="text" 
+                                placeholder="（例）株式会社　縄文商事" 
+                                [(ngModel)]="form.establishmentNameKana"
+                                #establishmentNameKanaRef="ngModel"
+                                name="establishmentNameKana"
+                                required
+                                pattern="^[ァ-ヶー\s]+$"
+                            />
+                            @if(establishmentNameKanaRef.invalid && (establishmentNameKanaRef.touched || establishmentNameKanaRef.dirty)){
+                                @if(establishmentNameKanaRef.errors?.['required']){
+                                    <p class="error-message">事業所名(フリガナ)は必須です</p>
+                                }
+                                @if(establishmentNameKanaRef.errors?.['pattern']){
+                                    <p class="error-message">事業所名(フリガナ)を正しく入力してください</p>
+                                }
+                            }
+                        </mat-form-field>
+                    </div>
+                    <div class="field-container">
                         <label class="label-name">郵便番号：</label>
                         <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
                             <mat-label>郵便番号</mat-label>
@@ -82,23 +106,85 @@
                         </mat-form-field>
                     </div>
                     <div class="field-container">
-                        <label class="label-name">事業主（代表者）氏名：</label>
+                        <label class="label-name">事業主(氏名)：</label>
                         <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
-                            <mat-label>事業主（代表者）氏名</mat-label>
+                            <mat-label>姓(last name)</mat-label>
                             <input 
                                 matInput 
                                 type="text" 
-                                placeholder="（例）山田太郎" 
-                                [(ngModel)]="form.ownerName"
-                                #ownerNameRef="ngModel"
-                                name="ownerName" 
+                                placeholder="（例）山田" 
+                                [(ngModel)]="form.ownerName.ownerLastName"
+                                #ownerLastNameRef="ngModel"
+                                name="ownerLastName" 
                                 required
                                 pattern="^[a-zA-Zぁ-んァ-ン一-龥\s]+$"
                             />
-                            @if(ownerNameRef.invalid && (ownerNameRef.touched || ownerNameRef.dirty)){
-                                @if(ownerNameRef.errors?.['required']){
-                                    <p class="error-message">事業主（代表者）氏名は必須です</p>
+                            @if(ownerLastNameRef.invalid && (ownerLastNameRef.touched || ownerLastNameRef.dirty)){
+                                @if(ownerLastNameRef.errors?.['required']){
+                                    <p class="error-message">姓(last name)は必須です</p>
                                 }
+                            }
+                        </mat-form-field>
+                        <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                            <mat-label>名(first name)</mat-label>
+                            <input 
+                                matInput 
+                                type="text" 
+                                placeholder="（例）太郎" 
+                                [(ngModel)]="form.ownerName.ownerFirstName"
+                                #ownerFirstNameRef="ngModel"
+                                name="ownerFirstName" 
+                                required
+                                pattern="^[a-zA-Zぁ-んァ-ン一-龥\s]+$"
+                            />
+                            @if(ownerFirstNameRef.invalid && (ownerFirstNameRef.touched || ownerFirstNameRef.dirty)){
+                                @if(ownerFirstNameRef.errors?.['required']){
+                                    <p class="error-message">名(first name)は必須です</p>
+                                }
+                            }
+                        </mat-form-field>
+                    </div><div class="field-container">
+                        <label class="label-name">事業主(フリガナ)：</label>
+                        <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                            <mat-label>姓(last name)</mat-label>
+                            <input 
+                                matInput 
+                                type="text" 
+                                placeholder="（例）ヤマダ" 
+                                [(ngModel)]="form.ownerName.ownerLastNameKana"
+                                #ownerLastNameKanaRef="ngModel"
+                                name="ownerLastNameKana" 
+                                required
+                                pattern="^[ァ-ヶー\s]+$"
+                            />
+                            @if(ownerLastNameKanaRef.invalid && (ownerLastNameKanaRef.touched || ownerLastNameKanaRef.dirty)){
+                                @if(ownerLastNameKanaRef.errors?.['required']){
+                                    <p class="error-message">姓(last name)フリガナは必須です</p>
+                                }
+                                @if(ownerLastNameKanaRef.errors?.['pattern']){
+                                    <p class="error-message">姓(last name)フリガナを正しく入力してください</p>
+                                }
+                            }
+                        </mat-form-field>
+                        <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                            <mat-label>名(first name)</mat-label>
+                            <input 
+                                matInput 
+                                type="text" 
+                                placeholder="（例）タロウ" 
+                                [(ngModel)]="form.ownerName.ownerFirstNameKana"
+                                #ownerFirstNameKanaRef="ngModel"
+                                name="ownerFirstNameKana" 
+                                required
+                                pattern="^[ァ-ヶー\s]+$"
+                            />
+                            @if(ownerFirstNameKanaRef.invalid && (ownerFirstNameKanaRef.touched || ownerFirstNameKanaRef.dirty)){
+                                @if(ownerFirstNameKanaRef.errors?.['required']){
+                                    <p class="error-message">名(first name)フリガナは必須です</p>
+                                }
+                            }
+                            @if(ownerFirstNameKanaRef.errors?.['pattern']){
+                                <p class="error-message">名(first name)フリガナを正しく入力してください</p>
                             }
                         </mat-form-field>
                     </div>
@@ -127,6 +213,10 @@
                         </mat-form-field>
                         <div class="comment-text">※ハイフン(-)を含めて入力してください</div>
                     </div>
+                </div>
+            </mat-tab>
+            <mat-tab label="社会保険設定">
+                <div class="input-container">
                     <div class="field-container">
                         <label class="label-name">法人番号：</label>
                         <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
@@ -151,10 +241,6 @@
                             }
                         </mat-form-field>
                     </div>
-                </div>
-            </mat-tab>
-            <mat-tab label="社会保険設定">
-                <div class="input-container">
                     <div class="field-container">
                         <label class="label-name">健康保険タイプ：</label>
                         <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
@@ -298,94 +384,6 @@
                             </mat-select>
                         </mat-form-field>
                         <app-help-content key="spInsCollType"></app-help-content>
-                    </div>
-
-                    <hr class="separator grid-full-width">
-
-                    <div class="comment-text grid-full-width">保険料率は1/100の単位（%：パーセント）で入力してください。例：9.85% → 9.85</div>
-                    <div class="field-container">
-                        <label class="label-name">健康保険料率（合計）：</label>
-                        <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
-                            <mat-label>健康保険料率（合計）</mat-label>
-                            <input 
-                                matInput 
-                                type="text" 
-                                placeholder="（例）9.85" 
-                                [(ngModel)]="form.socialInsuranceSettings.healthInsuranceRate"
-                                #healthInsuranceRateRef="ngModel"
-                                name="healthInsuranceRate" 
-                            />
-                        </mat-form-field>
-                    </div>
-                    <div class="field-container">
-                        <label class="label-name">健康保険料率（本人負担）：</label>
-                        <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
-                            <mat-label>健康保険料率（本人負担）</mat-label>
-                            <input 
-                                matInput 
-                                type="text" 
-                                placeholder="（例）4.925" 
-                                [(ngModel)]="form.socialInsuranceSettings.healthInsuranceIndividualRate"
-                                #healthInsuranceIndividualRateRef="ngModel"
-                                name="healthInsuranceIndividualRate" 
-                            />
-                        </mat-form-field>
-                    </div>
-                    <div class="field-container">
-                        <label class="label-name">介護保険料率（合計）：</label>
-                        <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
-                            <mat-label>介護保険料率（合計）</mat-label>
-                            <input 
-                                matInput 
-                                type="text" 
-                                placeholder="（例）1.62" 
-                                [(ngModel)]="form.socialInsuranceSettings.careInsuranceRate"
-                                #careInsuranceRateRef="ngModel"
-                                name="careInsuranceRate" 
-                            />
-                        </mat-form-field>
-                    </div>
-                    <div class="field-container">
-                        <label class="label-name">介護保険料率（本人負担）：</label>
-                        <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
-                            <mat-label>介護保険料率（本人負担）</mat-label>
-                            <input 
-                                matInput 
-                                type="text" 
-                                placeholder="（例）0.81" 
-                                [(ngModel)]="form.socialInsuranceSettings.careInsuranceIndividualRate"
-                                #careInsuranceIndividualRateRef="ngModel"
-                                name="careInsuranceIndividualRate" 
-                            />
-                        </mat-form-field>
-                    </div>
-                    <div class="field-container">
-                        <label class="label-name">厚生年金保険料率（合計）：</label>
-                        <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
-                            <mat-label>厚生年金保険料率（合計）</mat-label>
-                            <input 
-                                matInput 
-                                type="text" 
-                                placeholder="（例）18.3" 
-                                [(ngModel)]="form.socialInsuranceSettings.pensionInsuranceRate"
-                                #pensionInsuranceRateRef="ngModel"
-                                name="pensionInsuranceRate" 
-                            />
-                        </mat-form-field>
-                    </div>
-                    <div class="field-container">
-                        <label class="label-name">厚生年金保険料率（本人負担）：</label>
-                        <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
-                            <mat-label>厚生年金保険料率（本人負担）</mat-label>
-                            <input 
-                                matInput 
-                                type="text" 
-                                placeholder="（例）9.15" 
-                                [(ngModel)]="form.socialInsuranceSettings.pensionInsuranceIndividualRate"
-                                #pensionInsuranceIndividualRateRef="ngModel"
-                                name="pensionInsuranceIndividualRate" 
-                            />
-                        </mat-form-field>
                     </div>
                 </div>
             </mat-tab>

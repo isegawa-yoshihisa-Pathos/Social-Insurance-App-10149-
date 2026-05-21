@@ -93,6 +93,21 @@ export class CurrentEstablishmentService {
     return this.affiliations.value;
   }
 
+  updateAffiliationDisplayName(uid: string, eid: string, displayName: string): void {
+    const affiliations = this.affiliations.value.map((affiliation) => {
+      if (affiliation.uid !== uid || affiliation.eid !== eid) {
+        return affiliation;
+      }
+
+      return {
+        ...affiliation,
+        displayName,
+      };
+    });
+
+    this.affiliations.next(affiliations);
+  }
+
   getEstablishment(): string | null {
     return this.currentEid.value;
   }

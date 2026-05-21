@@ -1,90 +1,116 @@
 :host {
   display: block;
-  min-height: calc(100vh - 80px);
+  max-width: 100%;
+  overflow-x: hidden;
+
+  --label-width: 220px;
+  --field-width: 240px;
+  --field-gap: 10px;
+  --form-width: calc(
+    var(--label-width) + 3 * var(--field-width) + 3 * var(--field-gap)
+  );
 }
 
 .create-establishment {
   width: 100%;
   min-height: calc(100vh - 80px);
   background-color: rgb(121, 236, 188);
-  text-align: center;
-  padding-top: 80px;
-  padding-bottom: 80px;
+  padding: 80px 16px;
+  box-sizing: border-box;
 }
 
 .pane {
-  width: 80%;
-  display: inline-block;
+  width: var(--form-width);
+  max-width: 100%;
+  margin-inline: auto;
   background-color: rgb(241, 241, 241);
   padding: 30px;
   border-radius: 10px;
-}
-
-.separator {
-  width: 100%;
-  margin: 10px 0;
-  border-top: 1px solid #ccc;
-}
-
-.input-container {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 20px;
+  box-sizing: border-box;
 }
 
 .subtitle {
+  display: block;
   color: black;
   font-size: 20px;
   font-weight: bold;
   margin-bottom: 10px;
+  text-align: center;
+}
+
+.input-container {
+  display: grid;
+  grid-template-columns:
+    minmax(0, var(--label-width))
+    repeat(3, minmax(0, var(--field-width)));
+  column-gap: var(--field-gap);
+  row-gap: 12px;
+  align-items: center;
+  margin-top: 20px;
 }
 
 .field-container {
-  display: flex;
-  flex-direction: row;
-  gap: 10px;
-  align-items: center;
+  display: contents;
 }
 
 .label-name {
+  grid-column: 1;
   color: black;
   font-size: 15px;
   font-weight: bold;
-  width: 180px;
   text-align: right;
+  align-self: center;
+  padding-right: 4px;
+  box-sizing: border-box;
+}
+
+.field {
+  width: 100%;
+  min-width: 0;
 }
 
 .autofill-button {
-  height: 28px;
-  margin-left: 10px;
+  width: fit-content;
+  min-width: max-content;
+  justify-self: start;
+  height: 36px;
 }
 
-.field{
-  width: 240px;
+.comment-text {
+  font-size: 12px;
+  color: #666;
+  align-self: center;
+  grid-column: 3 / -1;
 }
 
 .error-message {
   color: #b91624;
   font-size: 12px;
-  margin-top: 0;
-  margin-bottom: 0;
+  margin: 0;
+}
+
+.separator {
+  grid-column: 1 / -1;
+  width: 100%;
+  margin: 10px 0;
+  border: none;
+  border-top: 1px solid #ccc;
 }
 
 .button-container {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 10px;
   margin-top: 60px;
 }
 
-.create-establishment-button {
+.create-establishment-button,
+.back-button {
   width: 240px;
   font-size: 16px;
   font-weight: bold;
   transition: opacity 0.3s ease-in-out;
-  margin-left: auto;
-  margin-right: auto;
 }
 
 .create-establishment-button.busy {
@@ -92,11 +118,45 @@
   pointer-events: none;
 }
 
-.back-button {
-  width: 240px;
-  font-size: 16px;
-  font-weight: bold;
-  transition: opacity 0.3s ease-in-out;
-  margin-left: auto;
-  margin-right: auto;
+@media (max-width: 1100px) {
+  :host {
+    --label-width: 100%;
+    --field-width: 100%;
+  }
+
+  .create-establishment {
+    padding: 40px 16px;
+  }
+
+  .pane {
+    width: 100%;
+    padding: 20px;
+  }
+
+  .input-container {
+    grid-template-columns: 1fr;
+  }
+
+  .field-container {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .label-name {
+    grid-column: auto;
+    text-align: left;
+    padding-right: 0;
+  }
+
+  .comment-text {
+    grid-column: auto;
+  }
+
+  .autofill-button {
+    justify-self: auto;
+    align-self: flex-start;
+  }
 }

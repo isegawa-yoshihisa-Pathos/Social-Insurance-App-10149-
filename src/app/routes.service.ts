@@ -44,4 +44,8 @@ export class RoutesService {
   redirectToInvitationsManagement(): void {
     void this.router.navigate(['/invitations-management']);
   }
+
+  redirectToPersonalSetting(): void {
+    void this.router.navigate(['/personal-setting']);
+  }
 }

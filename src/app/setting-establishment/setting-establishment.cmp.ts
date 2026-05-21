@@ -12,6 +12,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog } from '@angular/material/dialog';
 import { HelpContentCmp } from '../help-content/help-content.cmp';
 import { EstablishmentsDataService } from '../establishments-data.service';
+import { ZipcodeToAddressService } from '../zipcode-to-address.service';
 import { CurrentEstablishmentService } from '../current-establishment.service';
 import { RoutesService } from '../routes.service';
 import { ErrorDialogCmp, mapFirebaseError } from '../error-dialog/error-dialog.cmp';
@@ -46,7 +47,7 @@ export class SettingEstablishmentCmp implements OnInit {
   private readonly routesService = inject(RoutesService);
   private readonly dialog = inject(MatDialog);
   private readonly auth = inject(Auth);
-
+  private readonly zipcodeToAddressService = inject(ZipcodeToAddressService);
   eid = '';
   loading = true;
   submitBusy = false;
@@ -93,7 +94,7 @@ export class SettingEstablishmentCmp implements OnInit {
   }
 
   getAddress(zipcode: string): void {
-    this.establishmentsDataService.getAddress(zipcode).then((address) => {
+    this.zipcodeToAddressService.getAddress(zipcode).then((address) => {
       this.form = {
         ...this.form,
         address: { ...this.form.address, address1: address },

@@ -21,10 +21,25 @@
 
 .setting-tabs {
   width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+:host ::ng-deep .mat-mdc-tab-body-content {
+  overflow-x: hidden;
+}
+
+.loading-container {
+  display: grid;
+  min-height: 240px;
+  place-items: center;
 }
 
 .input-container {
   display: grid;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   grid-template-columns:
     minmax(0, var(--label-width))
     repeat(3, minmax(0, var(--field-width)));
@@ -54,6 +69,14 @@
   min-width: 0;
 }
 
+.field-container,
+.label-name,
+.field,
+.comment-text,
+.reflect-basic-setting {
+  min-width: 0;
+}
+
 .autofill-button {
   width: fit-content;
   min-width: max-content;
@@ -77,6 +100,12 @@
   grid-column: 1 / -1;
 }
 
+.reflect-basic-setting {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
+}
+
 .separator {
   border: none;
   border-top: 1px solid #ccc;
@@ -87,6 +116,16 @@
   color: #b91624;
   font-size: 12px;
   margin: 0;
+}
+
+.required-badge {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 6px;
+  vertical-align: super;
+  border-radius: 50%;
+  background: #d32f2f;
 }
 
 .actions {

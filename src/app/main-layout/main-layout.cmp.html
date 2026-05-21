@@ -14,11 +14,22 @@
             </h3>
 
             <button mat-flat-button class="menu-button" type="button" (click)="navigateToMainPage()">マイページ</button>
+            <button mat-flat-button class="menu-button" type="button" (click)="navigateToPersonalSetting()">
+                <span>個人設定</span>
+                @if (completion().personal || completion().employee) {
+                    <span class="required-badge"></span>
+                }
+            </button>
             <button mat-flat-button class="menu-button" type="button" (click)="navigateToTaskBoard()">手続き一覧</button>
 
             @if (isAdmin()) {
             <hr class="menu-divider" />
-            <button mat-flat-button class="menu-button" type="button" (click)="navigateToSettingEstablishment()">事業所設定</button>
+            <button mat-flat-button class="menu-button" type="button" (click)="navigateToSettingEstablishment()">
+                <span>事業所設定</span>
+                @if (completion().establishment) {
+                    <span class="required-badge"></span>
+                }
+            </button>
             <button mat-flat-button class="menu-button" type="button" (click)="navigateToEmployeesManagement()">従業員管理</button>
             <button mat-flat-button class="menu-button" type="button" (click)="navigateToInvitationsManagement()">招待管理</button>
             }

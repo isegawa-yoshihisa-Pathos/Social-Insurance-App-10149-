@@ -75,4 +75,8 @@ export class AppHeaderCmp implements OnInit {
   navigateToSignup(): void {
     this.routesService.redirectToSignup();
   }
+
+  navigateToPersonalSetting(): void {
+    this.routesService.redirectToPersonalSetting();
+  }
 }

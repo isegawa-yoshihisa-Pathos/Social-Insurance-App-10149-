@@ -6,6 +6,16 @@
         <div class="invitation-mail-setting">
             <div class="invitation-mail-setting-content">
                 テンプレートのメール内容を入力してください。
+                <br>
+                メール本文テンプレートは以下の変数を使用できます。
+                <br>
+                {{ '{ name }' }}：招待されたユーザーの名前
+                <br>
+                {{ '{ email }' }}：招待されたユーザーのメールアドレス
+                <br>
+                {{ '{ invitationCode }' }}：招待コード
+                <br>
+                {{ '{ invitationUrl }' }}：招待URL
             </div>
             
             <div class="mail-textarea-container">
