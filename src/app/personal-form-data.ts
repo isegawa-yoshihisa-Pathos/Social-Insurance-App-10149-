@@ -11,6 +11,7 @@ import {
   export interface PersonalFormData {
     realName: RealName;
     myNumber: string;
+    basicPensionNumber: string;
     birthDate: string;
     phoneNumber: PhoneNumber;
     phoneNumberRaw: string;
@@ -20,6 +21,10 @@ import {
   
   export interface EmployeeFormData {
     displayName: string;
+    realName: RealName;
+    myNumber: string;
+    basicPensionNumber: string;
+    birthDate: string;
     phoneNumber: PhoneNumber;
     phoneNumberRaw: string;
     zipcode: string;
@@ -49,6 +54,7 @@ import {
     return {
       realName: createDefaultRealName(),
       myNumber: '',
+      basicPensionNumber: '',
       birthDate: '',
       phoneNumber: createDefaultPhoneNumber(),
       phoneNumberRaw: '',
@@ -60,6 +66,10 @@ import {
   export function createEmptyEmployeeForm(): EmployeeFormData {
     return {
       displayName: '',
+      realName: createDefaultRealName(),
+      myNumber: '',
+      basicPensionNumber: '',
+      birthDate: '',
       phoneNumber: createDefaultPhoneNumber(),
       phoneNumberRaw: '',
       zipcode: '',
@@ -80,6 +90,7 @@ import {
         ...doc?.realName,
       },
       myNumber: doc?.myNumber ?? '',
+      basicPensionNumber: doc?.basicPensionNumber ?? '',
       birthDate: doc?.birthDate ?? '',
       phoneNumber: phone,
       phoneNumberRaw: phone.tel1 && phone.tel2 && phone.tel3
@@ -100,6 +111,13 @@ import {
   
     return {
       displayName: doc?.displayName ?? '',
+      realName: {
+        ...createDefaultRealName(),
+        ...doc?.realName,
+      },
+      myNumber: doc?.myNumber ?? '',
+      basicPensionNumber: doc?.basicPensionNumber ?? '',
+      birthDate: doc?.birthDate ?? '',
       phoneNumber: phone,
       phoneNumberRaw: phone.tel1 && phone.tel2 && phone.tel3
         ? `${phone.tel1}-${phone.tel2}-${phone.tel3}`
@@ -120,6 +138,7 @@ import {
     return {
       realName: form.realName,
       myNumber: form.myNumber,
+      basicPensionNumber: form.basicPensionNumber,
       birthDate: form.birthDate,
       phoneNumber: parsePhoneNumberRaw(form.phoneNumberRaw),
       zipcode: form.zipcode,
@@ -132,6 +151,10 @@ import {
   ): EmployeePersonalInfoSavePayload {
     return {
       displayName: form.displayName,
+      realName: form.realName,
+      myNumber: form.myNumber,
+      basicPensionNumber: form.basicPensionNumber,
+      birthDate: form.birthDate,
       phoneNumber: parsePhoneNumberRaw(form.phoneNumberRaw),
       zipcode: form.zipcode,
       address: form.address,

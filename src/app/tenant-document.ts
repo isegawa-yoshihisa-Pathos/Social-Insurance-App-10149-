@@ -8,9 +8,9 @@ export interface PayrollSettings {
 export interface SocialInsuranceSettings {
   healthInsuranceType: 'association' | 'combination',
   combinationName?: string,
-  healthInsuranceEstablishmentRecordNumber: string,
-  pensionInsuranceEstablishmentNumber: string,
-  pensionInsuranceEstablishmentRecordNumber: string,
+  healthInsuranceTenantRecordNumber: string,
+  pensionInsuranceTenantNumber: string,
+  pensionInsuranceTenantRecordNumber: string,
 
   socialInsuranceCollectionMonth: string,
   specificInsuranceCollectionType: string,
@@ -22,9 +22,9 @@ export interface OwnerName {
   ownerLastNameKana: string;
   ownerFirstNameKana: string;
 }
-export interface EstablishmentDocument {
-  establishmentName: string;
-  establishmentNameKana: string;
+export interface TenantDocument {
+  tenantName: string;
+  tenantNameKana: string;
   zipcode: string;
   address: {
     address1: string;
@@ -44,7 +44,7 @@ export interface EstablishmentDocument {
   socialInsuranceSettings?: SocialInsuranceSettings;
 }
 
-export type EstablishmentSavePayload = Omit<
-  EstablishmentDocument,
+export type TenantSavePayload = Omit<
+  TenantDocument,
   'createdAt' | 'updatedAt'
 >;

@@ -24,9 +24,9 @@
 
             @if (isAdmin()) {
             <hr class="menu-divider" />
-            <button mat-flat-button class="menu-button" type="button" (click)="navigateToSettingEstablishment()">
+            <button mat-flat-button class="menu-button" type="button" (click)="navigateToSettingTenant()">
                 <span>事業所設定</span>
-                @if (completion().establishment) {
+                @if (completion().tenant) {
                     <span class="required-badge"></span>
                 }
             </button>

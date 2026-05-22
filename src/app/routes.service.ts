@@ -1,12 +1,12 @@
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { CurrentEstablishmentService } from './current-establishment.service';
+import { CurrentTenantService } from './current-tenant.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class RoutesService {
-  readonly currentEstService = inject(CurrentEstablishmentService);
+  readonly currentTenantService = inject(CurrentTenantService);
   constructor(private router: Router) {}
 
   redirectToHome(): void {
@@ -21,8 +21,8 @@ export class RoutesService {
     void this.router.navigate(['/signin']);
   }
 
-  redirectToCreateEstablishment(): void {
-    void this.router.navigate(['/create-establishment']);
+  redirectToCreateTenant(): void {
+    void this.router.navigate(['/create-tenant']);
   }
 
   redirectToMainPage(): void {
@@ -33,8 +33,8 @@ export class RoutesService {
     void this.router.navigate(['/task-board']);
   }
 
-  redirectToSettingEstablishment(): void {
-    void this.router.navigate(['/setting-establishment']);
+  redirectToSettingTenant(): void {
+    void this.router.navigate(['/setting-tenant']);
   }
 
   redirectToEmployeesManagement(): void {

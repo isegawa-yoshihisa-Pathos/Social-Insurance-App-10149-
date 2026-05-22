@@ -52,7 +52,7 @@
   margin-left: 6px;
   vertical-align: super;
   border-radius: 50%;
-  background: #d32f2f;
+  background: var(--mat-form-field-outlined-error-label-text-color);
 }
 
 .admin-badge {

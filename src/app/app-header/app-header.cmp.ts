@@ -7,7 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { RoutesService } from '../routes.service';
 import { AuthService } from '../auth.service';
-import { CurrentEstablishmentService } from '../current-establishment.service';
+import { CurrentTenantService } from '../current-tenant.service';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs/operators';
 import { take } from 'rxjs/operators';
@@ -29,15 +29,15 @@ export class AppHeaderCmp implements OnInit {
   private readonly routesService = inject(RoutesService);
   private readonly authService = inject(AuthService);
   readonly auth = inject(Auth);
-  readonly currentEstService = inject(CurrentEstablishmentService);
+  readonly currentTenantService = inject(CurrentTenantService);
 
-  currentAffiliation = toSignal(this.currentEstService.currentAffiliation$, { initialValue: null });
+  currentAffiliation = toSignal(this.currentTenantService.currentAffiliation$, { initialValue: null });
 
   async ngOnInit(): Promise<void> {
     authState(this.auth).pipe(filter(Boolean), take(1)).subscribe(async (user) => {
       await user.getIdToken(true);
-      if (this.currentEstService.getAffiliations().length === 0) {
-        await this.currentEstService.initialize(user.uid);
+      if (this.currentTenantService.getAffiliations().length === 0) {
+        await this.currentTenantService.initialize(user.uid);
       }
       if (this.currentAffiliation() === null) {
         this.routesService.redirectToHome();
@@ -45,13 +45,13 @@ export class AppHeaderCmp implements OnInit {
     });
   }
 
-  async switchEstablishment(eid: string): Promise<void> {
+  async switchTenant(eid: string): Promise<void> {
     const user = this.auth.currentUser;
     if (!user) {
       this.routesService.redirectToHome();
       return;
     }
-    await this.currentEstService.setEstablishment(user.uid, eid);
+    await this.currentTenantService.setTenant(user.uid, eid);
     this.routesService.redirectToMainPage();
   }
 

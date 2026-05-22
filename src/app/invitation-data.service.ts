@@ -68,7 +68,7 @@ export class InvitationDataService {
 
   async loadInvitationDocument(eid: string): Promise<InvitationSettingDocument | null> {
     return runInInjectionContext(this.injector, async () => {
-      const ref = doc(this.firestore, 'establishments', eid, 'settings', 'invitationSetting');
+      const ref = doc(this.firestore, 'tenants', eid, 'settings', 'invitationSetting');
       const snap = await getDoc(ref);
       if (!snap.exists()) {
         return null;

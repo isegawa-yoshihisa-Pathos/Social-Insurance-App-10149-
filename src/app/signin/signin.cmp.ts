@@ -6,7 +6,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../auth.service';
 import { RoutesService } from '../routes.service';
-import { CurrentEstablishmentService } from '../current-establishment.service';
+import { CurrentTenantService } from '../current-tenant.service';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ErrorDialogCmp, mapFirebaseError } from '../error-dialog/error-dialog.cmp';
 import { MatDialog } from '@angular/material/dialog';
@@ -23,7 +23,7 @@ import { Auth } from '@angular/fire/auth';
 export class SigninCmp {
   private readonly authService = inject(AuthService);
   private readonly routesService = inject(RoutesService);
-  private readonly currentEstablishmentService = inject(CurrentEstablishmentService);
+  private readonly currentTenantService = inject(CurrentTenantService);
   private readonly dialog = inject(MatDialog);
   readonly auth = inject(Auth);
   email = '';
@@ -37,8 +37,8 @@ export class SigninCmp {
       const uid = await this.authService.signIn(this.email, this.password);
       if (!uid) return;
       await this.auth.currentUser?.getIdToken(true);
-      await this.currentEstablishmentService.initialize(uid);
-      const affiliations = this.currentEstablishmentService.getAffiliations();
+      await this.currentTenantService.initialize(uid);
+      const affiliations = this.currentTenantService.getAffiliations();
       if (affiliations.length === 0) {
         this.dialog.open(ErrorDialogCmp, {
           data: { message: '所属事業所が見つかりません' },
@@ -47,7 +47,7 @@ export class SigninCmp {
       }
       if (affiliations.length > 0) {
         const eid = affiliations[0].eid;
-        await this.currentEstablishmentService.setEstablishment(uid, eid);
+        await this.currentTenantService.setTenant(uid, eid);
         this.routesService.redirectToMainPage();
         return;
       }

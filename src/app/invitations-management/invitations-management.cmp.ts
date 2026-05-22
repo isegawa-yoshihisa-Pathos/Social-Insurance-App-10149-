@@ -1,5 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { CurrentEstablishmentService } from '../current-establishment.service';
+import { CurrentTenantService } from '../current-tenant.service';
 import { RoutesService } from '../routes.service';
 import { Firestore } from '@angular/fire/firestore';
 import { collection, getDocs } from '@angular/fire/firestore';
@@ -38,7 +38,7 @@ export class InvitationsManagementCmp implements OnInit {
   emailHeaders: string[] = [];
   templateText: string = '';
 
-  private readonly currentEstService = inject(CurrentEstablishmentService);
+  private readonly currentTenantService = inject(CurrentTenantService);
   private readonly routesService = inject(RoutesService);
   private readonly firestore = inject(Firestore);
   private readonly dialog = inject(MatDialog);
@@ -46,7 +46,7 @@ export class InvitationsManagementCmp implements OnInit {
   private readonly functionsService = inject(FunctionsService);
 
   async ngOnInit(): Promise<void> {
-    const eid = this.currentEstService.getEstablishment();
+    const eid = this.currentTenantService.getTenant();
     if (!eid) {
       this.routesService.redirectToHome();
       return;
@@ -54,7 +54,7 @@ export class InvitationsManagementCmp implements OnInit {
     this.eid = eid;
 
     try {
-      const invitationsRef = collection(this.firestore, 'establishments', this.eid, 'invitations');
+      const invitationsRef = collection(this.firestore, 'tenants', this.eid, 'invitations');
       const invitations = await getDocs(invitationsRef);
       this.invitations = invitations.docs.map((doc) => doc.data());
       const setting = await this.invitationDataService.loadInvitationDocument(eid);
@@ -100,7 +100,6 @@ export class InvitationsManagementCmp implements OnInit {
           email: invitation.email,
           name: invitation.name,
           role: invitation.role as 'admin' | 'member',
-          templateText: this.templateText,
         });
       }
     } catch (error) {

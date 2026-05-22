@@ -28,12 +28,12 @@ export class SignupCmp {
     this.routesService.redirectToSignin();
   }
 
-  async navigateToCreateEstablishment(): Promise<void> {
+  async navigateToCreateTenant(): Promise<void> {
     this.sharedDataService.setSignupData({
       email: this.email,
       password: this.password,
     });
-    this.routesService.redirectToCreateEstablishment();
+    this.routesService.redirectToCreateTenant();
   }
 
   showPassword(event: PointerEvent): void {

@@ -40,7 +40,7 @@
 }
 
 .error-message {
-  color: #b91624;
+  color: var(--mat-form-field-outlined-error-label-text-color);
   font-size: 12px;
   margin-top: 0;
   margin-bottom: 0;
@@ -71,7 +71,7 @@
 
 .signin-button {
   font-size: 15px;
-  color: var(--mat-sys-primary);
+  color: #673ab7;
   border: none;
   background-color: transparent;
 }

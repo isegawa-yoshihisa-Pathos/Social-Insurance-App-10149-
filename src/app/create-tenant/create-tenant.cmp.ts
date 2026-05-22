@@ -13,30 +13,30 @@ import { SharedDataService } from '../shared-data.service';
 import { RoutesService } from '../routes.service';
 import { FunctionsService } from '../functions.service';
 import { AuthService } from '../auth.service';
-import { CurrentEstablishmentService } from '../current-establishment.service';
+import { CurrentTenantService } from '../current-tenant.service';
 import { Auth } from '@angular/fire/auth';
 import { ZipcodeToAddressService } from '../zipcode-to-address.service';
 import {
-  createEmptyEstablishmentForm,
-  establishmentFormToSavePayload,
+  createEmptyTenantForm,
+  tenantFormToSavePayload,
   parsePhoneNumberRaw,
-  EstablishmentFormData,
-} from '../establishment-form-data';
+  TenantFormData,
+} from '../tenant-form-data';
 
 @Component({
-  selector: 'app-create-establishments',
+  selector: 'app-create-tenants',
   standalone: true,
   imports: [FormsModule, MatFormFieldModule, MatInputModule, MatIconModule, MatButtonModule, MatSelectModule, MatCheckboxModule, MatProgressSpinnerModule],
-  templateUrl: './create-establishment.cmp.html',
-  styleUrl: './create-establishment.cmp.css',
+  templateUrl: './create-tenant.cmp.html',
+  styleUrl: './create-tenant.cmp.css',
 })
-export class CreateEstablishmentCmp implements OnInit {
+export class CreateTenantCmp implements OnInit {
   private readonly sharedDataService = inject(SharedDataService);
   private readonly routesService = inject(RoutesService);
   private readonly functionsService = inject(FunctionsService);
   private readonly authService = inject(AuthService);
   private readonly dialog = inject(MatDialog);
-  private readonly currentEstablishmentService = inject(CurrentEstablishmentService);
+  private readonly currentTenantService = inject(CurrentTenantService);
   readonly auth = inject(Auth);
   private readonly zipcodeToAddressService = inject(ZipcodeToAddressService);
 
@@ -44,31 +44,31 @@ export class CreateEstablishmentCmp implements OnInit {
 
   laterInput = false;
 
-  form: EstablishmentFormData = createEmptyEstablishmentForm();
+  form: TenantFormData = createEmptyTenantForm();
 
   ngOnInit(): void {
-    const establishmentData = this.sharedDataService.getEstablishmentData();
-    if (establishmentData) {
+    const tenantData = this.sharedDataService.getTenantData();
+    if (tenantData) {
       this.form = {
-        ...createEmptyEstablishmentForm(),
-        ...establishmentData,
+        ...createEmptyTenantForm(),
+        ...tenantData,
         address: {
-          ...createEmptyEstablishmentForm().address,
-          ...establishmentData.address,
+          ...createEmptyTenantForm().address,
+          ...tenantData.address,
         },
         ownerName: {
-          ...createEmptyEstablishmentForm().ownerName,
-          ...establishmentData.ownerName,
+          ...createEmptyTenantForm().ownerName,
+          ...tenantData.ownerName,
         },
         phoneNumber: {
-          ...createEmptyEstablishmentForm().phoneNumber,
-          ...establishmentData.phoneNumber,
+          ...createEmptyTenantForm().phoneNumber,
+          ...tenantData.phoneNumber,
         },
-        phoneNumberRaw: establishmentData.phoneNumberRaw ?? (
-          establishmentData.phoneNumber?.tel1 &&
-          establishmentData.phoneNumber?.tel2 &&
-          establishmentData.phoneNumber?.tel3
-            ? `${establishmentData.phoneNumber.tel1}-${establishmentData.phoneNumber.tel2}-${establishmentData.phoneNumber.tel3}`
+        phoneNumberRaw: tenantData.phoneNumberRaw ?? (
+          tenantData.phoneNumber?.tel1 &&
+          tenantData.phoneNumber?.tel2 &&
+          tenantData.phoneNumber?.tel3
+            ? `${tenantData.phoneNumber.tel1}-${tenantData.phoneNumber.tel2}-${tenantData.phoneNumber.tel3}`
             : ''
         ),
       };
@@ -104,11 +104,11 @@ export class CreateEstablishmentCmp implements OnInit {
 
   navigateToSignup(): void {
     this.form.phoneNumber = parsePhoneNumberRaw(this.form.phoneNumberRaw);
-    this.sharedDataService.setEstablishmentData(this.form);
+    this.sharedDataService.setTenantData(this.form);
     this.routesService.redirectToSignup();
   }
 
-  async createEstablishment(): Promise<void> {
+  async createTenant(): Promise<void> {
     const signupData = this.sharedDataService.getSignupData();
     if (!signupData) {
       this.routesService.redirectToSignup();
@@ -116,17 +116,17 @@ export class CreateEstablishmentCmp implements OnInit {
     }try {
       this.submitBusy = true;
       this.form.phoneNumber = parsePhoneNumberRaw(this.form.phoneNumberRaw);
-      const establishmentPayload = establishmentFormToSavePayload(this.form);
+      const tenantPayload = tenantFormToSavePayload(this.form);
       const payload = {
         ...signupData,
-        establishmentName: establishmentPayload.establishmentName,
-        establishmentNameKana: establishmentPayload.establishmentNameKana,
-        zipcode: establishmentPayload.zipcode,
-        address: establishmentPayload.address,
-        ownerName: establishmentPayload.ownerName,
-        phoneNumber: establishmentPayload.phoneNumber,
+        tenantName: tenantPayload.tenantName,
+        tenantNameKana: tenantPayload.tenantNameKana,
+        zipcode: tenantPayload.zipcode,
+        address: tenantPayload.address,
+        ownerName: tenantPayload.ownerName,
+        phoneNumber: tenantPayload.phoneNumber,
       };
-      const result = await this.functionsService.registerAdminAndEstablishment(payload);
+      const result = await this.functionsService.registerAdminAndTenant(payload);
       const { uid, email, password } = result.data as {
         uid: string;
         email: string;
@@ -134,7 +134,7 @@ export class CreateEstablishmentCmp implements OnInit {
       };
       await this.authService.signIn(email, password);
       await this.auth.currentUser?.getIdToken(true);
-      await this.currentEstablishmentService.initialize(uid);
+      await this.currentTenantService.initialize(uid);
       
       this.sharedDataService.clearSignupData();
       this.routesService.redirectToMainPage();

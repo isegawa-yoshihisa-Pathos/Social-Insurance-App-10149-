@@ -1,0 +1,105 @@
+:host {
+  display: block;
+}
+
+.invitation-setting-content {
+  width: 100%;
+  padding: 20px;
+  background-color: white;
+  box-sizing: border-box;
+  box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.invitation-setting-label {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 24px;
+  border-left: 4px solid #673ab7;
+  padding-left: 8px;
+}
+
+.import-file-setting {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.import-file-setting-content {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 24px;
+}
+
+.header-label {
+  font-weight: bold;
+}
+
+.header-setting {
+  padding: 0 50px;
+}
+
+.header-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+  min-height: 32px;
+}
+
+.header-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 16px;
+  background-color: #ececec;
+  box-sizing: border-box;
+}
+
+.header-chip-text {
+  display: block;
+  line-height: 20px;
+  font-size: 13px;
+}
+
+.delete-header-button {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  color: #b91e1b;
+  cursor: pointer;
+}
+
+.delete-header-button:hover {
+  background-color: #b91e1b;
+  color: white;
+}
+
+.delete-header-button mat-icon {
+  display: block;
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  line-height: 16px;
+}
+
+.save-setting-button {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.add-header-button {
+  margin-left: 8px;
+}

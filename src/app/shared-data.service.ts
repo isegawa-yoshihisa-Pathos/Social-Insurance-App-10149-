@@ -5,7 +5,7 @@ import { Injectable } from '@angular/core';
 })
 export class SharedDataService {
   private signupData: any = null;
-  private establishmentData: any = null;
+  private tenantData: any = null;
 
   setSignupData(data: any): void {
     this.signupData = data;
@@ -19,15 +19,15 @@ export class SharedDataService {
     this.signupData = null;
   }
 
-  setEstablishmentData(data: any): void {
-    this.establishmentData = data;
+  setTenantData(data: any): void {
+    this.tenantData = data;
   }
 
-  getEstablishmentData(): any {
-    return this.establishmentData;
+  getTenantData(): any {
+    return this.tenantData;
   }
 
-  clearEstablishmentData(): void {
-    this.establishmentData = null;
+  clearTenantData(): void {
+    this.tenantData = null;
   }
 }

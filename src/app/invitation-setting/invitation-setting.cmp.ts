@@ -1,20 +1,15 @@
 import { Component, inject, OnInit } from '@angular/core';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { FormsModule } from '@angular/forms';
-import { MatIconModule } from '@angular/material/icon';
 import { ErrorDialogCmp, mapFirebaseError } from '../error-dialog/error-dialog.cmp';
 import { MatDialog } from '@angular/material/dialog';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { FunctionsService } from '../functions.service';
-import { CurrentEstablishmentService } from '../current-establishment.service';
+import { CurrentTenantService } from '../current-tenant.service';
 import { InvitationDataService } from '../invitation-data.service';
 import { RoutesService } from '../routes.service';
+import { InvitationMailSettingCmp } from './invitation-mail-setting/invitation-mail-setting.cmp';
+import { InvitationImportSettingCmp } from './invitation-import-setting/invitation-import-setting.cmp';
 
 @Component({
   selector: 'app-invitation-setting',
-  imports: [MatFormFieldModule, MatInputModule, MatButtonModule, FormsModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [InvitationMailSettingCmp, InvitationImportSettingCmp],
   templateUrl: './invitation-setting.cmp.html',
   styleUrl: './invitation-setting.cmp.css',
 })
@@ -23,13 +18,12 @@ export class InvitationSettingCmp implements OnInit {
   readonly defaultEmailHeaders = ['メールアドレス', 'メール', 'email', 'mail'];
   readonly defaultTemplateText = `{name} 様
   
-  {establishmentName} より、社会保険管理システム「縄文」への招待が届いています。
+  {tenantName} より、社会保険管理システム「縄文」への招待が届いています。
   
   以下のボタンからアカウントの初期設定を行い、必要な情報の登録をお願いします。`;
 
   private dialog = inject(MatDialog);
-  private functionsService = inject(FunctionsService);
-  private currentEstService = inject(CurrentEstablishmentService);
+  private currentTenantService = inject(CurrentTenantService);
   private invitationDataService = inject(InvitationDataService);
   private routesService = inject(RoutesService);
 
@@ -38,15 +32,10 @@ export class InvitationSettingCmp implements OnInit {
   nameHeaders: string[] = [...this.defaultNameHeaders];
   emailHeaders: string[] = [...this.defaultEmailHeaders];
   mailTemplateText = this.defaultTemplateText;
-
-  newNameHeader = '';
-  newEmailHeader = '';
-
-  saveBusy = false;
   loading = true;
 
   async ngOnInit(): Promise<void> {
-    const eid = this.currentEstService.getEstablishment();
+    const eid = this.currentTenantService.getTenant();
 
     if (!eid) {
       this.routesService.redirectToHome();
@@ -73,97 +62,5 @@ export class InvitationSettingCmp implements OnInit {
     } finally {
       this.loading = false;
     }
-  }
-
-  async saveInvitationTemplate(): Promise<void> {
-    const eid = this.currentEstService.getEstablishment()
-    if (!eid) {
-      this.dialog.open(ErrorDialogCmp, {
-        data: {message: '事業所が選択されていません'},
-      });
-      return;
-    }
-    try {
-      this.saveBusy = true;
-      await this.functionsService.saveInvitationTemplate({
-        eid,
-        templateText: this.mailTemplateText,
-      });
-    } catch (error) {
-      this.dialog.open(ErrorDialogCmp, {
-        data: { message: 'メールテンプレートの保存に失敗しました' },
-      });
-    } finally {
-      this.saveBusy = false;
-    }
-  }
-
-  async saveInvitationImportSettings(): Promise<void> {
-    const eid = this.currentEstService.getEstablishment()
-    if (!eid) {
-      this.dialog.open(ErrorDialogCmp, {
-        data: { message: '事業所が選択されていません' },
-      });
-      return;
-    }
-    try {
-      this.saveBusy = true;
-      await this.functionsService.saveInvitationImportSettings({
-        eid,
-        nameHeaders: this.nameHeaders,
-        emailHeaders: this.emailHeaders,
-      });
-    } catch (error) {
-      this.dialog.open(ErrorDialogCmp, {
-        data: { message: 'ヘッダーの保存に失敗しました' },
-      });
-    }
-    finally {
-      this.saveBusy = false;
-    }
-  }
-
-  addNameHeader(): void {
-    const header = this.newNameHeader.trim();
-    if (!header) {
-      return;
-    }
-    if (this.nameHeaders.includes(header)) {
-      this.dialog.open(ErrorDialogCmp, {
-        data: {
-          title: 'エラー',
-          message: 'そのヘッダーはすでに存在します',
-        },
-      });
-      return;
-    }
-    this.nameHeaders.push(header);
-    this.newNameHeader = '';
-  }
-
-  addEmailHeader(): void {
-    const header = this.newEmailHeader.trim();
-    if (!header) {
-      return;
-    }
-    if (this.emailHeaders.includes(header)) {
-      this.dialog.open(ErrorDialogCmp, {
-        data: {
-          title: 'エラー',
-          message: 'そのヘッダーはすでに存在します',
-        },
-      });
-      return;
-    }
-    this.emailHeaders.push(header);
-    this.newEmailHeader = '';
-  }
-
-  deleteNameHeader(header: string): void {
-    this.nameHeaders = this.nameHeaders.filter((item) => item !== header);
-  }
-
-  deleteEmailHeader(header: string): void {
-    this.emailHeaders = this.emailHeaders.filter((item) => item !== header);
   }
 }

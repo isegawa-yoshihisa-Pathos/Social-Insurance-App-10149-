@@ -7,7 +7,7 @@ import { AffiliationDocument, AccountDocument } from './document-interfaces';
 @Injectable({
   providedIn: 'root',
 })
-export class CurrentEstablishmentService {
+export class CurrentTenantService {
   private readonly firestore = inject(Firestore);
   
   private affiliations = new BehaviorSubject<AffiliationDocument[]>([]);
@@ -51,7 +51,7 @@ export class CurrentEstablishmentService {
 
       this.affiliations.next(affiliations);
 
-      const savedEid = accountData.currentEstablishmentId;
+      const savedEid = accountData.currentTenantId;
       const validEid = affiliations.some((aff) => aff.eid === savedEid)
         ? savedEid
         : affiliations.length > 0
@@ -62,7 +62,7 @@ export class CurrentEstablishmentService {
 
       if(validEid && validEid !== savedEid) {
         await updateDoc(doc(this.firestore, 'accounts', uid), {
-          currentEstablishmentId: validEid,
+          currentTenantId: validEid,
           lastView: serverTimestamp(),
         });
       }
@@ -73,7 +73,7 @@ export class CurrentEstablishmentService {
     }
   }
 
-  async setEstablishment(uid: string, eid: string): Promise<void> {
+  async setTenant(uid: string, eid: string): Promise<void> {
     const affiliation = this.affiliations.value.find(
       (aff) => aff.uid === uid && aff.eid === eid && aff.status === 'active',
     );
@@ -82,7 +82,7 @@ export class CurrentEstablishmentService {
     }
 
     await updateDoc(doc(this.firestore, 'accounts', uid), {
-      currentEstablishmentId: eid,
+      currentTenantId: eid,
       lastView: serverTimestamp(),
     });
 
@@ -108,12 +108,12 @@ export class CurrentEstablishmentService {
     this.affiliations.next(affiliations);
   }
 
-  getEstablishment(): string | null {
+  getTenant(): string | null {
     return this.currentEid.value;
   }
 
   getCurrentAffiliation(): AffiliationDocument | null {
-    const eid = this.getEstablishment();
+    const eid = this.getTenant();
     if (!eid) return null;
     return this.affiliations.value.find(aff => aff.eid === eid) || null;
   }

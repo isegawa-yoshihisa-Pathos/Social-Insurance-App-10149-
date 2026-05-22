@@ -1,6 +1,6 @@
-<div class="create-establishment">
+<div class="create-tenant">
     <div class="pane">
-        <label class="subtitle">事業所設定</label>
+        <label class="subtitle">事業所初期登録</label>
         <div class="input-container">
             <div class="field-container">
                 <label class="label-name">事業所名：</label>
@@ -10,13 +10,13 @@
                         matInput 
                         type="text" 
                         placeholder="（例）株式会社　縄文商事" 
-                        [(ngModel)]="form.establishmentName"
-                        #establishmentNameRef="ngModel"
-                        name="establishmentName"
+                        [(ngModel)]="form.tenantName"
+                        #tenantNameRef="ngModel"
+                        name="tenantName"
                         required
                     />
-                    @if(establishmentNameRef.invalid && (establishmentNameRef.touched || establishmentNameRef.dirty)){
-                        @if(establishmentNameRef.errors?.['required']){
+                    @if(tenantNameRef.invalid && (tenantNameRef.touched || tenantNameRef.dirty)){
+                        @if(tenantNameRef.errors?.['required']){
                             <p class="error-message">事業所名は必須です</p>
                         }
                     }
@@ -30,17 +30,17 @@
                         matInput 
                         type="text" 
                         placeholder="（例）カブシキガイシャ　ジョウモンショウジ" 
-                        [(ngModel)]="form.establishmentNameKana"
-                        #establishmentNameKanaRef="ngModel"
-                        name="establishmentNameKana"
+                        [(ngModel)]="form.tenantNameKana"
+                        #tenantNameKanaRef="ngModel"
+                        name="tenantNameKana"
                         required
                         pattern="^[ァ-ンー\s]+$"
                     />
-                    @if(establishmentNameKanaRef.invalid && (establishmentNameKanaRef.touched || establishmentNameKanaRef.dirty)){
-                        @if(establishmentNameKanaRef.errors?.['required']){
+                    @if(tenantNameKanaRef.invalid && (tenantNameKanaRef.touched || tenantNameKanaRef.dirty)){
+                        @if(tenantNameKanaRef.errors?.['required']){
                             <p class="error-message">事業所名(フリガナ)は必須です</p>
                         }
-                        @if(establishmentNameKanaRef.errors?.['pattern']){
+                        @if(tenantNameKanaRef.errors?.['pattern']){
                             <p class="error-message">事業所名(フリガナ)を正しく入力してください</p>
                         }
                     }
@@ -116,7 +116,7 @@
                         #ownerLastNameRef="ngModel"
                         name="ownerLastName" 
                         required
-                        pattern="^[a-zA-Zぁ-んァ-ン一-龥\s]+$"
+                        pattern="^[a-zA-Zぁ-んァ-ン一-龥\sー]+$"
                     />
                     @if(ownerLastNameRef.invalid && (ownerLastNameRef.touched || ownerLastNameRef.dirty)){
                         @if(ownerLastNameRef.errors?.['required']){
@@ -134,7 +134,7 @@
                         #ownerFirstNameRef="ngModel"
                         name="ownerFirstName" 
                         required
-                        pattern="^[a-zA-Zぁ-んァ-ン一-龥\s]+$"
+                        pattern="^[a-zA-Zぁ-んァ-ン一-龥\sー]+$"
                     />
                     @if(ownerFirstNameRef.invalid && (ownerFirstNameRef.touched || ownerFirstNameRef.dirty)){
                         @if(ownerFirstNameRef.errors?.['required']){
@@ -218,11 +218,11 @@
             <button 
                 mat-flat-button 
                 color="primary" 
-                class="create-establishment-button" 
+                class="create-tenant-button" 
                 [class.busy]="submitBusy"
                 type='button'
-                [disabled]="establishmentNameRef.invalid || establishmentNameKanaRef.invalid || zipcodeRef.invalid || address1Ref.invalid || address2Ref.invalid || ownerLastNameRef.invalid || ownerFirstNameRef.invalid || ownerLastNameKanaRef.invalid || ownerFirstNameKanaRef.invalid || phoneNumberRef.invalid || submitBusy"
-                (click)="createEstablishment()"
+                [disabled]="tenantNameRef.invalid || tenantNameKanaRef.invalid || zipcodeRef.invalid || address1Ref.invalid || address2Ref.invalid || ownerLastNameRef.invalid || ownerFirstNameRef.invalid || ownerLastNameKanaRef.invalid || ownerFirstNameKanaRef.invalid || phoneNumberRef.invalid || submitBusy"
+                (click)="createTenant()"
             >
                 @if(submitBusy) {
                     <mat-spinner diameter="24" strokeWidth="3"></mat-spinner>

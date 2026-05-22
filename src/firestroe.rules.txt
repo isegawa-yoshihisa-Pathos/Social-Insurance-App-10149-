@@ -9,7 +9,7 @@ service cloud.firestore {
     }
 
     // 各事業所のデータ
-    match /establishments/{eid} {
+    match /tenants/{eid} {
       // 会社データを読もうとしたとき、直接「uid_eid」のドキュメントが存在するかだけを確認する
       allow read, write: if request.auth != null && 
         exists(/databases/$(database)/documents/affiliations/$(request.auth.uid + '_' + eid));
@@ -19,7 +19,7 @@ service cloud.firestore {
     match /employees/{employeeId} {
       // その従業員が所属する会社(eid)に対して、自分が権限を持っているか
       allow read, write: if request.auth != null &&
-        exists(/databases/$(database)/documents/affiliations/$(request.auth.uid + '_' + resource.data.establishmentId));
+        exists(/databases/$(database)/documents/affiliations/$(request.auth.uid + '_' + resource.data.tenantId));
     }
   }
 }

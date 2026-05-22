@@ -7,35 +7,35 @@ import {
   serverTimestamp,
 } from '@angular/fire/firestore';
 import {
-  EstablishmentDocument,
-  EstablishmentSavePayload,
-} from './establishment-document';
+  TenantDocument,
+  TenantSavePayload,
+} from './tenant-document';
 
 @Injectable({
   providedIn: 'root',
 })
-export class EstablishmentsDataService {
+export class TenantsDataService {
   private readonly firestore = inject(Firestore);
   private readonly injector = inject(EnvironmentInjector);
 
-  async loadEstablishment(eid: string): Promise<EstablishmentDocument | null> {
+  async loadTenant(eid: string): Promise<TenantDocument | null> {
     return runInInjectionContext(this.injector, async () => {
-      const ref = doc(this.firestore, 'establishments', eid);
+      const ref = doc(this.firestore, 'tenants', eid);
       const snap = await getDoc(ref);
       if (!snap.exists()) {
         return null;
       }
-      return snap.data() as EstablishmentDocument;
+      return snap.data() as TenantDocument;
     });
   }
 
-  async saveEstablishment(
+  async saveTenant(
     eid: string,
-    data: EstablishmentSavePayload,
+    data: TenantSavePayload,
   ): Promise<void> {
     return runInInjectionContext(this.injector, async () => {
-      const establishmentRef = doc(this.firestore, 'establishments', eid);
-      await updateDoc(establishmentRef, {
+      const tenantRef = doc(this.firestore, 'tenants', eid);
+      await updateDoc(tenantRef, {
         ...data,
         updatedAt: serverTimestamp(),
       });

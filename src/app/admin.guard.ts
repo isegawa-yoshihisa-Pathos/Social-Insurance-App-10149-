@@ -4,25 +4,25 @@ import { Auth, authState } from '@angular/fire/auth';
 import { Firestore, doc, getDoc } from '@angular/fire/firestore';
 import { firstValueFrom } from 'rxjs';
 import { take } from 'rxjs/operators';
-import { CurrentEstablishmentService } from './current-establishment.service';
+import { CurrentTenantService } from './current-tenant.service';
 import { AffiliationDocument } from './document-interfaces';
 
 export const adminGuard: CanActivateFn = async () => {
   const auth = inject(Auth);
   const firestore = inject(Firestore);
   const router = inject(Router);
-  const currentEstService = inject(CurrentEstablishmentService);
+  const currentTenantService = inject(CurrentTenantService);
 
   const user = await firstValueFrom(authState(auth).pipe(take(1)));
   if (!user) {
     return router.createUrlTree(['/home']);
   }
 
-  if (currentEstService.getAffiliations().length === 0) {
-    await currentEstService.initialize(user.uid);
+  if (currentTenantService.getAffiliations().length === 0) {
+    await currentTenantService.initialize(user.uid);
   }
 
-  const eid = currentEstService.getEstablishment();
+  const eid = currentTenantService.getTenant();
   if (!eid) {
     return router.createUrlTree(['/home']);
   }

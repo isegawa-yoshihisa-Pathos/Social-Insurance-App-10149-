@@ -108,7 +108,7 @@ await updateDoc(doc(db, "tasks", newDocRef.id), {
   priority: "high"
 });
 
-// 3. Establish a real-time listener on a compound query
+// 3. Tenantablish a real-time listener on a compound query
 const q = query(collection(db, "tasks"), where("status", "==", "pending"));
 
 const unsubscribe = onSnapshot(q, (snapshot) => {

@@ -22,6 +22,7 @@ export interface Address {
 export interface AccountPersonalInfo {
   realName: RealName;
   myNumber: string;
+  basicPensionNumber: string;
   birthDate: string;
   phoneNumber: PhoneNumber;
   zipcode: string;
@@ -31,6 +32,10 @@ export interface AccountPersonalInfo {
 
 export interface EmployeePersonalInfo {
   displayName: string;
+  realName: RealName;
+  myNumber: string;
+  basicPensionNumber: string;
+  birthDate: string;
   phoneNumber: PhoneNumber;
   zipcode: string;
   address: Address;

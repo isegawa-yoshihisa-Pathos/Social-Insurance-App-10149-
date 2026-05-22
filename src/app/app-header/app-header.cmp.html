@@ -17,15 +17,15 @@
         </div>
     } @else {
         <div class="button-container">
-            <button mat-button class="establishment-name" [matMenuTriggerFor]="establishmentMenu">
-                <span>{{ currentAffiliation()?.establishmentName ?? '事業所未選択' }}</span>
+            <button mat-button class="tenant-name" [matMenuTriggerFor]="tenantMenu">
+                <span>{{ currentAffiliation()?.tenantName ?? '事業所未選択' }}</span>
                 <mat-icon>arrow_drop_down</mat-icon>
             </button>
-            <mat-menu #establishmentMenu="matMenu">
-                @for (aff of currentEstService.getAffiliations(); track aff.eid) {
-                    <button mat-menu-item type="button" (click)="switchEstablishment(aff.eid)"
-                    [disabled]="aff.eid === currentEstService.getEstablishment()">
-                        {{ aff.establishmentName }}
+            <mat-menu #tenantMenu="matMenu">
+                @for (aff of currentTenantService.getAffiliations(); track aff.eid) {
+                    <button mat-menu-item type="button" (click)="switchTenant(aff.eid)"
+                    [disabled]="aff.eid === currentTenantService.getTenant()">
+                        {{ aff.tenantName }}
                     </button>
                 }
             </mat-menu>

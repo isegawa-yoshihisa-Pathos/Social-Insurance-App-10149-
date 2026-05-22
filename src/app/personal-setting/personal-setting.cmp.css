@@ -113,7 +113,7 @@
 }
 
 .error-message {
-  color: #b91624;
+  color: var(--mat-form-field-outlined-error-label-text-color);
   font-size: 12px;
   margin: 0;
 }
@@ -125,7 +125,7 @@
   margin-left: 6px;
   vertical-align: super;
   border-radius: 50%;
-  background: #d32f2f;
+  background: var(--mat-form-field-outlined-error-label-text-color);
 }
 
 .actions {

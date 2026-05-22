@@ -1,0 +1,76 @@
+<div class="invitation-setting-content">
+    <div class="invitation-setting-label">
+        メール設定
+    </div>
+    <div class="invitation-mail-setting">
+        <div class="invitation-mail-setting-content">
+            テンプレートのメール内容を入力してください。
+            <br>
+            メール本文テンプレートは以下の変数を使用できます。
+            <br>
+            {{ '{ name }' }}：招待されたユーザーの名前
+            <br>
+            {{ '{ email }' }}：招待されたユーザーのメールアドレス
+            <br>
+            {{ '{ tenantName }' }}：事業所名
+            <br>
+            {{ '{ adminEmail }' }}：管理者メールアドレス
+        </div>
+        
+        <div class="mail-textarea-container">
+            <mat-form-field appearance="outline" class="mail-textarea-field">
+                <mat-label>メール本文テンプレート</mat-label>
+                <textarea 
+                    matInput 
+                    class="invitation-mail-setting-textarea" 
+                    placeholder="ここにメールの本文を入力してください..."
+                    [(ngModel)]="mailTemplateText"
+                    name="mailTemplateText"></textarea>
+            </mat-form-field>
+        </div>
+        
+        <div class="save-setting-button">
+            <button matButton="outlined" type="button" (click)="openPreview(mailPreviewDialog)">
+                プレビュー
+            </button>
+            <button mat-flat-button color="primary" type="button" (click)="saveInvitationTemplate()" [disabled]="saveBusy">
+                @if (saveBusy) {
+                    <mat-progress-spinner mode="indeterminate" diameter="20"></mat-progress-spinner>
+                } @else {
+                    保存
+                }
+            </button>
+        </div>
+        <ng-template #mailPreviewDialog>
+            <div class="mail-preview-dialog">
+              <h2>メールプレビュー</h2>
+              <div class="mail-meta">
+                <div><span>From</span> 縄文 社会保険アプリ &lt;no-reply&#64;your-domain.com&gt;</div>
+                <div><span>To</span> {{ previewValues.name }} &lt;{{ previewValues.email }}&gt;</div>
+                <div><span>Reply-To</span> {{ previewValues.adminEmail }}</div>
+                <div><span>Subject</span> {{ previewSubject }}</div>
+              </div>
+              <div class="mail-preview-frame">
+                <div class="mail-body">
+                    <div class="mail-editable-text">
+                        {{ previewText }}
+                    </div>
+                    <div class="mail-action">
+                      <a class="mail-action-button">
+                        アカウント初期設定を行う
+                      </a>
+                    </div>
+                    <p class="mail-notes">
+                      ※このリンクの有効期限は24時間です。<br>
+                      ※このメールに心当たりがない場合は、このメールを破棄してください。<br>
+                      ※ご不明な点がある場合は、管理者（{{ previewValues.adminEmail }}）へお問い合わせください。
+                    </p>
+                  </div>
+              </div>
+              <div class="mail-preview-actions">
+                <button mat-flat-button color="primary" mat-dialog-close>閉じる</button>
+              </div>
+            </div>
+        </ng-template>
+    </div>
+</div>

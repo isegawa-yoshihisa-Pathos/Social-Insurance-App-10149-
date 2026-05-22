@@ -1,9 +1,9 @@
 import {
-  EstablishmentDocument,
-  EstablishmentSavePayload,
+  TenantDocument,
+  TenantSavePayload,
   PayrollSettings,
   SocialInsuranceSettings,
-} from './establishment-document';
+} from './tenant-document';
 
 export interface OwnerNameForm {
   ownerLastName: string;
@@ -12,9 +12,9 @@ export interface OwnerNameForm {
   ownerFirstNameKana: string;
 }
 
-export interface EstablishmentFormData {
-  establishmentName: string;
-  establishmentNameKana: string;
+export interface TenantFormData {
+  tenantName: string;
+  tenantNameKana: string;
   zipcode: string;
   address: {
     address1: string;
@@ -50,18 +50,18 @@ export function createDefaultSocialInsuranceSettings(): SocialInsuranceSettings 
   return {
     healthInsuranceType: 'association',
     combinationName: '',
-    healthInsuranceEstablishmentRecordNumber: '',
-    pensionInsuranceEstablishmentNumber: '',
-    pensionInsuranceEstablishmentRecordNumber: '',
+    healthInsuranceTenantRecordNumber: '',
+    pensionInsuranceTenantNumber: '',
+    pensionInsuranceTenantRecordNumber: '',
     socialInsuranceCollectionMonth: 'nextMonth',
     specificInsuranceCollectionType: 'false',
   };
 }
 
-export function createEmptyEstablishmentForm(): EstablishmentFormData {
+export function createEmptyTenantForm(): TenantFormData {
   return {
-    establishmentName: '',
-    establishmentNameKana: '',
+    tenantName: '',
+    tenantNameKana: '',
     zipcode: '',
     address: { address1: '', address2: '', address3: '' },
     ownerName: createDefaultOwnerName(),
@@ -73,7 +73,7 @@ export function createEmptyEstablishmentForm(): EstablishmentFormData {
   };
 }
 
-export function establishmentDocToForm(doc: EstablishmentDocument): EstablishmentFormData {
+export function tenantDocToForm(doc: TenantDocument): TenantFormData {
   const phone = doc.phoneNumber ?? { tel1: '', tel2: '', tel3: '' };
   const phoneNumberRaw =
     phone.tel1 && phone.tel2 && phone.tel3
@@ -81,8 +81,8 @@ export function establishmentDocToForm(doc: EstablishmentDocument): Establishmen
       : '';
 
   return {
-    establishmentName: doc.establishmentName ?? '',
-    establishmentNameKana: doc.establishmentNameKana ?? '',
+    tenantName: doc.tenantName ?? '',
+    tenantNameKana: doc.tenantNameKana ?? '',
     zipcode: doc.zipcode ?? '',
     address: {
       address1: doc.address?.address1 ?? '',
@@ -104,14 +104,14 @@ export function establishmentDocToForm(doc: EstablishmentDocument): Establishmen
   };
 }
 
-export function establishmentFormToSavePayload(
-  form: EstablishmentFormData,
-): EstablishmentSavePayload {
+export function tenantFormToSavePayload(
+  form: TenantFormData,
+): TenantSavePayload {
   const { phoneNumberRaw: _, ...rest } = form;
 
   return {
-    establishmentName: rest.establishmentName,
-    establishmentNameKana: rest.establishmentNameKana,
+    tenantName: rest.tenantName,
+    tenantNameKana: rest.tenantNameKana,
     zipcode: rest.zipcode,
     address: rest.address,
     ownerName: rest.ownerName,

@@ -11,7 +11,7 @@
   );
 }
 
-.create-establishment {
+.create-tenant {
   width: 100%;
   min-height: calc(100vh - 80px);
   background-color: rgb(121, 236, 188);
@@ -84,7 +84,7 @@
 }
 
 .error-message {
-  color: #b91624;
+  color: var(--mat-form-field-outlined-error-label-text-color);
   font-size: 12px;
   margin: 0;
 }
@@ -105,7 +105,7 @@
   margin-top: 60px;
 }
 
-.create-establishment-button,
+.create-tenant-button,
 .back-button {
   width: 240px;
   font-size: 16px;
@@ -113,7 +113,7 @@
   transition: opacity 0.3s ease-in-out;
 }
 
-.create-establishment-button.busy {
+.create-tenant-button.busy {
   cursor: wait;
   pointer-events: none;
 }
@@ -124,7 +124,7 @@
     --field-width: 100%;
   }
 
-  .create-establishment {
+  .create-tenant {
     padding: 40px 16px;
   }
 

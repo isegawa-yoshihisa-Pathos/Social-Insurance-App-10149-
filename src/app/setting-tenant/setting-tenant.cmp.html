@@ -11,13 +11,13 @@
                                 matInput 
                                 type="text" 
                                 placeholder="（例）株式会社　縄文商事" 
-                                [(ngModel)]="form.establishmentName"
-                                #establishmentNameRef="ngModel"
-                                name="establishmentName"
+                                [(ngModel)]="form.tenantName"
+                                #tenantNameRef="ngModel"
+                                name="tenantName"
                                 required
                             />
-                            @if(establishmentNameRef.invalid && (establishmentNameRef.touched || establishmentNameRef.dirty)){
-                                @if(establishmentNameRef.errors?.['required']){
+                            @if(tenantNameRef.invalid && (tenantNameRef.touched || tenantNameRef.dirty)){
+                                @if(tenantNameRef.errors?.['required']){
                                     <p class="error-message">事業所名は必須です</p>
                                 }
                             }
@@ -31,17 +31,17 @@
                                 matInput 
                                 type="text" 
                                 placeholder="（例）株式会社　縄文商事" 
-                                [(ngModel)]="form.establishmentNameKana"
-                                #establishmentNameKanaRef="ngModel"
-                                name="establishmentNameKana"
+                                [(ngModel)]="form.tenantNameKana"
+                                #tenantNameKanaRef="ngModel"
+                                name="tenantNameKana"
                                 required
                                 pattern="^[ァ-ヶー\s]+$"
                             />
-                            @if(establishmentNameKanaRef.invalid && (establishmentNameKanaRef.touched || establishmentNameKanaRef.dirty)){
-                                @if(establishmentNameKanaRef.errors?.['required']){
+                            @if(tenantNameKanaRef.invalid && (tenantNameKanaRef.touched || tenantNameKanaRef.dirty)){
+                                @if(tenantNameKanaRef.errors?.['required']){
                                     <p class="error-message">事業所名(フリガナ)は必須です</p>
                                 }
-                                @if(establishmentNameKanaRef.errors?.['pattern']){
+                                @if(tenantNameKanaRef.errors?.['pattern']){
                                     <p class="error-message">事業所名(フリガナ)を正しく入力してください</p>
                                 }
                             }
@@ -117,7 +117,7 @@
                                 #ownerLastNameRef="ngModel"
                                 name="ownerLastName" 
                                 required
-                                pattern="^[a-zA-Zぁ-んァ-ン一-龥\s]+$"
+                                pattern="^[a-zA-Zぁ-んァ-ン一-龥\sー]+$"
                             />
                             @if(ownerLastNameRef.invalid && (ownerLastNameRef.touched || ownerLastNameRef.dirty)){
                                 @if(ownerLastNameRef.errors?.['required']){
@@ -135,7 +135,7 @@
                                 #ownerFirstNameRef="ngModel"
                                 name="ownerFirstName" 
                                 required
-                                pattern="^[a-zA-Zぁ-んァ-ン一-龥\s]+$"
+                                pattern="^[a-zA-Zぁ-んァ-ン一-龥\sー]+$"
                             />
                             @if(ownerFirstNameRef.invalid && (ownerFirstNameRef.touched || ownerFirstNameRef.dirty)){
                                 @if(ownerFirstNameRef.errors?.['required']){
@@ -272,12 +272,12 @@
                                 matInput 
                                 type="text" 
                                 placeholder="（例）12345678" 
-                                [(ngModel)]="form.socialInsuranceSettings.healthInsuranceEstablishmentRecordNumber"
-                                #healthInsuranceEstablishmentRecordNumberRef="ngModel"
-                                name="healthInsuranceEstablishmentRecordNumber" 
+                                [(ngModel)]="form.socialInsuranceSettings.healthInsuranceTenantRecordNumber"
+                                #healthInsuranceTenantRecordNumberRef="ngModel"
+                                name="healthInsuranceTenantRecordNumber" 
                             />
                         </mat-form-field>
-                        <app-help-content key="hiEstRecNum"></app-help-content>
+                        <app-help-content key="hiTenantRecNum"></app-help-content>
                     </div>
                     <div class="field-container">
                         <label class="label-name">（厚生年金）事業所番号：</label>
@@ -287,12 +287,12 @@
                                 matInput 
                                 type="text" 
                                 placeholder="（例）12345" 
-                                [(ngModel)]="form.socialInsuranceSettings.pensionInsuranceEstablishmentNumber"
-                                #pensionInsuranceEstablishmentNumberRef="ngModel"
-                                name="pensionInsuranceEstablishmentNumber" 
+                                [(ngModel)]="form.socialInsuranceSettings.pensionInsuranceTenantNumber"
+                                #pensionInsuranceTenantNumberRef="ngModel"
+                                name="pensionInsuranceTenantNumber" 
                             />
                         </mat-form-field>
-                        <app-help-content key="piEstNum"></app-help-content>
+                        <app-help-content key="piTenantNum"></app-help-content>
                     </div>
                     <div class="field-container">
                         <label class="label-name">（厚生年金）事業所整理記号：</label>
@@ -302,12 +302,12 @@
                                 matInput 
                                 type="text" 
                                 placeholder="（例）01-イロハ" 
-                                [(ngModel)]="form.socialInsuranceSettings.pensionInsuranceEstablishmentRecordNumber"
-                                #pensionInsuranceEstablishmentRecordNumberRef="ngModel"
-                                name="pensionInsuranceEstablishmentRecordNumber" 
+                                [(ngModel)]="form.socialInsuranceSettings.pensionInsuranceTenantRecordNumber"
+                                #pensionInsuranceTenantRecordNumberRef="ngModel"
+                                name="pensionInsuranceTenantRecordNumber" 
                             />
                         </mat-form-field>
-                        <app-help-content key="piEstRecNum"></app-help-content>
+                        <app-help-content key="piTenantRecNum"></app-help-content>
                     </div>
 
                     <hr class="separator grid-full-width">
@@ -393,7 +393,8 @@
             <mat-spinner diameter="32"></mat-spinner>
             } @else {
             <button
-                mat-flat-button
+                mat-raised-button
+                color="primary"
                 type="button"
                 class="save-button"
                 [class.busy]="submitBusy"

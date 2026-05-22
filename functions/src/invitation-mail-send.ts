@@ -14,13 +14,13 @@ interface SendInvitationInput {
   email: string;
   name: string;
   role: 'admin' | 'member';
-  templateText: string;
 }
 
 export const sendInvitationMail = onCall<SendInvitationInput>(
   {
     region: 'asia-northeast1',
     cors: true,
+    invoker: 'public',
     secrets: ['RESEND_API_KEY'],
   },
   async (request) => {
@@ -31,9 +31,9 @@ export const sendInvitationMail = onCall<SendInvitationInput>(
       throw new HttpsError('unauthenticated', 'ログインが必要です。');
     }
 
-    const { eid, email, name, role, templateText } = request.data;
+    const { eid, email, name, role } = request.data;
 
-    if (!eid || !email || !name || !templateText) {
+    if (!eid || !email || !name) {
       throw new HttpsError('invalid-argument', '必要なパラメータが不足しています。');
     }
 
@@ -54,6 +54,11 @@ export const sendInvitationMail = onCall<SendInvitationInput>(
       throw new HttpsError('failed-precondition', 'FRONTEND_URL が設定されていません。');
     }
 
+    const defaultTemplateText = `{name} 様
+
+    {tenantName} より、社会保険管理システム「縄文」への招待が届いています。
+    以下のボタンからアカウントの初期設定を行い、必要な情報の登録をお願いします。`;
+
     const db = admin.firestore();
 
     const affiliationSnap = await db
@@ -71,16 +76,27 @@ export const sendInvitationMail = onCall<SendInvitationInput>(
       throw new HttpsError('permission-denied', '管理者権限が必要です。');
     }
 
-    const establishmentSnap = await db.collection('establishments').doc(eid).get();
+    const tenantSnap = await db.collection('tenants').doc(eid).get();
 
-    if (!establishmentSnap.exists) {
+    if (!tenantSnap.exists) {
       throw new HttpsError('not-found', '事業所が見つかりません。');
     }
 
-    const establishment = establishmentSnap.data();
-    const establishmentName = String(establishment?.establishmentName ?? '');
+    const invitationSettingSnap = await db
+      .collection('tenants')
+      .doc(eid)
+      .collection('settings')
+      .doc('invitationSetting')
+      .get();
+      
+    const templateText = String(
+      invitationSettingSnap.data()?.templateText || defaultTemplateText,
+    );
 
-    if (!establishmentName) {
+    const tenant = tenantSnap.data();
+    const tenantName = String(tenant?.tenantName ?? '');
+
+    if (!tenantName) {
       throw new HttpsError('failed-precondition', '事業所名が設定されていません。');
     }
 
@@ -92,7 +108,7 @@ export const sendInvitationMail = onCall<SendInvitationInput>(
     );
 
     const inviteRef = db
-      .collection('establishments')
+      .collection('tenants')
       .doc(eid)
       .collection('invitations')
       .doc();
@@ -114,7 +130,7 @@ export const sendInvitationMail = onCall<SendInvitationInput>(
       const editableBody = renderTemplate(templateText, {
         name,
         email,
-        establishmentName,
+        tenantName,
         adminEmail,
       });
 
@@ -137,10 +153,10 @@ export const sendInvitationMail = onCall<SendInvitationInput>(
       `;
 
       const result = await resend.emails.send({
-        from: '縄文 社会保険アプリ <no-reply@your-domain.com>',
+        from: '縄文 社会保険アプリ <onboarding@resend.dev>',
         to: [email],
         replyTo: adminEmail,
-        subject: `【重要】${establishmentName} から社会保険管理システムへの招待`,
+        subject: `【重要】${tenantName} から社会保険管理システムへの招待`,
         html,
       });
 

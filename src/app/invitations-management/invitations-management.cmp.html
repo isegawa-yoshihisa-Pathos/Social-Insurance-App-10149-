@@ -25,7 +25,7 @@
                                         [(ngModel)]="invitationsData[$index].name"
                                         #invitationNameRef="ngModel"
                                         [name]="'name' + $index"
-                                        pattern="^[a-zA-Zぁ-んァ-ン一-龥\s]+$"
+                                        pattern="^[a-zA-Zぁ-んァ-ン一-龥\sー]+$"
                                     />
                                 </mat-form-field>
                                 <mat-form-field appearance="outline" class="invitation-form-field" subscriptSizing="dynamic">
@@ -41,7 +41,7 @@
                                     />
                                     @if(invitationEmailRef.invalid && (invitationEmailRef.touched || invitationEmailRef.dirty)){
                                         @if(invitationEmailRef.errors?.['pattern']){
-                                            <p class="error-message">メールアドレスは有効な形式ではありません</p>
+                                            <p class="error-message">メールアドレスが正しくありません</p>
                                         }
                                     }
                                 </mat-form-field>
@@ -82,7 +82,7 @@
                             matTooltip="CSVファイルをアップロード">
                             <mat-icon>attach_file</mat-icon>
                         </button>
-                        <button mat-flat-button class="send-invitation-button" (click)="sendInvitation()">
+                        <button mat-flat-button color="primary" class="send-invitation-button" (click)="sendInvitation()">
                             <span>送信</span>
                             <mat-icon>send</mat-icon>
                         </button>

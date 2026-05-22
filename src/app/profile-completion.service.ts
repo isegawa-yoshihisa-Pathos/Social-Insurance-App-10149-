@@ -3,13 +3,13 @@ import { Firestore, doc, getDoc } from '@angular/fire/firestore';
 import { BehaviorSubject } from 'rxjs';
 import { AccountPersonalInfo, EmployeePersonalInfo } from './personal-document';
 import { PersonalFormData, EmployeeFormData } from './personal-form-data';
-import { EstablishmentDocument } from './establishment-document';
-import { EstablishmentFormData } from './establishment-form-data';
+import { TenantDocument } from './tenant-document';
+import { TenantFormData } from './tenant-form-data';
 
 export interface ProfileCompletionState {
   personal: boolean;
   employee: boolean;
-  establishment: boolean;
+  tenant: boolean;
   any: boolean;
 }
 
@@ -22,7 +22,7 @@ export class ProfileCompletionService {
   private readonly completionSubject = new BehaviorSubject<ProfileCompletionState>({
     personal: false,
     employee: false,
-    establishment: false,
+    tenant: false,
     any: false,
   });
 
@@ -39,15 +39,15 @@ export class ProfileCompletionService {
     this.setState({
       personal: this.hasPersonalMissingFields(personalForm),
       employee: this.hasEmployeeMissingFields(employeeForm),
-      establishment: this.snapshot.establishment,
+      tenant: this.snapshot.tenant,
     });
   }
 
-  updateFromEstablishmentForm(form: EstablishmentFormData): void {
+  updateFromTenantForm(form: TenantFormData): void {
     this.setState({
       personal: this.snapshot.personal,
       employee: this.snapshot.employee,
-      establishment: this.hasEstablishmentMissingFields(form),
+      tenant: this.hasTenantMissingFields(form),
     });
   }
 
@@ -59,17 +59,17 @@ export class ProfileCompletionService {
     const employeeId = account?.['affiliations']?.[eid] as string | undefined;
 
     const employeeInfo = employeeId
-      ? (await getDoc(doc(this.firestore, 'establishments', eid, 'employees', employeeId))).data() as Partial<EmployeePersonalInfo> | undefined
+      ? (await getDoc(doc(this.firestore, 'tenants', eid, 'employees', employeeId))).data() as Partial<EmployeePersonalInfo> | undefined
       : undefined;
 
-    const establishment = (await getDoc(
-      doc(this.firestore, 'establishments', eid),
-    )).data() as Partial<EstablishmentDocument> | undefined;
+    const tenant = (await getDoc(
+      doc(this.firestore, 'tenants', eid),
+    )).data() as Partial<TenantDocument> | undefined;
 
     this.setState({
       personal: this.hasAccountPersonalInfoMissingFields(personalInfo),
       employee: this.hasEmployeeInfoMissingFields(employeeInfo),
-      establishment: this.hasEstablishmentDocumentMissingFields(establishment),
+      tenant: this.hasTenantDocumentMissingFields(tenant),
     });
   }
 
@@ -98,10 +98,10 @@ export class ProfileCompletionService {
     ]);
   }
 
-  hasEstablishmentMissingFields(form: EstablishmentFormData): boolean {
+  hasTenantMissingFields(form: TenantFormData): boolean {
     return this.hasBlank([
-      form.establishmentName,
-      form.establishmentNameKana,
+      form.tenantName,
+      form.tenantNameKana,
       form.zipcode,
       form.address.address1,
       form.address.address2,
@@ -151,14 +151,14 @@ export class ProfileCompletionService {
     ]);
   }
 
-  private hasEstablishmentDocumentMissingFields(
-    docData?: Partial<EstablishmentDocument>,
+  private hasTenantDocumentMissingFields(
+    docData?: Partial<TenantDocument>,
   ): boolean {
     if (!docData) return true;
 
     return this.hasBlank([
-      docData.establishmentName,
-      docData.establishmentNameKana,
+      docData.tenantName,
+      docData.tenantNameKana,
       docData.zipcode,
       docData.address?.address1,
       docData.address?.address2,
@@ -176,7 +176,7 @@ export class ProfileCompletionService {
   private setState(state: Omit<ProfileCompletionState, 'any'>): void {
     this.completionSubject.next({
       ...state,
-      any: state.personal || state.employee || state.establishment,
+      any: state.personal || state.employee || state.tenant,
     });
   }
 

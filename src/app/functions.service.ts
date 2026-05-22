@@ -7,7 +7,7 @@ import { Functions, httpsCallable } from '@angular/fire/functions';
 export class FunctionsService {
   private readonly functions = inject(Functions);
 
-  private registerFn = httpsCallable(this.functions, 'registerAdminAndEstablishment');
+  private registerFn = httpsCallable(this.functions, 'registerAdminAndTenant');
 
   private saveInvitationImportSettingsFn = httpsCallable(this.functions, 'saveInvitationImportSettings');
 
@@ -15,7 +15,11 @@ export class FunctionsService {
 
   private sendInvitationMailFn = httpsCallable(this.functions, 'sendInvitationMail');
 
-  async registerAdminAndEstablishment(payload: any) {
+  private validateInvitationTokenFn = httpsCallable(this.functions, 'validateInvitationToken');
+
+  private acceptInvitationFn = httpsCallable(this.functions, 'acceptInvitation');
+
+  async registerAdminAndTenant(payload: any) {
     return await this.registerFn(payload);
   }
 
@@ -39,8 +43,22 @@ export class FunctionsService {
     email: string;
     name: string;
     role: 'admin' | 'member';
-    templateText: string;
   }) {
     return await this.sendInvitationMailFn(payload);
+  }
+
+  async validateInvitationToken(payload: {
+    token: string;
+    email: string;
+  }) {
+    return await this.validateInvitationTokenFn(payload);
+  }
+
+  async acceptInvitation(payload: {
+    token: string;
+    email: string;
+    password?: string;
+  }) {
+    return await this.acceptInvitationFn(payload);
   }
 }

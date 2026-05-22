@@ -11,21 +11,21 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog } from '@angular/material/dialog';
 import { HelpContentCmp } from '../help-content/help-content.cmp';
-import { EstablishmentsDataService } from '../establishments-data.service';
+import { TenantsDataService } from '../tenants-data.service';
 import { ZipcodeToAddressService } from '../zipcode-to-address.service';
-import { CurrentEstablishmentService } from '../current-establishment.service';
+import { CurrentTenantService } from '../current-tenant.service';
 import { RoutesService } from '../routes.service';
 import { ErrorDialogCmp, mapFirebaseError } from '../error-dialog/error-dialog.cmp';
 import {
-  createEmptyEstablishmentForm,
-  establishmentDocToForm,
-  establishmentFormToSavePayload,
+  createEmptyTenantForm,
+  tenantDocToForm,
+  tenantFormToSavePayload,
   parsePhoneNumberRaw,
-  EstablishmentFormData,
-} from '../establishment-form-data';
+  TenantFormData,
+} from '../tenant-form-data';
 
 @Component({
-  selector: 'app-setting-establishment',
+  selector: 'app-setting-tenant',
   imports: [
     MatTabsModule,
     FormsModule,
@@ -38,12 +38,12 @@ import {
     MatProgressSpinnerModule,
     HelpContentCmp,
   ],
-  templateUrl: './setting-establishment.cmp.html',
-  styleUrl: './setting-establishment.cmp.css',
+  templateUrl: './setting-tenant.cmp.html',
+  styleUrl: './setting-tenant.cmp.css',
 })
-export class SettingEstablishmentCmp implements OnInit {
-  private readonly establishmentsDataService = inject(EstablishmentsDataService);
-  private readonly currentEstService = inject(CurrentEstablishmentService);
+export class SettingTenantCmp implements OnInit {
+  private readonly tenantsDataService = inject(TenantsDataService);
+  private readonly currentTenantService = inject(CurrentTenantService);
   private readonly routesService = inject(RoutesService);
   private readonly dialog = inject(MatDialog);
   private readonly auth = inject(Auth);
@@ -52,7 +52,7 @@ export class SettingEstablishmentCmp implements OnInit {
   loading = true;
   submitBusy = false;
 
-  form: EstablishmentFormData = createEmptyEstablishmentForm();
+  form: TenantFormData = createEmptyTenantForm();
 
   get displayZipcode(): string {
     if (this.form.zipcode.length > 3) {
@@ -66,7 +66,7 @@ export class SettingEstablishmentCmp implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
-    const eid = this.currentEstService.getEstablishment();
+    const eid = this.currentTenantService.getTenant();
 
     if (!eid) {
       this.routesService.redirectToHome();
@@ -76,14 +76,14 @@ export class SettingEstablishmentCmp implements OnInit {
 
     try {
       this.loading = true;
-      const doc = await this.establishmentsDataService.loadEstablishment(eid);
+      const doc = await this.tenantsDataService.loadTenant(eid);
       if (!doc) {
         this.dialog.open(ErrorDialogCmp, {
           data: { message: '事業所データが見つかりませんでした' },
         });
         return;
       }
-      this.form = establishmentDocToForm(doc);
+      this.form = tenantDocToForm(doc);
     } catch (error) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: mapFirebaseError(error) },
@@ -114,12 +114,12 @@ export class SettingEstablishmentCmp implements OnInit {
     }
 
     this.form.phoneNumber = parsePhoneNumberRaw(this.form.phoneNumberRaw);
-    const payload = establishmentFormToSavePayload(this.form);
+    const payload = tenantFormToSavePayload(this.form);
 
     try {
       this.submitBusy = true;
-      await this.establishmentsDataService.saveEstablishment(this.eid, payload);
-      await this.currentEstService.initialize(uid);
+      await this.tenantsDataService.saveTenant(this.eid, payload);
+      await this.currentTenantService.initialize(uid);
     } catch (error) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: mapFirebaseError(error) },

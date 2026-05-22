@@ -3,7 +3,7 @@ import { RouterOutlet } from '@angular/router';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { CurrentEstablishmentService } from '../current-establishment.service';
+import { CurrentTenantService } from '../current-tenant.service';
 import { ProfileCompletionService } from '../profile-completion.service';
 import { RoutesService } from '../routes.service';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -16,17 +16,17 @@ import { Auth } from '@angular/fire/auth';
   styleUrl: './main-layout.cmp.css',
 })
 export class MainLayoutCmp implements OnInit {
-  readonly currentEstService = inject(CurrentEstablishmentService);
+  readonly currentTenantService = inject(CurrentTenantService);
   readonly routesService = inject(RoutesService);
   readonly profileCompletionService = inject(ProfileCompletionService);
   readonly auth = inject(Auth);
   
-  currentAffiliation = toSignal(this.currentEstService.currentAffiliation$, { initialValue: null });
+  currentAffiliation = toSignal(this.currentTenantService.currentAffiliation$, { initialValue: null });
   completion = toSignal(this.profileCompletionService.completion$, {
     initialValue: {
       personal: false,
       employee: false,
-      establishment: false,
+      tenant: false,
       any: false,
     },
   });
@@ -36,7 +36,7 @@ export class MainLayoutCmp implements OnInit {
     if (!uid) {
       throw new Error('ユーザーが見つかりません。');
     }
-    const eid = await this.currentEstService.getEstablishment();
+    const eid = await this.currentTenantService.getTenant();
     if (!eid) {
       throw new Error('事業所が見つかりません。');
     }
@@ -44,7 +44,7 @@ export class MainLayoutCmp implements OnInit {
   }
 
   isAdmin(): boolean {
-    return this.currentEstService.getCurrentAffiliation()?.role === 'admin';
+    return this.currentTenantService.getCurrentAffiliation()?.role === 'admin';
   }
 
   navigateToMainPage(): void {
@@ -55,8 +55,8 @@ export class MainLayoutCmp implements OnInit {
     this.routesService.redirectToPersonalSetting();
   }
 
-  navigateToSettingEstablishment(): void {
-    this.routesService.redirectToSettingEstablishment();
+  navigateToSettingTenant(): void {
+    this.routesService.redirectToSettingTenant();
   }
 
   navigateToEmployeesManagement(): void {

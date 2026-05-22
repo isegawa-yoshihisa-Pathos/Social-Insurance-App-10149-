@@ -34,7 +34,7 @@ export const saveInvitationTemplate = onCall({
     }
 
     await db
-        .collection('establishments')
+        .collection('tenants')
         .doc(eid)
         .collection('settings')
         .doc('invitationSetting')
@@ -80,7 +80,7 @@ export const saveInvitationImportSettings = onCall({
     }
 
     await db
-        .collection('establishments')
+        .collection('tenants')
         .doc(eid)
         .collection('settings')
         .doc('invitationSetting')

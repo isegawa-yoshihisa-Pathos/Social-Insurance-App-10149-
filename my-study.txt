@@ -79,21 +79,21 @@
 ├── accounts (collection)
 │     └ {userId} (document): {
 │         "email": "user@example.com",
-│         "currentEstablishmentId": "est_999", <-- 🌟追加：現在表示中の事業所ID
+│         "currentTenantId": "est_999", <-- 🌟追加：現在表示中の事業所ID
 │         "lastview": "2026-05-19...",
 │         "personalSettings": { ... }
 │       }
 │
 ├── affiliations (collection)
-│     └ {userId_establishmentId} (document): {
+│     └ {userId_tenantId} (document): {
 │         "role": "admin",
 │         "permissions": ["payroll:write", "employee:read"], <-- 🌟追加：詳細な権限配列
 │         "status": "active",                               <-- 🌟追加：所属ステータス
 │         "displayName": "山田 管理者"
 │       }
 │
-└── establishments (collection) <-- 登録会社（事業所）
-      └ {establishmentId} (document): {
+└── tenants (collection) <-- 登録会社（事業所）
+      └ {tenantId} (document): {
           "name": "株式会社サンプル",
           "location": "東京都千代田区...",
           "unionId": "union_123", <-- 🌟変更：文字列ではなく組合マスタのIDで紐付け
@@ -202,8 +202,8 @@ invitation を accepted に更新
   tokenHash,
   status: "sent",
   role: "member",
-  establishmentId,
-  establishmentName,
+  tenantId,
+  tenantName,
   invitedBy,
   invitedByEmail,
   expiresAt,
@@ -250,7 +250,7 @@ verifyInvitationContactEmail({ token, contactEmail })
   verified: true,
   inviteeName,
   contactEmail,
-  establishmentName,
+  tenantName,
   role
 }
 ```

@@ -1,1 +1,112 @@
-<p>invitation-accept works!</p>
+<div class="invitation-accept-page">
+    <div class="invitation-card">
+      <h1>招待の確認</h1>
+  
+      @if (!token) {
+        <p class="error-message">招待リンクが正しくありません。</p>
+      } @else {
+        @if (!invitation) {
+          <p class="description">
+            招待されたメールアドレスを入力してください。
+          </p>
+  
+          <mat-form-field appearance="outline" class="field">
+            <mat-label>メールアドレス</mat-label>
+            <input
+              matInput
+              type="email"
+              [(ngModel)]="email"
+              name="email"
+              placeholder="example@example.com"
+            />
+          </mat-form-field>
+  
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            class="action-button"
+            [disabled]="!canVerify"
+            (click)="verifyEmail()"
+          >
+            @if (verifying) {
+              <mat-spinner diameter="20"></mat-spinner>
+            } @else {
+              確認する
+            }
+          </button>
+        } @else {
+          <div class="invitation-summary">
+            <div><span>事業所</span>{{ invitation.tenantName }}</div>
+            <div><span>名前</span>{{ invitation.name }}</div>
+            <div><span>メール</span>{{ invitation.email }}</div>
+            <div><span>権限</span>{{ invitation.role === 'admin' ? '管理者' : 'メンバー' }}</div>
+          </div>
+  
+          @if (accountExists) {
+            <p class="description">
+              このメールアドレスのアカウントが見つかりました。既存アカウントにこの事業所を連携します。
+            </p>
+          } @else {
+            <p class="description">
+              アカウントを作成するため、パスワードを設定してください。
+            </p>
+  
+            <mat-form-field appearance="outline" class="field">
+              <mat-label>パスワード</mat-label>
+              <input
+                matInput
+                [type]="passwordVisible ? 'text' : 'password'"
+                [(ngModel)]="password"
+                name="password"
+                minlength="6"
+              />
+              <button
+                mat-icon-button
+                matSuffix
+                type="button"
+                (pointerdown)="showPassword($event)"
+              >
+                <mat-icon>{{ passwordVisible ? 'visibility' : 'visibility_off' }}</mat-icon>
+              </button>
+            </mat-form-field>
+  
+            <p class="hint">※パスワードは6文字以上で入力してください。</p>
+          }
+  
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            class="action-button"
+            [disabled]="!canAccept"
+            (click)="acceptInvitation()"
+          >
+            @if (accepting) {
+              <mat-spinner diameter="20"></mat-spinner>
+            } @else {
+              {{ accountExists ? '既存アカウントに連携する' : 'アカウントを作成する' }}
+            }
+          </button>
+  
+          <button
+            mat-button
+            type="button"
+            class="back-button"
+            [disabled]="accepting"
+            (click)="invitation = null"
+          >
+            メールアドレスを入力し直す
+          </button>
+        }
+  
+        @if (errorMessage) {
+          <p class="error-message">{{ errorMessage }}</p>
+        }
+  
+        @if (successMessage) {
+          <p class="success-message">{{ successMessage }}</p>
+        }
+      }
+    </div>
+  </div>

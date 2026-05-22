@@ -5,15 +5,15 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { OverlayModule } from '@angular/cdk/overlay';
 
 const HELP_DATA: Record<string, { title: string, description: string }> = {
-  'hiEstRecNum': {
+  'hiTenantRecNum': {
     title: '健康保険・事業所整理記号',
     description: '保険証の「記号」に記されている番号です。桁数は加入する健康保険組合によって異なり、協会けんぽの場合は7～8桁です。',
   },
-  'piEstNum': {
+  'piTenantNum': {
     title: '厚生年金・事業所番号',
     description: '年金事務所から送付される「適用通知書」などに記載されている5桁の番号です。雇用保険の11桁の事業所番号とは別です。\n（例）12345',
   },
-  'piEstRecNum': {
+  'piTenantRecNum': {
     title: '厚生年金・事業所整理記号',
     description: '年金事務所から送付される「納入告知書」などに記載されている「数字2桁 - カタカナまたは英数字4桁以内」の文字列です。「適用通知書」などでは「漢字 – ひらがな」の形式になっていますが、協会や組合の提供する変換表を用いて、「数字 – カタカナ」の形式で入力してください。\n（例）01-イロハ',
   },

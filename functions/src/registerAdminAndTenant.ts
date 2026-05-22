@@ -12,13 +12,13 @@ export function getErrorCode(error: unknown): string | undefined {
     return undefined;
 }
 
-export const registerAdminAndEstablishment = onCall({
+export const registerAdminAndTenant = onCall({
     region: 'asia-northeast1',
     cors: true,
 }, async (request) => {
-    const { email, password, establishmentName, establishmentNameKana, zipcode, address, ownerName, phoneNumber } = request.data;
+    const { email, password, tenantName, tenantNameKana, zipcode, address, ownerName, phoneNumber } = request.data;
 
-    if (!email || !password || !establishmentName || !establishmentNameKana || !zipcode || !address || !ownerName || !phoneNumber) {
+    if (!email || !password || !tenantName || !tenantNameKana || !zipcode || !address || !ownerName || !phoneNumber) {
         throw new HttpsError('invalid-argument', '入力内容を確認してください。');
     }
 
@@ -33,16 +33,16 @@ export const registerAdminAndEstablishment = onCall({
         const db = admin.firestore();
 
         const accountRef = db.collection('accounts').doc(uid);
-        const establishmentRef = db.collection('establishments').doc();
-        const eid = establishmentRef.id;
-        const employeeRef = db.collection('establishments').doc(eid).collection('employees').doc();
+        const tenantRef = db.collection('tenants').doc();
+        const eid = tenantRef.id;
+        const employeeRef = db.collection('tenants').doc(eid).collection('employees').doc();
         const employeeId = employeeRef.id;
 
         const batch = db.batch();
 
         batch.set(accountRef, {
             email,
-            currentEstablishmentId: eid,
+            currentTenantId: eid,
             affiliations: {
                 [eid]: employeeId,
             },
@@ -50,9 +50,9 @@ export const registerAdminAndEstablishment = onCall({
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
-        batch.set(establishmentRef, {
-            establishmentName,
-            establishmentNameKana,
+        batch.set(tenantRef, {
+            tenantName,
+            tenantNameKana,
             zipcode,
             address,
             ownerName,
@@ -72,7 +72,7 @@ export const registerAdminAndEstablishment = onCall({
         batch.set(affiliationRef, {
             uid,
             eid,
-            establishmentName,
+            tenantName,
             role: 'admin',
             status: 'active',
             joinedAt: admin.firestore.FieldValue.serverTimestamp(),

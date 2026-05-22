@@ -25,7 +25,7 @@ import {
   accountPersonalInfoToForm,
   employeePersonalInfoToForm,
 } from '../personal-form-data';
-import { CurrentEstablishmentService } from '../current-establishment.service';
+import { CurrentTenantService } from '../current-tenant.service';
 import { ProfileCompletionService } from '../profile-completion.service';
 import { ErrorDialogCmp, mapFirebaseError } from '../error-dialog/error-dialog.cmp';
 import { MatDialog } from '@angular/material/dialog';
@@ -39,7 +39,7 @@ import { MatDialog } from '@angular/material/dialog';
 export class PersonalSettingCmp implements OnInit {
   private readonly firestore = inject(Firestore);
   private readonly auth = inject(Auth);
-  private readonly currentEstService = inject(CurrentEstablishmentService);
+  private readonly currentTenantService = inject(CurrentTenantService);
   private readonly dialog = inject(MatDialog);
   private readonly zipcodeToAddressService = inject(ZipcodeToAddressService);
   private readonly profileCompletionService = inject(ProfileCompletionService);
@@ -75,7 +75,7 @@ export class PersonalSettingCmp implements OnInit {
       const employeeId = account['affiliations']?.[eid];
       if (employeeId) {
         const employeeSnap = await getDoc(
-          doc(this.firestore, 'establishments', eid, 'employees', employeeId),
+          doc(this.firestore, 'tenants', eid, 'employees', employeeId),
         );
         this.employeeForm = employeePersonalInfoToForm(employeeSnap.data());
       }
@@ -142,8 +142,22 @@ export class PersonalSettingCmp implements OnInit {
     return !this.personalForm.myNumber?.trim();
   }
 
+  get isPersonalBasicPensionNumberMissing(): boolean {
+    return !this.personalForm.basicPensionNumber?.trim();
+  }
+
   get isEmployeeDisplayNameMissing(): boolean {
     return !this.employeeForm.displayName?.trim();
+  }
+
+  get isEmployeeRealNameMissing(): boolean {
+    return !this.employeeForm.realName.lastName?.trim()
+      || !this.employeeForm.realName.firstName?.trim();
+  }
+
+  get isEmployeeRealNameKanaMissing(): boolean {
+    return !this.employeeForm.realName.lastNameKana?.trim()
+      || !this.employeeForm.realName.firstNameKana?.trim();
   }
 
   get isEmployeeZipcodeMissing(): boolean {
@@ -157,6 +171,18 @@ export class PersonalSettingCmp implements OnInit {
 
   get isEmployeePhoneNumberMissing(): boolean {
     return !this.employeeForm.phoneNumberRaw?.trim();
+  }
+
+  get isEmployeeBirthDateMissing(): boolean {
+    return !this.employeeForm.birthDate?.trim();
+  }
+
+  get isEmployeeMyNumberMissing(): boolean {
+    return !this.employeeForm.myNumber?.trim();
+  }
+
+  get isEmployeeBasicPensionNumberMissing(): boolean {
+    return !this.employeeForm.basicPensionNumber?.trim();
   }
 
   get hasPersonalMissingFields(): boolean {
@@ -195,21 +221,25 @@ export class PersonalSettingCmp implements OnInit {
 
   applyBasicToEmployeeSettings(): void {
     const displayName = `${this.personalForm.realName.lastName}${this.personalForm.realName.firstName}`.trim();
+    this.employeeForm.realName = { ...this.personalForm.realName };
     this.employeeForm.displayName = displayName;
     this.employeeForm.phoneNumberRaw = this.personalForm.phoneNumberRaw;
     this.employeeForm.zipcode = this.personalForm.zipcode;
     this.employeeForm.address = { ...this.personalForm.address };
+    this.employeeForm.myNumber = this.personalForm.myNumber;
+    this.employeeForm.basicPensionNumber = this.personalForm.basicPensionNumber;
+    this.employeeForm.birthDate = this.personalForm.birthDate;
   }
 
   private async resolveCurrentEid(uid: string): Promise<string> {
-    const currentEid = this.currentEstService.getEstablishment();
+    const currentEid = this.currentTenantService.getTenant();
     if (currentEid) {
       return currentEid;
     }
 
-    await this.currentEstService.initialize(uid);
+    await this.currentTenantService.initialize(uid);
 
-    const initializedEid = this.currentEstService.getEstablishment();
+    const initializedEid = this.currentTenantService.getTenant();
     if (!initializedEid) {
       throw new Error('事業所が見つかりません。');
     }
@@ -264,7 +294,7 @@ export class PersonalSettingCmp implements OnInit {
     }
     const batch = writeBatch(this.firestore);
     
-    const employeeRef = doc(this.firestore, 'establishments', eid, 'employees', employeeId);
+    const employeeRef = doc(this.firestore, 'tenants', eid, 'employees', employeeId);
     batch.update(employeeRef, {
         ...employeeFormToSavePayload(this.employeeForm),
         updatedAt: serverTimestamp(),
@@ -278,6 +308,6 @@ export class PersonalSettingCmp implements OnInit {
     });
 
     await batch.commit();
-    this.currentEstService.updateAffiliationDisplayName(uid, eid, this.employeeForm.displayName);
+    this.currentTenantService.updateAffiliationDisplayName(uid, eid, this.employeeForm.displayName);
   }
 }
