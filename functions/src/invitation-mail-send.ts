@@ -167,19 +167,29 @@ export const sendInvitationMail = onCall<SendInvitationInput>(
         emailPayload.replyTo = replyToEmail;
       }
 
-      const result = await resend.emails.send(emailPayload);
+      const { data, error } = await resend.emails.send(emailPayload);
+
+      if (error) {
+        await inviteRef.update({
+          status: 'failed',
+          errorMessage: error.message,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        console.error('Resend Mail Error:', error);
+        throw new HttpsError('internal', error.message ?? 'メールの送信に失敗しました。');
+      }
 
       await inviteRef.update({
         status: 'sent',
         sentAt: admin.firestore.FieldValue.serverTimestamp(),
-        resendMessageId: result.data?.id ?? null,
+        resendMessageId: data?.id ?? null,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
       return {
         success: true,
         inviteId: inviteRef.id,
-        messageId: result.data?.id ?? null,
+        messageId: data?.id ?? null,
       };
     } catch (error: any) {
       await inviteRef.update({
