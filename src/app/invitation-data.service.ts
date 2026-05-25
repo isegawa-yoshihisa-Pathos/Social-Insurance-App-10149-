@@ -13,6 +13,7 @@ export interface InvitationSettingDocument {
   templateText: string;
   emailHeaders: string[];
   nameHeaders: string[];
+  replyToEmail?: string;
 }
 
 @Injectable({

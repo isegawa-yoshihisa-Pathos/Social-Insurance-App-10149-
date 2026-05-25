@@ -14,7 +14,9 @@ interface ValidateInvitationInput {
 interface AcceptInvitationInput {
   token: string;
   email: string;
+  loginEmail: string;
   password?: string;
+  mode: 'create' | 'link';
 }
 
 export const validateInvitationToken = onCall<ValidateInvitationInput>(
@@ -25,6 +27,11 @@ export const validateInvitationToken = onCall<ValidateInvitationInput>(
   },
   async (request) => {
     const token = String(request.data?.token ?? '').trim();
+
+    if (!token) {
+      throw new HttpsError('invalid-argument', 'リンクを確認してください。');
+    }
+
     const email = normalizeEmail(request.data?.email);
 
     if (!email) {
@@ -43,15 +50,13 @@ export const validateInvitationToken = onCall<ValidateInvitationInput>(
     const tenantSnap = await admin.firestore().collection('tenants').doc(invitation.eid).get();
     const tenant = tenantSnap.data();
 
-    const existingUser = await getUserByEmailOrNull(email);
-
     return {
       eid: invitation.eid,
       tenantName: tenant?.tenantName ?? '',
       name: invitation.data.name ?? '',
-      email,
+      email: invitation.data.contactEmail ?? '',
+      defaultLoginEmail: email,
       role: invitation.data.role ?? 'member',
-      accountExists: Boolean(existingUser),
       expiresAt: invitation.data.expiresAt?.toMillis?.() ?? null,
     };
   },
@@ -66,10 +71,16 @@ export const acceptInvitation = onCall<AcceptInvitationInput>(
   async (request) => {
     const token = String(request.data?.token ?? '').trim();
     const email = normalizeEmail(request.data?.email);
+    const loginEmail = normalizeEmail(request.data?.loginEmail);
     const password = String(request.data?.password ?? '');
+    const mode = request.data?.mode ?? 'create';
+
+    if (!loginEmail) {
+      throw new HttpsError('invalid-argument', 'メールアドレスを入力してください。');
+    }
 
     if (!email) {
-      throw new HttpsError('invalid-argument', 'メールアドレスを入力してください。');
+      throw new HttpsError('invalid-argument', '招待されたメールアドレスが見つかりません。');
     }
 
     const invitation = await findInvitationByToken(token);
@@ -90,119 +101,134 @@ export const acceptInvitation = onCall<AcceptInvitationInput>(
 
     const tenantName = String(tenantSnap.data()?.tenantName ?? '');
     const displayName = String(invitation.data.name ?? '').trim();
-    const role = invitation.data.role === 'admin' ? 'admin' : 'member';
+    const role = invitation.data.role;
 
     if (!displayName) {
       throw new HttpsError('failed-precondition', '招待情報が不完全です。');
     }
 
-    let userRecord = await getUserByEmailOrNull(email);
-    const isNewAccount = !userRecord;
+    let uid = '';
+    let userRecord: admin.auth.UserRecord | null = null;
 
-    if (!userRecord) {
+    if (mode === 'link') {
+      uid = request.auth?.uid ?? '';
+      if (!uid) {
+        throw new HttpsError('unauthenticated', 'ログインが必要です。');
+      }
+      userRecord = await admin.auth().getUser(uid);
+      if (normalizeEmail(userRecord.email) !== loginEmail) {
+        throw new HttpsError('permission-denied', 'ログイン中のアカウントと一致しません。');
+      }
+    } else {
       if (!password || password.length < 6) {
         throw new HttpsError('invalid-argument', 'パスワードは6文字以上にしてください。');
       }
-
       try {
         userRecord = await admin.auth().createUser({
-          email,
+          email: loginEmail,
           password,
-          displayName,
         });
+        uid = userRecord.uid;
       } catch (error: any) {
         throw mapAuthCreateError(error);
       }
     }
 
-    const uid = userRecord.uid;
-    const accountRef = db.collection('accounts').doc(uid);
-    const affiliationRef = db.collection('affiliations').doc(`${uid}_${invitation.eid}`);
+    // createUser 後にエラーで return すると Auth にゴーストユーザーが残るため、
+    // ここから先のエラーは create モード時に必ずユーザーを削除する。
+    try {
+      const accountRef = db.collection('accounts').doc(uid);
+      const affiliationRef = db.collection('affiliations').doc(`${uid}_${invitation.eid}`);
 
-    const [accountSnap, affiliationSnap] = await Promise.all([
-      accountRef.get(),
-      affiliationRef.get(),
-    ]);
+      const [accountSnap, affiliationSnap] = await Promise.all([
+        accountRef.get(),
+        affiliationRef.get(),
+      ]);
 
-    if (affiliationSnap.exists) {
-      const affiliation = affiliationSnap.data();
+      if (affiliationSnap.exists) {
+        const affiliation = affiliationSnap.data();
 
-      if (affiliation?.status === 'active') {
+        if (affiliation?.status === 'active') {
+          throw new HttpsError('already-exists', 'この事業所には既に所属しています。');
+        }
+      }
+
+      const existingEmployeeId = accountSnap.data()?.affiliations?.[invitation.eid];
+
+      if (existingEmployeeId) {
         throw new HttpsError('already-exists', 'この事業所には既に所属しています。');
       }
-    }
 
-    const existingEmployeeId = accountSnap.data()?.affiliations?.[invitation.eid];
+      const employeeRef = db
+        .collection('tenants')
+        .doc(invitation.eid)
+        .collection('employees')
+        .doc();
 
-    if (existingEmployeeId) {
-      throw new HttpsError('already-exists', 'この事業所には既に所属しています。');
-    }
+      const now = admin.firestore.FieldValue.serverTimestamp();
+      const batch = db.batch();
 
-    const employeeRef = db
-      .collection('tenants')
-      .doc(invitation.eid)
-      .collection('employees')
-      .doc();
-
-    const now = admin.firestore.FieldValue.serverTimestamp();
-    const batch = db.batch();
-
-    batch.set(
-      accountRef,
-      {
-        email,
-        currentTenantId: invitation.eid,
-        affiliations: {
-          [invitation.eid]: employeeRef.id,
+      batch.set(
+        accountRef,
+        {
+          email: loginEmail,
+          currentTenantId: invitation.eid,
+          affiliations: {
+            [invitation.eid]: employeeRef.id,
+          },
+          lastView: now,
+          updatedAt: now,
+          ...(accountSnap.exists ? {} : { createdAt: now }),
         },
-        lastView: now,
-        updatedAt: now,
-        ...(accountSnap.exists ? {} : { createdAt: now }),
-      },
-      { merge: true },
-    );
+        { merge: true },
+      );
 
-    batch.set(employeeRef, {
-      uid,
-      displayName,
-      role,
-      status: 'active',
-      joinedAt: now,
-      updatedAt: now,
-    });
-
-    batch.set(
-      affiliationRef,
-      {
+      batch.set(employeeRef, {
         uid,
-        eid: invitation.eid,
         displayName,
-        tenantName,
         role,
         status: 'active',
         joinedAt: now,
         updatedAt: now,
-      },
-      { merge: true },
-    );
+      });
 
-    batch.update(invitation.ref, {
-      status: 'accepted',
-      acceptedBy: uid,
-      acceptedEmail: email,
-      acceptedAt: now,
-      updatedAt: now,
-    });
+      batch.set(
+        affiliationRef,
+        {
+          uid,
+          eid: invitation.eid,
+          displayName,
+          tenantName,
+          role,
+          status: 'active',
+          joinedAt: now,
+          updatedAt: now,
+        },
+        { merge: true },
+      );
 
-    await batch.commit();
+      batch.update(invitation.ref, {
+        status: 'accepted',
+        acceptedBy: uid,
+        acceptedEmail: loginEmail,
+        acceptedAt: now,
+        updatedAt: now,
+      });
 
-    return {
-      success: true,
-      mode: isNewAccount ? 'created' : 'linked',
-      uid,
-      email,
-      eid: invitation.eid,
-    };
+      await batch.commit();
+
+      return {
+        success: true,
+        uid,
+        loginEmail,
+        eid: invitation.eid,
+      };
+    } catch (error) {
+      if (mode === 'create' && userRecord) {
+        await admin.auth().deleteUser(userRecord.uid).catch(() => {});
+      }
+      throw error;
+    }
   },
 );
 
@@ -268,17 +294,6 @@ function assertInvitationEmailMatches(
 
   if (!invitedEmail || invitedEmail !== inputEmail) {
     throw new HttpsError('permission-denied', '招待されたメールアドレスと一致しません。');
-  }
-}
-
-async function getUserByEmailOrNull(email: string): Promise<admin.auth.UserRecord | null> {
-  try {
-    return await admin.auth().getUserByEmail(email);
-  } catch (error: any) {
-    if (error?.code === 'auth/user-not-found') {
-      return null;
-    }
-    throw error;
   }
 }
 

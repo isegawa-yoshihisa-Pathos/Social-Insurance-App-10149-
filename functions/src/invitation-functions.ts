@@ -10,10 +10,18 @@ export const saveInvitationTemplate = onCall({
         throw new HttpsError('unauthenticated', 'ログインが必要です。');
     }
 
-    const { eid, templateText } = request.data;
+    const { eid, templateText, replyToEmail } = request.data;
 
-    if (!eid || !templateText) {
+    if (!eid || typeof eid !== 'string') {
         throw new HttpsError('invalid-argument', '入力内容を確認してください。');
+    }
+    
+    if ( !templateText) {
+        throw new HttpsError('invalid-argument', '入力内容を確認してください。');
+    }
+
+    if (replyToEmail && !isValidEmail(replyToEmail)) {
+        throw new HttpsError('invalid-argument', '返信先メールアドレスの形式が正しくありません。');
     }
 
     const db = admin.firestore();
@@ -40,12 +48,17 @@ export const saveInvitationTemplate = onCall({
         .doc('invitationSetting')
         .set({
             templateText,
+            replyToEmail: String(replyToEmail ?? '').trim(),
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             updatedBy: uid,
     }, { merge: true });
 
     return { success: true };
 });
+
+function isValidEmail(email: string): boolean {
+    return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email);
+}
 
 export const saveInvitationImportSettings = onCall({
     region: 'asia-northeast1',

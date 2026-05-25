@@ -7,16 +7,19 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../auth.service';
+import { Auth } from '@angular/fire/auth';
 import { CurrentTenantService } from '../current-tenant.service';
 import { FunctionsService } from '../functions.service';
 import { RoutesService } from '../routes.service';
+import { mapFirebaseError, ErrorDialogCmp } from '../error-dialog/error-dialog.cmp';
+import { MatDialog } from '@angular/material/dialog';
 
 interface InvitationPreview {
   tenantName: string;
   name: string;
   email: string;
+  defaultLoginEmail: string;
   role: 'admin' | 'member';
-  accountExists: boolean;
   expiresAt: number | null;
 }
 
@@ -39,33 +42,28 @@ export class InvitationAcceptCmp {
   private readonly authService = inject(AuthService);
   private readonly currentTenantService = inject(CurrentTenantService);
   private readonly routesService = inject(RoutesService);
-
+  private readonly dialog = inject(MatDialog);
+  private readonly auth = inject(Auth);
   readonly token = this.route.snapshot.queryParamMap.get('token') ?? '';
 
   email = '';
+  loginEmail = '';
   password = '';
   passwordVisible = false;
 
   invitation: InvitationPreview | null = null;
-  accountExists = false;
 
   verifying = false;
-  accepting = false;
+  accepting: 'create' | 'link' | null = null;
 
-  errorMessage = '';
-  successMessage = '';
 
   get canVerify(): boolean {
     return Boolean(this.token && this.email.trim() && !this.verifying);
   }
 
   get canAccept(): boolean {
-    if (!this.invitation || this.accepting) {
+    if (!this.invitation || this.accepting || !this.loginEmail.trim()) {
       return false;
-    }
-
-    if (this.accountExists) {
-      return true;
     }
 
     return this.password.length >= 6;
@@ -78,8 +76,6 @@ export class InvitationAcceptCmp {
 
     try {
       this.verifying = true;
-      this.errorMessage = '';
-      this.successMessage = '';
 
       const result = await this.functionsService.validateInvitationToken({
         token: this.token,
@@ -88,51 +84,53 @@ export class InvitationAcceptCmp {
 
       const data = result.data as InvitationPreview;
       this.invitation = data;
-      this.accountExists = data.accountExists;
       this.email = data.email;
+      this.loginEmail = data.defaultLoginEmail;
     } catch (error) {
       this.invitation = null;
-      this.errorMessage = this.toMessage(error);
+      this.dialog.open(ErrorDialogCmp, {
+        data: {
+          message: mapFirebaseError(error),
+        },
+      });
     } finally {
       this.verifying = false;
     }
   }
 
-  async acceptInvitation(): Promise<void> {
+  async Submit(mode: 'create' | 'link'): Promise<void> {
     if (!this.canAccept) {
       return;
     }
-
     try {
-      this.accepting = true;
-      this.errorMessage = '';
-      this.successMessage = '';
-
-      const result = await this.functionsService.acceptInvitation({
-        token: this.token,
-        email: this.email,
-        password: this.accountExists ? undefined : this.password,
-      });
-
-      const data = result.data as {
-        mode: 'created' | 'linked';
-        email: string;
-        eid: string;
-      };
-
-      if (data.mode === 'created') {
-        await this.authService.signIn(data.email, this.password);
-        await this.currentTenantService.initialize(this.authService.userId() ?? '');
-        this.routesService.redirectToMainPage();
-        return;
+      this.accepting = mode;
+      if (mode === 'link') {
+        await this.authService.signIn(this.loginEmail, this.password);
       }
 
-      this.successMessage = '既存アカウントへの連携が完了しました。ログインしてください。';
-      this.routesService.redirectToSignin();
+      await this.functionsService.acceptInvitation({
+        token: this.token,
+        email: this.email,
+        loginEmail: this.loginEmail,
+        password: this.password,
+        mode: mode,
+      });
+      if (mode === 'create') {
+        await this.authService.signIn(this.loginEmail, this.password);
+      }
+      await this.currentTenantService.initialize(this.authService.userId() ?? '');
+      this.routesService.redirectToMainPage();
     } catch (error) {
-      this.errorMessage = this.toMessage(error);
+      if (mode === 'link') {
+        await this.auth.signOut();
+      }
+      this.dialog.open(ErrorDialogCmp, {
+        data: {
+          message: mapFirebaseError(error),
+        },
+      });
     } finally {
-      this.accepting = false;
+      this.accepting = null;
     }
   }
 
@@ -152,13 +150,5 @@ export class InvitationAcceptCmp {
 
     window.addEventListener('pointerup', finish);
     window.addEventListener('pointercancel', finish);
-  }
-
-  private toMessage(error: unknown): string {
-    if (error && typeof error === 'object' && 'message' in error) {
-      return String((error as { message?: unknown }).message ?? 'エラーが発生しました。');
-    }
-
-    return 'エラーが発生しました。';
   }
 }

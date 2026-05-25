@@ -4,11 +4,10 @@ import { RoutesService } from '../routes.service';
 import { Firestore } from '@angular/fire/firestore';
 import { collection, getDocs } from '@angular/fire/firestore';
 import { ErrorDialogCmp, mapFirebaseError } from '../error-dialog/error-dialog.cmp';
+import { SuccessDialogCmp } from '../success-dialog/success-dialog.cmp';
 import { MatDialog } from '@angular/material/dialog';
-import { MatTabGroup } from '@angular/material/tabs';
-import { MatTab } from '@angular/material/tabs';
+import { MatTabGroup, MatTab } from '@angular/material/tabs';
 import { MatButton } from '@angular/material/button';
-import { MatListItem } from '@angular/material/list';
 import { MatFormField } from '@angular/material/form-field';
 import { MatInput } from '@angular/material/input';
 import { MatIconButton } from '@angular/material/button';
@@ -20,12 +19,13 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { FormsModule } from '@angular/forms';
 import { HelpContentCmp } from '../help-content/help-content.cmp';
 import { InvitationDataService, InvitationData } from '../invitation-data.service';
+import { InvitationsListCmp } from '../invitations-list/invitations-list.cmp';
 import { InvitationSettingCmp } from '../invitation-setting/invitation-setting.cmp';
 import { FunctionsService } from '../functions.service';
 
 @Component({
   selector: 'app-invitation-management',
-  imports: [MatTabGroup, MatTab, MatButton, MatListItem, MatFormField, MatInput, MatIconButton, MatIcon, MatFormFieldModule, MatInputModule, FormsModule, HelpContentCmp, MatTooltipModule, InvitationSettingCmp, MatCheckboxModule],
+  imports: [MatTabGroup, MatTab, MatButton, MatFormField, MatInput, MatIconButton, MatIcon, MatFormFieldModule, MatInputModule, FormsModule, HelpContentCmp, MatTooltipModule, InvitationSettingCmp, MatCheckboxModule, InvitationsListCmp],
   templateUrl: './invitations-management.cmp.html',
   styleUrl: './invitations-management.cmp.css',
 })
@@ -37,6 +37,8 @@ export class InvitationsManagementCmp implements OnInit {
   nameHeaders: string[] = [];
   emailHeaders: string[] = [];
   templateText: string = '';
+
+  sendBusy = false;
 
   private readonly currentTenantService = inject(CurrentTenantService);
   private readonly routesService = inject(RoutesService);
@@ -94,6 +96,7 @@ export class InvitationsManagementCmp implements OnInit {
       return;
     }
     try {
+      this.sendBusy = true;
       for (const invitation of validInvitations) {
         await this.functionsService.sendInvitationMail({
           eid: this.eid,
@@ -102,10 +105,16 @@ export class InvitationsManagementCmp implements OnInit {
           role: invitation.role as 'admin' | 'member',
         });
       }
+
+      this.dialog.open(SuccessDialogCmp, {
+        data: { message: '招待メールを送信しました' },
+      });
     } catch (error) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: mapFirebaseError(error) },
       });
+    } finally {
+      this.sendBusy = false;
     }
   }
 

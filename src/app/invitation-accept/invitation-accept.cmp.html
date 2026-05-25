@@ -43,69 +43,70 @@
             <div><span>権限</span>{{ invitation.role === 'admin' ? '管理者' : 'メンバー' }}</div>
           </div>
   
-          @if (accountExists) {
-            <p class="description">
-              このメールアドレスのアカウントが見つかりました。既存アカウントにこの事業所を連携します。
-            </p>
-          } @else {
-            <p class="description">
-              アカウントを作成するため、パスワードを設定してください。
-            </p>
-  
-            <mat-form-field appearance="outline" class="field">
-              <mat-label>パスワード</mat-label>
-              <input
-                matInput
-                [type]="passwordVisible ? 'text' : 'password'"
-                [(ngModel)]="password"
-                name="password"
-                minlength="6"
-              />
-              <button
-                mat-icon-button
-                matSuffix
-                type="button"
-                (pointerdown)="showPassword($event)"
-              >
-                <mat-icon>{{ passwordVisible ? 'visibility' : 'visibility_off' }}</mat-icon>
-              </button>
-            </mat-form-field>
-  
-            <p class="hint">※パスワードは6文字以上で入力してください。</p>
-          }
-  
+          <p class="description">
+            ログイン用メールアドレスとパスワードを入力してください。
+          </p>
+
+          <mat-form-field appearance="outline" class="field">
+            <mat-label>ログイン用メールアドレス</mat-label>
+            <input
+              matInput
+              [(ngModel)]="loginEmail"
+              name="loginEmail"
+              placeholder="example@example.com"
+            />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="field">
+            <mat-label>パスワード</mat-label>
+            <input
+              matInput
+              [type]="passwordVisible ? 'text' : 'password'"
+              [(ngModel)]="password"
+              name="password"
+              minlength="6"
+            />
+            <button
+              mat-icon-button
+              matSuffix
+              type="button"
+              (pointerdown)="showPassword($event)"
+            >
+              <mat-icon>{{ passwordVisible ? 'visibility' : 'visibility_off' }}</mat-icon>
+            </button>
+          </mat-form-field>
+
+          <p class="hint">※パスワードは6文字以上で入力してください。</p>
+
           <button
             mat-flat-button
             color="primary"
             type="button"
             class="action-button"
             [disabled]="!canAccept"
-            (click)="acceptInvitation()"
+            (click)="Submit('create')"
           >
-            @if (accepting) {
+            @if (accepting === 'create') {
               <mat-spinner diameter="20"></mat-spinner>
             } @else {
-              {{ accountExists ? '既存アカウントに連携する' : 'アカウントを作成する' }}
+              アカウントを新規作成する
             }
           </button>
-  
+          <p class="message">すでにアカウントが存在する場合は、既存アカウントに連携してください。</p>
           <button
-            mat-button
+            mat-flat-button
+            color="primary"
             type="button"
-            class="back-button"
-            [disabled]="accepting"
-            (click)="invitation = null"
+            class="action-button"
+            [disabled]="!canAccept"
+            (click)="Submit('link')"
           >
-            メールアドレスを入力し直す
+            @if (accepting === 'link') {
+              <mat-spinner diameter="20"></mat-spinner>
+            } @else {
+              既存アカウントに連携する
+            }
           </button>
-        }
-  
-        @if (errorMessage) {
-          <p class="error-message">{{ errorMessage }}</p>
-        }
-  
-        @if (successMessage) {
-          <p class="success-message">{{ successMessage }}</p>
         }
       }
     </div>

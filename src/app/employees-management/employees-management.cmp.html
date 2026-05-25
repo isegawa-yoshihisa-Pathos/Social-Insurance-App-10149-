@@ -1,1 +1,9 @@
-<p>employees-management works!</p>
+<mat-tab-group animationDuration="0ms">
+    <mat-tab label="社員管理">
+        <div class="employees-management">
+            <div class="employees-list-container">
+                <app-employees-list [eid]="eid"></app-employees-list>
+            </div>
+        </div>
+    </mat-tab>
+</mat-tab-group>

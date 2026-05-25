@@ -34,6 +34,7 @@ export class FunctionsService {
   async saveInvitationTemplate(payload: {
     eid: string;
     templateText: string;
+    replyToEmail: string;
   }) {
     return await this.saveInvitationTemplateFn(payload);
   }
@@ -57,7 +58,9 @@ export class FunctionsService {
   async acceptInvitation(payload: {
     token: string;
     email: string;
+    loginEmail: string;
     password?: string;
+    mode: 'create' | 'link';
   }) {
     return await this.acceptInvitationFn(payload);
   }

@@ -25,9 +25,8 @@ export const sendInvitationMail = onCall<SendInvitationInput>(
   },
   async (request) => {
     const uid = request.auth?.uid;
-    const adminEmail = request.auth?.token.email as string | undefined;
 
-    if (!uid || !adminEmail) {
+    if (!uid) {
       throw new HttpsError('unauthenticated', 'ログインが必要です。');
     }
 
@@ -57,7 +56,8 @@ export const sendInvitationMail = onCall<SendInvitationInput>(
     const defaultTemplateText = `{name} 様
 
     {tenantName} より、社会保険管理システム「縄文」への招待が届いています。
-    以下のボタンからアカウントの初期設定を行い、必要な情報の登録をお願いします。`;
+    以下のボタンからアカウントの初期設定を行い、必要な情報の登録をお願いします。
+    ご不明な点がある場合は、管理者（{replyToEmail}）へお問い合わせください。`;
 
     const db = admin.firestore();
 
@@ -93,6 +93,11 @@ export const sendInvitationMail = onCall<SendInvitationInput>(
       invitationSettingSnap.data()?.templateText || defaultTemplateText,
     );
 
+    const replyToEmail = String(invitationSettingSnap.data()?.replyToEmail ?? '').trim();
+    if (replyToEmail && !isValidEmail(replyToEmail)) {
+      throw new HttpsError('invalid-argument', '返信先メールアドレスの形式が正しくありません。');
+    }
+
     const tenant = tenantSnap.data();
     const tenantName = String(tenant?.tenantName ?? '');
 
@@ -120,7 +125,7 @@ export const sendInvitationMail = onCall<SendInvitationInput>(
       status: 'pending',
       role,
       invitedBy: uid,
-      invitedByEmail: adminEmail,
+      invitedByEmail: replyToEmail,
       expiresAt,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -131,7 +136,7 @@ export const sendInvitationMail = onCall<SendInvitationInput>(
         name,
         email,
         tenantName,
-        adminEmail,
+        replyToEmail,
       });
 
       const html = `
@@ -146,19 +151,23 @@ export const sendInvitationMail = onCall<SendInvitationInput>(
 
           <p style="font-size: 12px; color: #666;">
             ※このリンクの有効期限は24時間です。<br>
-            ※このメールに心当たりがない場合は、このメールを破棄してください。<br>
-            ※ご不明な点がある場合は、管理者（${escapeHtml(adminEmail)}）へお問い合わせください。
+            ※このメールに心当たりがない場合は、このメールを破棄してください。
           </p>
         </div>
       `;
 
-      const result = await resend.emails.send({
+      const emailPayload: Parameters<typeof resend.emails.send>[0] = {
         from: '縄文 社会保険アプリ <onboarding@resend.dev>',
         to: [email],
-        replyTo: adminEmail,
         subject: `【重要】${tenantName} から社会保険管理システムへの招待`,
         html,
-      });
+      };
+
+      if (replyToEmail) {
+        emailPayload.replyTo = replyToEmail;
+      }
+
+      const result = await resend.emails.send(emailPayload);
 
       await inviteRef.update({
         status: 'sent',

@@ -19,8 +19,8 @@ export class InvitationSettingCmp implements OnInit {
   readonly defaultTemplateText = `{name} 様
   
   {tenantName} より、社会保険管理システム「縄文」への招待が届いています。
-  
-  以下のボタンからアカウントの初期設定を行い、必要な情報の登録をお願いします。`;
+  以下のボタンからアカウントの初期設定を行い、必要な情報の登録をお願いします。
+  ご不明な点がある場合は、管理者（{replyToEmail}）へお問い合わせください。`;
 
   private dialog = inject(MatDialog);
   private currentTenantService = inject(CurrentTenantService);
@@ -32,6 +32,7 @@ export class InvitationSettingCmp implements OnInit {
   nameHeaders: string[] = [...this.defaultNameHeaders];
   emailHeaders: string[] = [...this.defaultEmailHeaders];
   mailTemplateText = this.defaultTemplateText;
+  replyToEmail = '';
   loading = true;
 
   async ngOnInit(): Promise<void> {
@@ -50,11 +51,13 @@ export class InvitationSettingCmp implements OnInit {
         this.mailTemplateText = this.defaultTemplateText;
         this.nameHeaders = [...this.defaultNameHeaders];
         this.emailHeaders = [...this.defaultEmailHeaders];
+        this.replyToEmail = '';
         return;
       }
       this.mailTemplateText = doc.templateText;
       this.nameHeaders = doc.nameHeaders;
       this.emailHeaders = doc.emailHeaders;
+      this.replyToEmail = doc.replyToEmail ?? '';
     } catch (error) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: mapFirebaseError(error) },

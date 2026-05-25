@@ -1,0 +1,24 @@
+@if (loading) {
+    <p class="loading-message">社員を読み込んでいます...</p>
+} @else if (dataSource.data.length === 0) {
+    <p class="empty-message">社員はありません。</p>
+  } @else {
+    <table mat-table [dataSource]="dataSource" matSort class="invitations-table">
+      <ng-container matColumnDef="displayName">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header matTooltip="表示名で並び替え">表示名</th>
+        <td mat-cell *matCellDef="let employee">{{ employee.displayName }}</td>
+      </ng-container>
+  
+      <ng-container matColumnDef="role">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header matTooltip="権限で並び替え">権限</th>
+        <td mat-cell *matCellDef="let employee">{{ employee.role }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header matTooltip="ステータスで並び替え">ステータス</th>
+        <td mat-cell *matCellDef="let employee">{{ employee.status }}</td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+  }

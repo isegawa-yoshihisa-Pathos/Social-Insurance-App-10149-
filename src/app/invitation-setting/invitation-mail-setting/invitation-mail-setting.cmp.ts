@@ -26,7 +26,9 @@ export class InvitationMailSettingCmp {
   
   {tenantName} より、社会保険管理システム「縄文」への招待が届いています。
   
-  以下のボタンからアカウントの初期設定を行い、必要な情報の登録をお願いします。`;
+  以下のボタンからアカウントの初期設定を行い、必要な情報の登録をお願いします。
+  
+  ご不明な点がある場合は、管理者（{replyToEmail}）へお問い合わせください。`;
 
   private readonly dialog = inject(MatDialog);
   private readonly functionsService = inject(FunctionsService);
@@ -38,14 +40,21 @@ export class InvitationMailSettingCmp {
     this.mailTemplateText = value?.trim() ? value : this.defaultTemplateText;
   }
 
-  mailTemplateText = this.defaultTemplateText;
+  @Input()
+  set replyToEmail(value: string | null | undefined) {
+    this.mailReplyToEmail = value ?? '';
+  }
+
+  mailReplyToEmail = '';
+
+  mailTemplateText = this.defaultTemplateText
   saveBusy = false;
 
   readonly previewValues = {
     name: '山田太郎',
     email: 'yamada.taro@example.com',
     tenantName: '縄文事業所',
-    adminEmail: 'admin@jomon.com',
+    replyToEmail: 'admin@jomon.com',
     invitationUrl: 'https://jomon.com/invitation?token=sample',
   };
 
@@ -77,6 +86,7 @@ export class InvitationMailSettingCmp {
       await this.functionsService.saveInvitationTemplate({
         eid: this.eid,
         templateText: this.mailTemplateText,
+        replyToEmail: this.mailReplyToEmail.trim(),
       });
     } catch (error) {
       this.dialog.open(ErrorDialogCmp, {

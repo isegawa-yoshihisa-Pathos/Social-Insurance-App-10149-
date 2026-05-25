@@ -83,18 +83,14 @@
                             <mat-icon>attach_file</mat-icon>
                         </button>
                         <button mat-flat-button color="primary" class="send-invitation-button" (click)="sendInvitation()">
-                            <span>送信</span>
+                            <span>{{sendBusy ? '送信中...' : '送信'}}</span>
                             <mat-icon>send</mat-icon>
                         </button>
                     </div>
                 </div>
             </div>
             <div class="invitation-list-container">
-                @for (invitation of invitationsData; track invitation.email) {
-                    <mat-list-item>
-                        <p>{{ invitation.email }}</p>
-                    </mat-list-item>
-                }
+                <app-invitations-list [eid]="eid"></app-invitations-list>
             </div>
         </div>
     </mat-tab>
