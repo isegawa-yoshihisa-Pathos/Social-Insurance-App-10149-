@@ -6,6 +6,7 @@ import { SigninCmp } from './signin/signin.cmp';
 import { SignupCmp } from './signup/signup.cmp';
 import { CreateTenantCmp } from './create-tenant/create-tenant.cmp';
 import { InvitationAcceptCmp } from './invitation-accept/invitation-accept.cmp';
+import { VirtualMailCheckerCmp } from './virtual-mail-checker/virtual-mail-checker.cmp';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -28,7 +29,26 @@ export const routes: Routes = [
       },
       { 
         path: 'personal-setting', 
-        loadComponent: () => import('./personal-setting/personal-setting.cmp').then(m => m.PersonalSettingCmp) 
+        loadComponent: () => import('./personal-setting/personal-setting.cmp').then(m => m.PersonalSettingCmp),
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            loadComponent: () => import('./personal-setting/personal-info/personal-info.cmp').then(m => m.PersonalInfoCmp),
+          },
+          {
+            path: 'edit',
+            loadComponent: () => import('./personal-setting/personal-info-edit/personal-info-edit.cmp').then(m => m.PersonalInfoEditCmp),
+          },
+          {
+            path: 'employee',
+            loadComponent: () => import('./personal-setting/employee-info/employee-info.cmp').then(m => m.EmployeeInfoCmp),
+          },
+          {
+            path: 'employee/edit',
+            loadComponent: () => import('./personal-setting/employee-info-edit/employee-info-edit.cmp').then(m => m.EmployeeInfoEditCmp),
+          }
+        ]
       },
       { 
         path: 'setting-tenant', 
@@ -38,7 +58,22 @@ export const routes: Routes = [
       { 
         path: 'employees-management', 
         loadComponent: () => import('./employees-management/employees-management.cmp').then(m => m.EmployeesManagementCmp), 
-        canActivate: [adminGuard] 
+        canActivate: [adminGuard],
+        children: [
+          { 
+            path: '', 
+            pathMatch: 'full',
+            loadComponent: () => import('./employees-management/employees-list/employees-list.cmp').then(m => m.EmployeesListCmp),
+          },
+          {
+            path: 'setting',
+            loadComponent: () => import('./employees-management/employees-setting/employees-setting.cmp').then(m => m.EmployeesSettingCmp),
+          },
+          {
+            path: 'detail/:eid',
+            loadComponent: () => import('./employees-management/employees-list/employee-detail/employee-detail.cmp').then(m => m.EmployeeDetailCmp),
+          },
+        ],
       },
       { 
         path: 'invitations-management', 
@@ -48,4 +83,5 @@ export const routes: Routes = [
     ]
   },
   { path: 'invitation', component: InvitationAcceptCmp },
+  { path: 'virtual-mail-checker', component: VirtualMailCheckerCmp },
 ];

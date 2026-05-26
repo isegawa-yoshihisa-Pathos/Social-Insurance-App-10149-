@@ -45,13 +45,13 @@ export class AppHeaderCmp implements OnInit {
     });
   }
 
-  async switchTenant(eid: string): Promise<void> {
+  async switchTenant(tid: string): Promise<void> {
     const user = this.auth.currentUser;
     if (!user) {
       this.routesService.redirectToHome();
       return;
     }
-    await this.currentTenantService.setTenant(user.uid, eid);
+    await this.currentTenantService.setTenant(user.uid, tid);
     this.routesService.redirectToMainPage();
   }
 

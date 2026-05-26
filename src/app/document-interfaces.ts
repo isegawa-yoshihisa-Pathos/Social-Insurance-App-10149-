@@ -9,7 +9,7 @@ export interface AccountDocument {
 
 export interface AffiliationDocument {
     uid: string,
-    eid: string,
+    tid: string,
     displayName: string,
     tenantName: string,
     role: 'admin' | 'member',

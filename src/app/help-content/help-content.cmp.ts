@@ -25,6 +25,10 @@ const HELP_DATA: Record<string, { title: string, description: string }> = {
     title: '招待メールアドレスのインポート',
     description: '1行目にヘッダーが設定されている必要があります。ヘッダー名は設定画面から指定できます。他の列があっても問題ありませんが、名前とメールアドレスは必須です。2行目以降に記述されたメールアドレスと名前がインポートされます。\n（例）name,email\n田中 太郎, taro.tanaka@example.com\n山田 花子,hanako.yamada@example.com',
   },
+  'payrollBaseDaysStandard': {
+    title: '支払基礎日数基準',
+    description: '支払基礎日数基準は、支払基礎日数の計算方法を指定します。締め日基準の場合は、締め日を基準にして支払基礎日数を計算します。暦日基準の場合は、暦日を基準にして支払基礎日数を計算します。\n（例）締め日が25日の場合、前月25日～当月24日までの日数が支払基礎日数になります。\n（例）暦日基準の場合、当月1日～当月末日までの日数が支払基礎日数になります。',
+  },
 };
 
 @Component({

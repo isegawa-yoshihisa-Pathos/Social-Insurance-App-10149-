@@ -1,9 +1,19 @@
-<mat-tab-group animationDuration="0ms">
-    <mat-tab label="社員管理">
-        <div class="employees-management">
-            <div class="employees-list-container">
-                <app-employees-list [eid]="eid"></app-employees-list>
-            </div>
+<nav mat-tab-nav-bar [tabPanel]="tabPanel" animationDuration="0ms">
+    <a
+        mat-tab-link
+        [routerLink]="['/employees-management']"
+        [active]="!isSettingActive"
+    >社員管理</a>
+    <a
+        mat-tab-link
+        [routerLink]="['/employees-management', 'setting']"
+        [active]="isSettingActive"
+    >設定</a>
+</nav>
+<mat-tab-nav-panel #tabPanel>
+    <div class="employees-management">
+        <div class="employees-list-container">
+            <router-outlet></router-outlet>
         </div>
-    </mat-tab>
-</mat-tab-group>
+    </div>
+</mat-tab-nav-panel>

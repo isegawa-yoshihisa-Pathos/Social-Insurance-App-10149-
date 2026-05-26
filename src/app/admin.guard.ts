@@ -22,12 +22,12 @@ export const adminGuard: CanActivateFn = async () => {
     await currentTenantService.initialize(user.uid);
   }
 
-  const eid = currentTenantService.getTenant();
-  if (!eid) {
+  const tid = currentTenantService.getTenant();
+  if (!tid) {
     return router.createUrlTree(['/home']);
   }
 
-  const affiliationRef = doc(firestore, 'affiliations', `${user.uid}_${eid}`);
+  const affiliationRef = doc(firestore, 'affiliations', `${user.uid}_${tid}`);
   const affiliationSnap = await getDoc(affiliationRef);
 
   if (!affiliationSnap.exists()) {

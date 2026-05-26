@@ -67,9 +67,9 @@ export class InvitationDataService {
     return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email);
   }
 
-  async loadInvitationDocument(eid: string): Promise<InvitationSettingDocument | null> {
+  async loadInvitationDocument(tid: string): Promise<InvitationSettingDocument | null> {
     return runInInjectionContext(this.injector, async () => {
-      const ref = doc(this.firestore, 'tenants', eid, 'settings', 'invitationSetting');
+      const ref = doc(this.firestore, 'tenants', tid, 'settings', 'invitationSetting');
       const snap = await getDoc(ref);
       if (!snap.exists()) {
         return null;

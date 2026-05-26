@@ -1,28 +1,39 @@
 import { Component, inject, OnInit } from '@angular/core';
-import { MatTabGroup, MatTab } from '@angular/material/tabs';
-import { EmployeesListCmp } from '../employees-list/employees-list.cmp';
-import { MatTableModule } from '@angular/material/table';
+import { MatTabsModule } from '@angular/material/tabs';
+import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
+import { filter } from 'rxjs';
 import { CurrentTenantService } from '../current-tenant.service';
 import { RoutesService } from '../routes.service';
 
 @Component({
   selector: 'app-employees-management',
-  imports: [MatTabGroup, MatTab, MatTableModule, EmployeesListCmp],
+  imports: [MatTabsModule, RouterLink, RouterOutlet],
   templateUrl: './employees-management.cmp.html',
   styleUrl: './employees-management.cmp.css',
 })
 export class EmployeesManagementCmp implements OnInit {
   private readonly currentTenantService = inject(CurrentTenantService);
   private readonly routesService = inject(RoutesService);
+  private readonly router = inject(Router);
 
-  eid = '';
+  tid = '';
+  isSettingActive = false;
 
   async ngOnInit(): Promise<void> {
-    const eid = this.currentTenantService.getTenant();
-    if (!eid) {
+    const tid = this.currentTenantService.getTenant();
+    if (!tid) {
       this.routesService.redirectToHome();
       return;
     }
-    this.eid = eid;
+    this.tid = tid;
+
+    this.updateTabActive(this.router.url);
+    this.router.events
+      .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
+      .subscribe((e) => this.updateTabActive(e.urlAfterRedirects));
+  }
+
+  private updateTabActive(url: string): void {
+    this.isSettingActive = url.startsWith('/employees-management/setting');
   }
 }

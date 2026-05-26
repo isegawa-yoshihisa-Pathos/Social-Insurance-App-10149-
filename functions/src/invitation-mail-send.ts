@@ -10,7 +10,7 @@ if (!admin.apps.length) {
 let resend: Resend;
 
 interface SendInvitationInput {
-  eid: string;
+  tid: string;
   email: string;
   name: string;
   role: 'admin' | 'member';
@@ -30,9 +30,9 @@ export const sendInvitationMail = onCall<SendInvitationInput>(
       throw new HttpsError('unauthenticated', 'ログインが必要です。');
     }
 
-    const { eid, email, name, role } = request.data;
+    const { tid, email, name, role } = request.data;
 
-    if (!eid || !email || !name) {
+    if (!tid || !email || !name) {
       throw new HttpsError('invalid-argument', '必要なパラメータが不足しています。');
     }
 
@@ -63,7 +63,7 @@ export const sendInvitationMail = onCall<SendInvitationInput>(
 
     const affiliationSnap = await db
       .collection('affiliations')
-      .doc(`${uid}_${eid}`)
+      .doc(`${uid}_${tid}`)
       .get();
 
     if (!affiliationSnap.exists) {
@@ -76,7 +76,7 @@ export const sendInvitationMail = onCall<SendInvitationInput>(
       throw new HttpsError('permission-denied', '管理者権限が必要です。');
     }
 
-    const tenantSnap = await db.collection('tenants').doc(eid).get();
+    const tenantSnap = await db.collection('tenants').doc(tid).get();
 
     if (!tenantSnap.exists) {
       throw new HttpsError('not-found', '事業所が見つかりません。');
@@ -84,7 +84,7 @@ export const sendInvitationMail = onCall<SendInvitationInput>(
 
     const invitationSettingSnap = await db
       .collection('tenants')
-      .doc(eid)
+      .doc(tid)
       .collection('settings')
       .doc('invitationSetting')
       .get();
@@ -114,7 +114,7 @@ export const sendInvitationMail = onCall<SendInvitationInput>(
 
     const inviteRef = db
       .collection('tenants')
-      .doc(eid)
+      .doc(tid)
       .collection('invitations')
       .doc();
 

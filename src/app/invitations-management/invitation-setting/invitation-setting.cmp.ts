@@ -1,9 +1,9 @@
 import { Component, inject, OnInit } from '@angular/core';
-import { ErrorDialogCmp, mapFirebaseError } from '../error-dialog/error-dialog.cmp';
+import { ErrorDialogCmp, mapFirebaseError } from '../../error-dialog/error-dialog.cmp';
 import { MatDialog } from '@angular/material/dialog';
-import { CurrentTenantService } from '../current-tenant.service';
-import { InvitationDataService } from '../invitation-data.service';
-import { RoutesService } from '../routes.service';
+import { CurrentTenantService } from '../../current-tenant.service';
+import { InvitationDataService } from '../../invitation-data.service';
+import { RoutesService } from '../../routes.service';
 import { InvitationMailSettingCmp } from './invitation-mail-setting/invitation-mail-setting.cmp';
 import { InvitationImportSettingCmp } from './invitation-import-setting/invitation-import-setting.cmp';
 
@@ -27,7 +27,7 @@ export class InvitationSettingCmp implements OnInit {
   private invitationDataService = inject(InvitationDataService);
   private routesService = inject(RoutesService);
 
-  eid = '';
+  tid = '';
 
   nameHeaders: string[] = [...this.defaultNameHeaders];
   emailHeaders: string[] = [...this.defaultEmailHeaders];
@@ -36,17 +36,17 @@ export class InvitationSettingCmp implements OnInit {
   loading = true;
 
   async ngOnInit(): Promise<void> {
-    const eid = this.currentTenantService.getTenant();
+    const tid = this.currentTenantService.getTenant();
 
-    if (!eid) {
+    if (!tid) {
       this.routesService.redirectToHome();
       return;
     }
-    this.eid = eid;
+    this.tid = tid;
 
     try {
       this.loading = true;
-      const doc = await this.invitationDataService.loadInvitationDocument(eid);
+      const doc = await this.invitationDataService.loadInvitationDocument(tid);
       if (!doc) {
         this.mailTemplateText = this.defaultTemplateText;
         this.nameHeaders = [...this.defaultNameHeaders];

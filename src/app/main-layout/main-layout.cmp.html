@@ -26,7 +26,7 @@
             <hr class="menu-divider" />
             <button mat-flat-button class="menu-button" type="button" (click)="navigateToSettingTenant()">
                 <span>事業所設定</span>
-                @if (completion().tenant) {
+                @if (completion().tenant || completion().socialInsuranceSettings) {
                     <span class="required-badge"></span>
                 }
             </button>

@@ -104,6 +104,16 @@
   pointer-events: none;
 }
 
+.required-badge {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 6px;
+  vertical-align: super;
+  border-radius: 50%;
+  background: var(--mat-form-field-outlined-error-label-text-color);
+}
+
 @media (max-width: 1100px) {
   :host {
     --label-width: 100%;

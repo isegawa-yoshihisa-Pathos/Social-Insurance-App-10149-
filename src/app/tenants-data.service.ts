@@ -18,9 +18,9 @@ export class TenantsDataService {
   private readonly firestore = inject(Firestore);
   private readonly injector = inject(EnvironmentInjector);
 
-  async loadTenant(eid: string): Promise<TenantDocument | null> {
+  async loadTenant(tid: string): Promise<TenantDocument | null> {
     return runInInjectionContext(this.injector, async () => {
-      const ref = doc(this.firestore, 'tenants', eid);
+      const ref = doc(this.firestore, 'tenants', tid);
       const snap = await getDoc(ref);
       if (!snap.exists()) {
         return null;
@@ -30,11 +30,11 @@ export class TenantsDataService {
   }
 
   async saveTenant(
-    eid: string,
+    tid: string,
     data: TenantSavePayload,
   ): Promise<void> {
     return runInInjectionContext(this.injector, async () => {
-      const tenantRef = doc(this.firestore, 'tenants', eid);
+      const tenantRef = doc(this.firestore, 'tenants', tid);
       await updateDoc(tenantRef, {
         ...data,
         updatedAt: serverTimestamp(),

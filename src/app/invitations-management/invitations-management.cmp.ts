@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ViewChild } from '@angular/core';
 import { CurrentTenantService } from '../current-tenant.service';
 import { RoutesService } from '../routes.service';
 import { Firestore } from '@angular/fire/firestore';
@@ -19,8 +19,8 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { FormsModule } from '@angular/forms';
 import { HelpContentCmp } from '../help-content/help-content.cmp';
 import { InvitationDataService, InvitationData } from '../invitation-data.service';
-import { InvitationsListCmp } from '../invitations-list/invitations-list.cmp';
-import { InvitationSettingCmp } from '../invitation-setting/invitation-setting.cmp';
+import { InvitationsListCmp } from './invitations-list/invitations-list.cmp';
+import { InvitationSettingCmp } from './invitation-setting/invitation-setting.cmp';
 import { FunctionsService } from '../functions.service';
 
 @Component({
@@ -30,8 +30,9 @@ import { FunctionsService } from '../functions.service';
   styleUrl: './invitations-management.cmp.css',
 })
 export class InvitationsManagementCmp implements OnInit {
+  @ViewChild(InvitationsListCmp) invitationsListCmp!: InvitationsListCmp;
 
-  eid = '';
+  tid = '';
   invitations: any[] = [];
   invitationsData: InvitationData[] = [{ email: '', name: '', isAdmin: false }];
   nameHeaders: string[] = [];
@@ -48,18 +49,18 @@ export class InvitationsManagementCmp implements OnInit {
   private readonly functionsService = inject(FunctionsService);
 
   async ngOnInit(): Promise<void> {
-    const eid = this.currentTenantService.getTenant();
-    if (!eid) {
+    const tid = this.currentTenantService.getTenant();
+    if (!tid) {
       this.routesService.redirectToHome();
       return;
     }
-    this.eid = eid;
+    this.tid = tid;
 
     try {
-      const invitationsRef = collection(this.firestore, 'tenants', this.eid, 'invitations');
+      const invitationsRef = collection(this.firestore, 'tenants', this.tid, 'invitations');
       const invitations = await getDocs(invitationsRef);
       this.invitations = invitations.docs.map((doc) => doc.data());
-      const setting = await this.invitationDataService.loadInvitationDocument(eid);
+      const setting = await this.invitationDataService.loadInvitationDocument(tid);
       if (setting?.nameHeaders?.length) {
         this.nameHeaders = setting.nameHeaders;
       }
@@ -95,27 +96,47 @@ export class InvitationsManagementCmp implements OnInit {
       });
       return;
     }
-    try {
-      this.sendBusy = true;
-      for (const invitation of validInvitations) {
+    this.sendBusy = true;
+
+    const failed: { email: string; message: string }[] = [];
+    let successCount = 0;
+
+    for (const invitation of validInvitations) {
+      try {
         await this.functionsService.sendInvitationMail({
-          eid: this.eid,
+          tid: this.tid,
           email: invitation.email,
           name: invitation.name,
           role: invitation.role as 'admin' | 'member',
         });
+        successCount++;
+      } catch (error) {
+        failed.push({ 
+          email: invitation.email, 
+          message: mapFirebaseError(error) 
+        });
       }
-
-      this.dialog.open(SuccessDialogCmp, {
-        data: { message: '招待メールを送信しました' },
-      });
-    } catch (error) {
-      this.dialog.open(ErrorDialogCmp, {
-        data: { message: mapFirebaseError(error) },
-      });
-    } finally {
-      this.sendBusy = false;
     }
+
+    this.sendBusy = false;
+
+    const total = validInvitations.length;
+    if (failed.length === 0) {
+      this.dialog.open(SuccessDialogCmp, {
+        data: { message: `招待メールを ${successCount}/${total} 件送信しました。` },
+      });
+    } else {
+      const detail = failed.map(f => `・${f.email}: ${f.message}`).join('\n');
+      this.dialog.open(ErrorDialogCmp, {
+        data: {
+          message:
+            `${successCount}/${total} 件送信しました。\n\n` +
+            `送信に失敗したメール：\n${detail}`,
+        },
+      });
+    }
+
+    await this.invitationsListCmp?.reload();
   }
 
   async addInvitationEmail(): Promise<void> {

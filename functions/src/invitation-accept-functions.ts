@@ -47,11 +47,11 @@ export const validateInvitationToken = onCall<ValidateInvitationInput>(
     assertInvitationCanBeAccepted(invitation.data);
     assertInvitationEmailMatches(invitation.data, email);
 
-    const tenantSnap = await admin.firestore().collection('tenants').doc(invitation.eid).get();
+    const tenantSnap = await admin.firestore().collection('tenants').doc(invitation.tid).get();
     const tenant = tenantSnap.data();
 
     return {
-      eid: invitation.eid,
+      tid: invitation.tid,
       tenantName: tenant?.tenantName ?? '',
       name: invitation.data.name ?? '',
       email: invitation.data.contactEmail ?? '',
@@ -93,7 +93,7 @@ export const acceptInvitation = onCall<AcceptInvitationInput>(
     assertInvitationEmailMatches(invitation.data, email);
 
     const db = admin.firestore();
-    const tenantSnap = await db.collection('tenants').doc(invitation.eid).get();
+    const tenantSnap = await db.collection('tenants').doc(invitation.tid).get();
 
     if (!tenantSnap.exists) {
       throw new HttpsError('not-found', '事業所が見つかりません。');
@@ -138,7 +138,7 @@ export const acceptInvitation = onCall<AcceptInvitationInput>(
     // ここから先のエラーは create モード時に必ずユーザーを削除する。
     try {
       const accountRef = db.collection('accounts').doc(uid);
-      const affiliationRef = db.collection('affiliations').doc(`${uid}_${invitation.eid}`);
+      const affiliationRef = db.collection('affiliations').doc(`${uid}_${invitation.tid}`);
 
       const [accountSnap, affiliationSnap] = await Promise.all([
         accountRef.get(),
@@ -153,7 +153,7 @@ export const acceptInvitation = onCall<AcceptInvitationInput>(
         }
       }
 
-      const existingEmployeeId = accountSnap.data()?.affiliations?.[invitation.eid];
+      const existingEmployeeId = accountSnap.data()?.affiliations?.[invitation.tid];
 
       if (existingEmployeeId) {
         throw new HttpsError('already-exists', 'この事業所には既に所属しています。');
@@ -161,7 +161,7 @@ export const acceptInvitation = onCall<AcceptInvitationInput>(
 
       const employeeRef = db
         .collection('tenants')
-        .doc(invitation.eid)
+        .doc(invitation.tid)
         .collection('employees')
         .doc();
 
@@ -172,9 +172,9 @@ export const acceptInvitation = onCall<AcceptInvitationInput>(
         accountRef,
         {
           email: loginEmail,
-          currentTenantId: invitation.eid,
+          currentTenantId: invitation.tid,
           affiliations: {
-            [invitation.eid]: employeeRef.id,
+            [invitation.tid]: employeeRef.id,
           },
           lastView: now,
           updatedAt: now,
@@ -196,7 +196,7 @@ export const acceptInvitation = onCall<AcceptInvitationInput>(
         affiliationRef,
         {
           uid,
-          eid: invitation.eid,
+          tid: invitation.tid,
           displayName,
           tenantName,
           role,
@@ -221,7 +221,7 @@ export const acceptInvitation = onCall<AcceptInvitationInput>(
         success: true,
         uid,
         loginEmail,
-        eid: invitation.eid,
+        tid: invitation.tid,
       };
     } catch (error) {
       if (mode === 'create' && userRecord) {
@@ -234,7 +234,7 @@ export const acceptInvitation = onCall<AcceptInvitationInput>(
 
 async function findInvitationByToken(token: string): Promise<{
   ref: admin.firestore.DocumentReference;
-  eid: string;
+  tid: string;
   data: admin.firestore.DocumentData;
 } | null> {
   const tokenHash = hashToken(token);
@@ -259,7 +259,7 @@ async function findInvitationByToken(token: string): Promise<{
 
   return {
     ref: doc.ref,
-    eid: tenantRef.id,
+    tid: tenantRef.id,
     data: doc.data(),
   };
 }

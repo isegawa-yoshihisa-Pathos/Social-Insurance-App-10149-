@@ -1,7 +1,6 @@
 import {
   TenantDocument,
   TenantSavePayload,
-  PayrollSettings,
   SocialInsuranceSettings,
 } from './tenant-document';
 
@@ -28,8 +27,6 @@ export interface TenantFormData {
     tel3: string;
   };
   phoneNumberRaw: string;
-  corporateNumber: string;
-  payrollSettings: PayrollSettings;
   socialInsuranceSettings: SocialInsuranceSettings;
 }
 
@@ -42,17 +39,16 @@ export function createDefaultOwnerName(): OwnerNameForm {
   };
 }
 
-export function createDefaultPayrollSettings(): PayrollSettings {
-  return { closingDay: '', payday: '' };
-}
-
 export function createDefaultSocialInsuranceSettings(): SocialInsuranceSettings {
   return {
+    corporateNumber: '',
     healthInsuranceType: 'association',
     combinationName: '',
     healthInsuranceTenantRecordNumber: '',
     pensionInsuranceTenantNumber: '',
     pensionInsuranceTenantRecordNumber: '',
+    closingDay: '',
+    payrollBaseDaysStandard: 'closingDay',
     socialInsuranceCollectionMonth: 'nextMonth',
     specificInsuranceCollectionType: 'false',
   };
@@ -67,8 +63,6 @@ export function createEmptyTenantForm(): TenantFormData {
     ownerName: createDefaultOwnerName(),
     phoneNumber: { tel1: '', tel2: '', tel3: '' },
     phoneNumberRaw: '',
-    corporateNumber: '',
-    payrollSettings: createDefaultPayrollSettings(),
     socialInsuranceSettings: createDefaultSocialInsuranceSettings(),
   };
 }
@@ -95,8 +89,6 @@ export function tenantDocToForm(doc: TenantDocument): TenantFormData {
     },
     phoneNumber: phone,
     phoneNumberRaw,
-    corporateNumber: doc.corporateNumber ?? '',
-    payrollSettings: doc.payrollSettings ?? createDefaultPayrollSettings(),
     socialInsuranceSettings: {
       ...createDefaultSocialInsuranceSettings(),
       ...doc.socialInsuranceSettings,
@@ -116,8 +108,6 @@ export function tenantFormToSavePayload(
     address: rest.address,
     ownerName: rest.ownerName,
     phoneNumber: rest.phoneNumber,
-    corporateNumber: rest.corporateNumber,
-    payrollSettings: rest.payrollSettings,
     socialInsuranceSettings: {
       ...rest.socialInsuranceSettings,
       combinationName:

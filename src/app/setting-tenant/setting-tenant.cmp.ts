@@ -23,6 +23,7 @@ import {
   parsePhoneNumberRaw,
   TenantFormData,
 } from '../tenant-form-data';
+import { ProfileCompletionService } from '../profile-completion.service';
 
 @Component({
   selector: 'app-setting-tenant',
@@ -45,10 +46,11 @@ export class SettingTenantCmp implements OnInit {
   private readonly tenantsDataService = inject(TenantsDataService);
   private readonly currentTenantService = inject(CurrentTenantService);
   private readonly routesService = inject(RoutesService);
+  private readonly profileCompletionService = inject(ProfileCompletionService);
   private readonly dialog = inject(MatDialog);
   private readonly auth = inject(Auth);
   private readonly zipcodeToAddressService = inject(ZipcodeToAddressService);
-  eid = '';
+  tid = '';
   loading = true;
   submitBusy = false;
 
@@ -65,18 +67,46 @@ export class SettingTenantCmp implements OnInit {
     this.form.zipcode = value.replace(/[^\d]/g, '');
   }
 
-  async ngOnInit(): Promise<void> {
-    const eid = this.currentTenantService.getTenant();
+  get isCorporateNumberMissing(): boolean {
+    return !this.form.socialInsuranceSettings.corporateNumber?.trim();
+  }
 
-    if (!eid) {
+  get isCombinationNameMissing(): boolean {
+    return !this.form.socialInsuranceSettings.combinationName?.trim();
+  }
+
+  get isHealthInsuranceTenantRecordNumberMissing(): boolean {
+    return !this.form.socialInsuranceSettings.healthInsuranceTenantRecordNumber?.trim();
+  }
+
+  get isPensionInsuranceTenantNumberMissing(): boolean {
+    return !this.form.socialInsuranceSettings.pensionInsuranceTenantNumber?.trim();
+  }
+
+  get isPensionInsuranceTenantRecordNumberMissing(): boolean {
+    return !this.form.socialInsuranceSettings.pensionInsuranceTenantRecordNumber?.trim();
+  }
+
+  get isClosingDayMissing(): boolean {
+    return !this.form.socialInsuranceSettings.closingDay?.trim();
+  }
+
+  get hasSocialInsuranceSettingsMissingFields(): boolean {
+    return this.profileCompletionService.hasSocialInsuranceSettingsMissingFields(this.form.socialInsuranceSettings);
+  }
+
+  async ngOnInit(): Promise<void> {
+    const tid = this.currentTenantService.getTenant();
+
+    if (!tid) {
       this.routesService.redirectToHome();
       return;
     }
-    this.eid = eid;
+    this.tid = tid;
 
     try {
       this.loading = true;
-      const doc = await this.tenantsDataService.loadTenant(eid);
+      const doc = await this.tenantsDataService.loadTenant(tid);
       if (!doc) {
         this.dialog.open(ErrorDialogCmp, {
           data: { message: '事業所データが見つかりませんでした' },
@@ -118,7 +148,7 @@ export class SettingTenantCmp implements OnInit {
 
     try {
       this.submitBusy = true;
-      await this.tenantsDataService.saveTenant(this.eid, payload);
+      await this.tenantsDataService.saveTenant(this.tid, payload);
       await this.currentTenantService.initialize(uid);
     } catch (error) {
       this.dialog.open(ErrorDialogCmp, {

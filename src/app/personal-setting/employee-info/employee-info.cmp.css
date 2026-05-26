@@ -1,0 +1,43 @@
+:host { 
+  display: block; 
+}
+
+.info-container {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  row-gap: 12px;
+  column-gap: 12px;
+  margin-top: 20px;
+}
+
+.info-row { display: contents; }
+
+.info-label {
+  font-weight: bold;
+  text-align: right;
+  padding-right: 4px;
+}
+
+.info-value { word-break: break-all; }
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 0;
+}
+
+.required-badge {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 6px;
+  vertical-align: super;
+  border-radius: 50%;
+  background: var(--mat-form-field-outlined-error-label-text-color);
+}
+
+@media (max-width: 1100px) {
+  .info-container { grid-template-columns: 1fr; }
+  .info-row { display: flex; flex-direction: column; gap: 4px; }
+  .info-label { text-align: left; padding-right: 0; }
+}

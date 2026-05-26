@@ -3,13 +3,15 @@ import { Firestore, doc, getDoc } from '@angular/fire/firestore';
 import { BehaviorSubject } from 'rxjs';
 import { AccountPersonalInfo, EmployeePersonalInfo } from './personal-document';
 import { PersonalFormData, EmployeeFormData } from './personal-form-data';
-import { TenantDocument } from './tenant-document';
+import { TenantDocument, SocialInsuranceSettings } from './tenant-document';
 import { TenantFormData } from './tenant-form-data';
+import { Auth, authState } from '@angular/fire/auth';
 
 export interface ProfileCompletionState {
   personal: boolean;
   employee: boolean;
   tenant: boolean;
+  socialInsuranceSettings: boolean;
   any: boolean;
 }
 
@@ -18,15 +20,38 @@ export interface ProfileCompletionState {
 })
 export class ProfileCompletionService {
   private readonly firestore = inject(Firestore);
+  private readonly auth = inject(Auth);
 
   private readonly completionSubject = new BehaviorSubject<ProfileCompletionState>({
     personal: false,
     employee: false,
     tenant: false,
+    socialInsuranceSettings: false,
     any: false,
   });
 
   readonly completion$ = this.completionSubject.asObservable();
+
+  private lastUid: string | null = null;
+
+  constructor() {
+    authState(this.auth).subscribe((user) => {
+      const uid = user?.uid ?? null;
+      if (this.lastUid !== uid) {
+        this.reset();
+        this.lastUid = uid;
+      }
+    });
+  }
+  private reset(): void {
+    this.completionSubject.next({
+      personal: false,
+      employee: false,
+      tenant: false,
+      socialInsuranceSettings: false,
+      any: false,
+    });
+  }
 
   get snapshot(): ProfileCompletionState {
     return this.completionSubject.value;
@@ -40,6 +65,7 @@ export class ProfileCompletionService {
       personal: this.hasPersonalMissingFields(personalForm),
       employee: this.hasEmployeeMissingFields(employeeForm),
       tenant: this.snapshot.tenant,
+      socialInsuranceSettings: this.snapshot.socialInsuranceSettings,
     });
   }
 
@@ -48,28 +74,32 @@ export class ProfileCompletionService {
       personal: this.snapshot.personal,
       employee: this.snapshot.employee,
       tenant: this.hasTenantMissingFields(form),
+      socialInsuranceSettings: this.hasSocialInsuranceSettingsMissingFields(form.socialInsuranceSettings),
     });
   }
 
-  async refresh(uid: string, eid: string): Promise<void> {
+  async refresh(uid: string, tid: string): Promise<void> {
     const accountSnap = await getDoc(doc(this.firestore, 'accounts', uid));
     const account = accountSnap.data();
 
     const personalInfo = account?.['personalInfo'] as Partial<AccountPersonalInfo> | undefined;
-    const employeeId = account?.['affiliations']?.[eid] as string | undefined;
+    const eid = account?.['affiliations']?.[tid] as string | undefined;
 
-    const employeeInfo = employeeId
-      ? (await getDoc(doc(this.firestore, 'tenants', eid, 'employees', employeeId))).data() as Partial<EmployeePersonalInfo> | undefined
+    const employeeInfo = eid
+      ? (await getDoc(doc(this.firestore, 'tenants', tid, 'employees', eid))).data() as Partial<EmployeePersonalInfo> | undefined
       : undefined;
 
     const tenant = (await getDoc(
-      doc(this.firestore, 'tenants', eid),
+      doc(this.firestore, 'tenants', tid),
     )).data() as Partial<TenantDocument> | undefined;
+
+    const socialInsuranceSettings = tenant?.socialInsuranceSettings as SocialInsuranceSettings | undefined;
 
     this.setState({
       personal: this.hasAccountPersonalInfoMissingFields(personalInfo),
       employee: this.hasEmployeeInfoMissingFields(employeeInfo),
       tenant: this.hasTenantDocumentMissingFields(tenant),
+      socialInsuranceSettings: this.hasSocialInsuranceSettingsDocumentMissingFields(socialInsuranceSettings),
     });
   }
 
@@ -110,7 +140,16 @@ export class ProfileCompletionService {
       form.ownerName.ownerLastNameKana,
       form.ownerName.ownerFirstNameKana,
       form.phoneNumberRaw,
+    ]);
+  }
+
+  hasSocialInsuranceSettingsMissingFields(form: SocialInsuranceSettings): boolean {
+    return this.hasBlank([
       form.corporateNumber,
+      form.healthInsuranceTenantRecordNumber,
+      form.pensionInsuranceTenantNumber,
+      form.pensionInsuranceTenantRecordNumber,
+      form.closingDay,
     ]);
   }
 
@@ -169,7 +208,20 @@ export class ProfileCompletionService {
       docData.phoneNumber?.tel1,
       docData.phoneNumber?.tel2,
       docData.phoneNumber?.tel3,
-      docData.corporateNumber,
+    ]);
+  }
+
+  private hasSocialInsuranceSettingsDocumentMissingFields(
+    docData?: SocialInsuranceSettings,
+  ): boolean {
+    if (!docData) return true;
+
+    return this.hasBlank([
+      docData?.corporateNumber,
+      docData?.healthInsuranceTenantRecordNumber,
+      docData?.pensionInsuranceTenantNumber,
+      docData?.pensionInsuranceTenantRecordNumber,
+      docData?.closingDay,
     ]);
   }
 

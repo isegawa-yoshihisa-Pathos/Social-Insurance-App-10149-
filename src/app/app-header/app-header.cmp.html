@@ -22,9 +22,9 @@
                 <mat-icon>arrow_drop_down</mat-icon>
             </button>
             <mat-menu #tenantMenu="matMenu">
-                @for (aff of currentTenantService.getAffiliations(); track aff.eid) {
-                    <button mat-menu-item type="button" (click)="switchTenant(aff.eid)"
-                    [disabled]="aff.eid === currentTenantService.getTenant()">
+                @for (aff of currentTenantService.getAffiliations(); track aff.tid) {
+                    <button mat-menu-item type="button" (click)="switchTenant(aff.tid)"
+                    [disabled]="aff.tid === currentTenantService.getTenant()">
                         {{ aff.tenantName }}
                     </button>
                 }

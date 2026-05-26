@@ -29,7 +29,7 @@ interface InvitationListItem {
 export class InvitationsListCmp implements OnInit {
   private readonly firestore = inject(Firestore);
 
-  @Input() eid = '';
+  @Input() tid = '';
 
   @ViewChild(MatSort) set matSort(sort: MatSort) {
     if (sort) {
@@ -43,13 +43,21 @@ export class InvitationsListCmp implements OnInit {
   loading = true;
 
   async ngOnInit(): Promise<void> {
+    await this.load();
+  }
+
+  async reload(): Promise<void> {
+    await this.load();
+  }
+
+  private async load(): Promise<void> {
     this.loading = true;
-    if (!this.eid) {
+    if (!this.tid) {
       this.loading = false;
       return;
     }
 
-    const invitationsRef = collection(this.firestore, 'tenants', this.eid, 'invitations');
+    const invitationsRef = collection(this.firestore, 'tenants', this.tid, 'invitations');
     const q = query(invitationsRef, orderBy('createdAt', 'asc'));
     const invitations = await getDocs(q);
 

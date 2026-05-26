@@ -29,8 +29,9 @@ import {
     phoneNumberRaw: string;
     zipcode: string;
     address: Address;
-    department: string;
-    position: string;
+    allowances?: Record<string, number>;
+    hasDependents: boolean;
+    dependentsInfo: string[];
   }
   
   export function createDefaultRealName(): RealName {
@@ -74,8 +75,8 @@ import {
       phoneNumberRaw: '',
       zipcode: '',
       address: createDefaultAddress(),
-      department: '',
-      position: '',
+      hasDependents: false,
+      dependentsInfo: [],
     };
   }
   
@@ -127,8 +128,8 @@ import {
         ...createDefaultAddress(),
         ...doc?.address,
       },
-      department: doc?.department ?? '',
-      position: doc?.position ?? '',
+      hasDependents: doc?.hasDependents ?? false,
+      dependentsInfo: doc?.dependentsInfo ?? [],
     };
   }
   
@@ -158,8 +159,8 @@ import {
       phoneNumber: parsePhoneNumberRaw(form.phoneNumberRaw),
       zipcode: form.zipcode,
       address: form.address,
-      department: form.department,
-      position: form.position,
+      hasDependents: form.hasDependents,
+      dependentsInfo: form.dependentsInfo,
     };
   }
   

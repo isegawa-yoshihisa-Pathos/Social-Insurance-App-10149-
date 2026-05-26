@@ -1,17 +1,14 @@
 import { Timestamp } from '@angular/fire/firestore';
 
-export interface PayrollSettings {
-    closingDay: string,
-    payday: string,
-}
-
 export interface SocialInsuranceSettings {
+  corporateNumber: string,
   healthInsuranceType: 'association' | 'combination',
   combinationName?: string,
   healthInsuranceTenantRecordNumber: string,
   pensionInsuranceTenantNumber: string,
   pensionInsuranceTenantRecordNumber: string,
-
+  closingDay: string,
+  payrollBaseDaysStandard: 'closingDay' | 'calendarDay',
   socialInsuranceCollectionMonth: string,
   specificInsuranceCollectionType: string,
 }
@@ -37,10 +34,8 @@ export interface TenantDocument {
     tel2: string;
     tel3: string;
   };
-  corporateNumber: string;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
-  payrollSettings?: PayrollSettings;
   socialInsuranceSettings?: SocialInsuranceSettings;
 }
 

@@ -2,23 +2,26 @@ import { Component, inject, Input, ViewChild } from '@angular/core';
 import { Firestore, collection, getDocs } from '@angular/fire/firestore';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
+import { RoutesService } from '../../../routes.service';
 
 interface EmployeeDoc {
+  eid: string;
   displayName: string;
   role: 'admin' | 'member';
   status: string;
 }
 
 @Component({
-  selector: 'app-employees-list',
+  selector: 'app-employees-list-display',
   imports: [MatTableModule, MatSortModule],
-  templateUrl: './employees-list.cmp.html',
-  styleUrl: './employees-list.cmp.css',
+  templateUrl: './employees-list-display.cmp.html',
+  styleUrl: './employees-list-display.cmp.css',
 })
-export class EmployeesListCmp {
+export class EmployeesListDisplayCmp {
   private readonly firestore = inject(Firestore);
+  private readonly routesService = inject(RoutesService);
 
-  @Input() eid = '';
+  @Input() tid = '';
 
   @ViewChild(MatSort) set matSort(sort: MatSort) {
     if (sort) {
@@ -33,18 +36,25 @@ export class EmployeesListCmp {
 
   async ngOnInit(): Promise<void> {
     this.loading = true;
-    if (!this.eid) {
+    if (!this.tid) {
       this.loading = false;
       return;
     }
 
-    const employeesRef = collection(this.firestore, 'tenants', this.eid, 'employees');
+    const employeesRef = collection(this.firestore, 'tenants', this.tid, 'employees');
     const employees = await getDocs(employeesRef);
 
-    const data = employees.docs.map((doc) => doc.data() as EmployeeDoc);
+    const data = employees.docs.map((doc) => ({
+      eid: doc.id,
+      ...(doc.data() as Omit<EmployeeDoc, 'eid'>),
+    }));
 
     this.dataSource.data = data;
 
     this.loading = false;
+  }
+
+  selectEmployee(eid: string): void {
+    this.routesService.redirectToEmployeeDetail(eid);
   }
 }

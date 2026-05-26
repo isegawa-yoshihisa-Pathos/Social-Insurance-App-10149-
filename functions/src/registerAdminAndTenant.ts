@@ -34,17 +34,17 @@ export const registerAdminAndTenant = onCall({
 
         const accountRef = db.collection('accounts').doc(uid);
         const tenantRef = db.collection('tenants').doc();
-        const eid = tenantRef.id;
-        const employeeRef = db.collection('tenants').doc(eid).collection('employees').doc();
-        const employeeId = employeeRef.id;
+        const tid = tenantRef.id;
+        const employeeRef = db.collection('tenants').doc(tid).collection('employees').doc();
+        const eid = employeeRef.id;
 
         const batch = db.batch();
 
         batch.set(accountRef, {
             email,
-            currentTenantId: eid,
+            currentTenantId: tid,
             affiliations: {
-                [eid]: employeeId,
+                [tid]: eid,
             },
             lastView: admin.firestore.FieldValue.serverTimestamp(),
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -68,10 +68,10 @@ export const registerAdminAndTenant = onCall({
             joinedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
-        const affiliationRef = db.collection('affiliations').doc(`${uid}_${eid}`);
+        const affiliationRef = db.collection('affiliations').doc(`${uid}_${tid}`);
         batch.set(affiliationRef, {
             uid,
-            eid,
+            tid,
             tenantName,
             role: 'admin',
             status: 'active',
@@ -80,7 +80,7 @@ export const registerAdminAndTenant = onCall({
 
         await batch.commit();
 
-        return { success: true, uid, email, password, eid };
+        return { success: true, uid, email, password, tid };
     } catch (error) {
         switch (getErrorCode(error)) {
             case 'auth/email-already-exists':

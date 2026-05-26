@@ -215,20 +215,32 @@
                     </div>
                 </div>
             </mat-tab>
-            <mat-tab label="社会保険設定">
+            <mat-tab>
+                <ng-template matTabLabel>
+                    <span>社会保険設定</span>
+                    @if (hasSocialInsuranceSettingsMissingFields) {
+                        <span class="required-badge"></span>
+                    }
+                </ng-template>
                 <div class="input-container">
                     <div class="field-container">
-                        <label class="label-name">法人番号：</label>
+                        <label class="label-name">
+                            法人番号：
+                            @if (isCorporateNumberMissing) {
+                                <span class="required-badge"></span>
+                            }
+                        </label>
                         <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
-                            <mat-label>法人番号</mat-label>
+                            <mat-label>
+                                法人番号
+                            </mat-label>
                             <input 
                                 matInput 
                                 type="text" 
                                 placeholder="（例）1234567890123" 
-                                [(ngModel)]="form.corporateNumber"
+                                [(ngModel)]="form.socialInsuranceSettings.corporateNumber"
                                 #corporateNumberRef="ngModel"
-                                name="corporateNumber" 
-                                required
+                                name="corporateNumber"
                                 pattern="^\d{13}$"
                             />
                             @if(corporateNumberRef.invalid && (corporateNumberRef.touched || corporateNumberRef.dirty)){
@@ -265,7 +277,12 @@
                         }
                     </div>
                     <div class="field-container">
-                        <label class="label-name">（健康保険）事業所整理記号：</label>
+                        <label class="label-name">
+                            （健康保険）事業所整理記号：
+                            @if (isHealthInsuranceTenantRecordNumberMissing) {
+                                <span class="required-badge"></span>
+                            }
+                        </label>
                         <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
                             <mat-label>事業所整理記号</mat-label>
                             <input 
@@ -280,7 +297,12 @@
                         <app-help-content key="hiTenantRecNum"></app-help-content>
                     </div>
                     <div class="field-container">
-                        <label class="label-name">（厚生年金）事業所番号：</label>
+                        <label class="label-name">
+                            （厚生年金）事業所番号：
+                            @if (isPensionInsuranceTenantNumberMissing) {
+                                <span class="required-badge"></span>
+                            }
+                        </label>
                         <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
                             <mat-label>事業所番号</mat-label>
                             <input 
@@ -295,7 +317,12 @@
                         <app-help-content key="piTenantNum"></app-help-content>
                     </div>
                     <div class="field-container">
-                        <label class="label-name">（厚生年金）事業所整理記号：</label>
+                        <label class="label-name">
+                            （厚生年金）事業所整理記号：
+                            @if (isPensionInsuranceTenantRecordNumberMissing) {
+                                <span class="required-badge"></span>
+                            }
+                        </label>
                         <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
                             <mat-label>事業所整理記号</mat-label>
                             <input 
@@ -313,14 +340,19 @@
                     <hr class="separator grid-full-width">
                     
                     <div class="field-container">
-                        <label class="label-name">給与締め日：</label>
+                        <label class="label-name">
+                            給与締め日：
+                            @if (isClosingDayMissing) {
+                                <span class="required-badge"></span>
+                            }
+                        </label>
                         <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
                             <mat-label>給与締め日</mat-label>
                             <input 
                                 matInput 
                                 type="text" 
                                 placeholder="（例）25日" 
-                                [(ngModel)]="form.payrollSettings.closingDay"
+                                [(ngModel)]="form.socialInsuranceSettings.closingDay"
                                 #closingDayRef="ngModel"
                                 name="closingDay" 
                                 pattern="^(末日|[0-9]{1,2}日)$"
@@ -337,28 +369,15 @@
                         <div class="comment-text">※月末締めの場合は「末日」と入力してください</div>
                     </div>
                     <div class="field-container">
-                        <label class="label-name">給与支給日：</label>
+                        <label class="label-name">支払基礎日数基準：</label>
                         <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
-                            <mat-label>給与支給日</mat-label>
-                            <input 
-                                matInput 
-                                type="text" 
-                                placeholder="（例）25日" 
-                                [(ngModel)]="form.payrollSettings.payday"
-                                #paydayRef="ngModel"
-                                name="payday" 
-                                pattern="^(末日|[0-9]{1,2}日)$"
-                            />
-                            @if(paydayRef.invalid && (paydayRef.touched || paydayRef.dirty)){
-                                @if(paydayRef.errors?.['required']){
-                                    <p class="error-message">給与支給日は必須です</p>
-                                }
-                                @if(paydayRef.errors?.['pattern']){
-                                    <p class="error-message">「日」を含めて入力してください</p>
-                                }
-                            }
+                            <mat-label>支払基礎日数基準</mat-label>
+                            <mat-select [(ngModel)]="form.socialInsuranceSettings.payrollBaseDaysStandard">
+                                <mat-option value="closingDay">締め日基準</mat-option>
+                                <mat-option value="calendarDay">暦日基準</mat-option>
+                            </mat-select>
                         </mat-form-field>
-                        <div class="comment-text">※月末締めの場合は「末日」と入力してください</div>
+                        <app-help-content key="payrollBaseDaysStandard"></app-help-content>
                     </div>
 
                     <hr class="separator grid-full-width">

@@ -3,29 +3,49 @@ import { Firestore, getDoc, updateDoc, doc, serverTimestamp, getDocs, query, col
 import { BehaviorSubject, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { AffiliationDocument, AccountDocument } from './document-interfaces';
+import { Auth, authState } from '@angular/fire/auth';
 
 @Injectable({
   providedIn: 'root',
 })
 export class CurrentTenantService {
   private readonly firestore = inject(Firestore);
+  private readonly auth = inject(Auth);
   
   private affiliations = new BehaviorSubject<AffiliationDocument[]>([]);
-  private currentEid = new BehaviorSubject<string | null>(null);
+  private currentTid = new BehaviorSubject<string | null>(null);
   private loading = new BehaviorSubject<boolean>(false);
 
   affiliations$ = this.affiliations.asObservable();
-  currentEid$ = this.currentEid.asObservable();
+  currentTid$ = this.currentTid.asObservable();
   loading$ = this.loading.asObservable();
 
   currentAffiliation$ = combineLatest([
     this.affiliations$,
-    this.currentEid$,
+    this.currentTid$,
   ]).pipe(
-    map(([affiliations, eid]) => 
-      eid ? affiliations.find((aff) => aff.eid === eid) ?? null : null
+    map(([affiliations, tid]) => 
+      tid ? affiliations.find((aff) => aff.tid === tid) ?? null : null
     )
   );
+
+  private lastUid: string | null = null;
+
+  constructor() {
+    authState(this.auth).subscribe((user) => {
+      const uid = user?.uid ?? null;
+      if (this.lastUid !== uid) {
+        this.reset();
+        this.lastUid = uid;
+      }
+    });
+  }
+
+  private reset(): void {
+    this.affiliations.next([]);
+    this.currentTid.next(null);
+    this.loading.next(false);
+  }
 
   async initialize(uid: string): Promise<void> {
     this.loading.next(true);
@@ -51,18 +71,18 @@ export class CurrentTenantService {
 
       this.affiliations.next(affiliations);
 
-      const savedEid = accountData.currentTenantId;
-      const validEid = affiliations.some((aff) => aff.eid === savedEid)
-        ? savedEid
+      const savedTid = accountData.currentTenantId;
+      const validTid = affiliations.some((aff) => aff.tid === savedTid)
+        ? savedTid
         : affiliations.length > 0
-          ? affiliations[0].eid
+          ? affiliations[0].tid
           : null;
 
-      this.currentEid.next(validEid);
+      this.currentTid.next(validTid);
 
-      if(validEid && validEid !== savedEid) {
+      if(validTid && validTid !== savedTid) {
         await updateDoc(doc(this.firestore, 'accounts', uid), {
-          currentTenantId: validEid,
+          currentTenantId: validTid,
           lastView: serverTimestamp(),
         });
       }
@@ -73,29 +93,29 @@ export class CurrentTenantService {
     }
   }
 
-  async setTenant(uid: string, eid: string): Promise<void> {
+  async setTenant(uid: string, tid: string): Promise<void> {
     const affiliation = this.affiliations.value.find(
-      (aff) => aff.uid === uid && aff.eid === eid && aff.status === 'active',
+      (aff) => aff.uid === uid && aff.tid === tid && aff.status === 'active',
     );
     if (!affiliation) {
       throw new Error('この事業所への所属が見つかりません。');
     }
 
     await updateDoc(doc(this.firestore, 'accounts', uid), {
-      currentTenantId: eid,
+      currentTenantId: tid,
       lastView: serverTimestamp(),
     });
 
-    this.currentEid.next(eid);
+    this.currentTid.next(tid);
   }
 
   getAffiliations(): AffiliationDocument[] {
     return this.affiliations.value;
   }
 
-  updateAffiliationDisplayName(uid: string, eid: string, displayName: string): void {
+  updateAffiliationDisplayName(uid: string, tid: string, displayName: string): void {
     const affiliations = this.affiliations.value.map((affiliation) => {
-      if (affiliation.uid !== uid || affiliation.eid !== eid) {
+      if (affiliation.uid !== uid || affiliation.tid !== tid) {
         return affiliation;
       }
 
@@ -109,12 +129,12 @@ export class CurrentTenantService {
   }
 
   getTenant(): string | null {
-    return this.currentEid.value;
+    return this.currentTid.value;
   }
 
   getCurrentAffiliation(): AffiliationDocument | null {
-    const eid = this.getTenant();
-    if (!eid) return null;
-    return this.affiliations.value.find(aff => aff.eid === eid) || null;
+    const tid = this.getTenant();
+    if (!tid) return null;
+    return this.affiliations.value.find(aff => aff.tid === tid) || null;
   }
 }

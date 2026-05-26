@@ -27,6 +27,7 @@ export class MainLayoutCmp implements OnInit {
       personal: false,
       employee: false,
       tenant: false,
+      socialInsuranceSettings: false,
       any: false,
     },
   });
@@ -36,11 +37,11 @@ export class MainLayoutCmp implements OnInit {
     if (!uid) {
       throw new Error('ユーザーが見つかりません。');
     }
-    const eid = await this.currentTenantService.getTenant();
-    if (!eid) {
+    const tid = await this.currentTenantService.getTenant();
+    if (!tid) {
       throw new Error('事業所が見つかりません。');
     }
-    await this.profileCompletionService.refresh(uid, eid);
+    await this.profileCompletionService.refresh(uid, tid);
   }
 
   isAdmin(): boolean {

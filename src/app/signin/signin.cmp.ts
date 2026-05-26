@@ -46,8 +46,8 @@ export class SigninCmp {
         return;
       }
       if (affiliations.length > 0) {
-        const eid = affiliations[0].eid;
-        await this.currentTenantService.setTenant(uid, eid);
+        const tid = affiliations[0].tid;
+        await this.currentTenantService.setTenant(uid, tid);
         this.routesService.redirectToMainPage();
         return;
       }

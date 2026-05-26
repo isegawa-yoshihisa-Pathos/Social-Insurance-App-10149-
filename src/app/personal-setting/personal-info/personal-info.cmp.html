@@ -1,0 +1,85 @@
+<div class="info-container">
+    <div class="info-row">
+        <span class="info-label">
+            本名：
+            @if (dataService.isPersonalRealNameMissing) {
+                <span class="required-badge"></span>
+            }
+        </span>
+        <span class="info-value">
+            {{ dataService.personalForm.realName.lastName }} {{ dataService.personalForm.realName.firstName }}
+        </span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">
+            本名(フリガナ)：
+            @if (dataService.isPersonalRealNameKanaMissing) {
+                <span class="required-badge"></span>
+            }
+        </span>
+        <span class="info-value">
+            {{ dataService.personalForm.realName.lastNameKana }} {{ dataService.personalForm.realName.firstNameKana }}
+        </span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">
+            郵便番号：
+            @if (dataService.isPersonalZipcodeMissing) {
+                <span class="required-badge"></span>
+            }
+        </span>
+        <span class="info-value">{{ dataService.personalForm.zipcode }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">
+            住所：
+            @if (dataService.isPersonalAddressMissing) {
+                <span class="required-badge"></span>
+            }
+        </span>
+        <span class="info-value">
+            {{ dataService.personalForm.address.address1 }}
+            {{ dataService.personalForm.address.address2 }}
+            {{ dataService.personalForm.address.address3 }}
+        </span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">
+            電話番号：
+            @if (dataService.isPersonalPhoneNumberMissing) {
+                <span class="required-badge"></span>
+            }
+        </span>
+        <span class="info-value">{{ dataService.personalForm.phoneNumberRaw }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">
+            生年月日：
+            @if (dataService.isPersonalBirthDateMissing) {
+                <span class="required-badge"></span>
+            }
+        </span>
+        <span class="info-value">{{ dataService.personalForm.birthDate }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">
+            マイナンバー：
+            @if (dataService.isPersonalMyNumberMissing) {
+                <span class="required-badge"></span>
+            }
+        </span>
+        <span class="info-value">{{ dataService.personalForm.myNumber }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">
+            基礎年金番号：
+            @if (dataService.isPersonalBasicPensionNumberMissing) {
+                <span class="required-badge"></span>
+            }
+        </span>
+        <span class="info-value">{{ dataService.personalForm.basicPensionNumber }}</span>
+    </div>
+</div>
+<div class="actions">
+    <button mat-raised-button color="primary" (click)="edit()">編集</button>
+</div>

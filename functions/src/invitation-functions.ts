@@ -10,9 +10,9 @@ export const saveInvitationTemplate = onCall({
         throw new HttpsError('unauthenticated', 'ログインが必要です。');
     }
 
-    const { eid, templateText, replyToEmail } = request.data;
+    const { tid, templateText, replyToEmail } = request.data;
 
-    if (!eid || typeof eid !== 'string') {
+    if (!tid || typeof tid !== 'string') {
         throw new HttpsError('invalid-argument', '入力内容を確認してください。');
     }
     
@@ -28,7 +28,7 @@ export const saveInvitationTemplate = onCall({
 
     const affiliationSnap = await db
         .collection('affiliations')
-        .doc(`${uid}_${eid}`)
+        .doc(`${uid}_${tid}`)
         .get();
 
     if (!affiliationSnap.exists) {
@@ -43,7 +43,7 @@ export const saveInvitationTemplate = onCall({
 
     await db
         .collection('tenants')
-        .doc(eid)
+        .doc(tid)
         .collection('settings')
         .doc('invitationSetting')
         .set({
@@ -69,9 +69,9 @@ export const saveInvitationImportSettings = onCall({
         throw new HttpsError('unauthenticated', 'ログインが必要です。');
     }
 
-    const { eid, nameHeaders, emailHeaders } = request.data;
+    const { tid, nameHeaders, emailHeaders } = request.data;
 
-    if (!eid || !Array.isArray(nameHeaders) || !Array.isArray(emailHeaders)) {
+    if (!tid || !Array.isArray(nameHeaders) || !Array.isArray(emailHeaders)) {
         throw new HttpsError('invalid-argument', '入力内容を確認してください。');
     }
 
@@ -79,7 +79,7 @@ export const saveInvitationImportSettings = onCall({
 
     const affiliationSnap = await db
         .collection('affiliations')
-        .doc(`${uid}_${eid}`)
+        .doc(`${uid}_${tid}`)
         .get();
 
     if (!affiliationSnap.exists) {
@@ -94,7 +94,7 @@ export const saveInvitationImportSettings = onCall({
 
     await db
         .collection('tenants')
-        .doc(eid)
+        .doc(tid)
         .collection('settings')
         .doc('invitationSetting')
         .set({

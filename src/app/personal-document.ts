@@ -39,9 +39,11 @@ export interface EmployeePersonalInfo {
   phoneNumber: PhoneNumber;
   zipcode: string;
   address: Address;
-  department?: string;
-  position?: string;
   updatedAt?: Timestamp;
+
+  allowances?: Record<string, number>;
+  hasDependents: boolean;
+  dependentsInfo: string[];
 }
 
 export type AccountPersonalInfoSavePayload = Omit<AccountPersonalInfo, 'updatedAt'>;

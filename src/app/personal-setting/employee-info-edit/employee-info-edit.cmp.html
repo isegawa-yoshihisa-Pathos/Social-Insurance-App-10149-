@@ -1,0 +1,347 @@
+<form #employeeInfoEditForm="ngForm" class="input-container">
+    <div class="field-container">
+        <div class="grid-full-width reflect-basic-setting">
+            <button
+                matButton="outlined"
+                type="button"
+                (click)="applyBasicToEmployeeSettings()"
+            >
+                基本設定を反映
+            </button>
+        </div>
+    </div>
+    <div class="field-container">
+        <label class="label-name">
+            表示名：
+            @if (dataService.isEmployeeDisplayNameMissing) {
+                <span class="required-badge"></span>
+            }
+        </label>
+        <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+            <mat-label>表示名</mat-label>
+            <input 
+                matInput 
+                type="text" 
+                placeholder="（例）山田太郎" 
+                [(ngModel)]="employeeForm.displayName"
+                name="displayName"
+                pattern="^[a-zA-Zぁ-んァ-ン一-龥\sー]+$"
+            />
+        </mat-form-field>
+    </div>
+    <div class="field-container">
+        <label class="label-name">
+            本名：
+            @if (dataService.isEmployeeRealNameMissing) {
+                <span class="required-badge"></span>
+            }
+        </label>
+        <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+            <mat-label>姓(last name)</mat-label>
+            <input 
+                matInput 
+                type="text" 
+                placeholder="（例）山田" 
+                [(ngModel)]="employeeForm.realName.lastName"
+                name="lastName"
+                pattern="^[a-zA-Zぁ-んァ-ン一-龥\sー]+$"
+            />
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+            <mat-label>名(first name)</mat-label>
+            <input 
+                matInput 
+                type="text" 
+                placeholder="（例）太郎" 
+                [(ngModel)]="employeeForm.realName.firstName"
+                name="firstName"
+                pattern="^[a-zA-Zぁ-んァ-ン一-龥\sー]+$"
+            />
+        </mat-form-field>
+    </div>
+    <div class="field-container">
+        <label class="label-name">
+            本名(フリガナ)：
+            @if (dataService.isEmployeeRealNameKanaMissing) {
+                <span class="required-badge"></span>
+            }
+        </label>
+        <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+            <mat-label>姓(last name)</mat-label>
+            <input 
+                matInput 
+                type="text" 
+                placeholder="（例）ヤマダ" 
+                [(ngModel)]="employeeForm.realName.lastNameKana"
+                #employeeLastNameKanaRef="ngModel"
+                name="lastNameKana"
+                pattern="^[ァ-ヶー\s]+$"
+            />
+            @if(employeeLastNameKanaRef.invalid && (employeeLastNameKanaRef.touched || employeeLastNameKanaRef.dirty)){
+                @if(employeeLastNameKanaRef.errors?.['pattern']){
+                    <p class="error-message">姓(last name)は全角カタカナで入力してください</p>
+                }
+            }
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+            <mat-label>名(first name)</mat-label>
+            <input 
+                matInput 
+                type="text" 
+                placeholder="（例）タロウ" 
+                [(ngModel)]="employeeForm.realName.firstNameKana"
+                #employeeFirstNameKanaRef="ngModel"
+                name="firstNameKana"
+                pattern="^[ァ-ヶー\s]+$"
+            />
+            @if(employeeFirstNameKanaRef.invalid && (employeeFirstNameKanaRef.touched || employeeFirstNameKanaRef.dirty)){
+                @if(employeeFirstNameKanaRef.errors?.['pattern']){
+                    <p class="error-message">名(first name)は全角カタカナで入力してください</p>
+                }
+            }
+        </mat-form-field>
+    </div>
+    <div class="field-container">
+        <label class="label-name">
+            郵便番号：
+            @if (dataService.isEmployeeZipcodeMissing) {
+                <span class="required-badge"></span>
+            }
+        </label>
+        <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+            <mat-label>郵便番号</mat-label>
+            <input 
+                matInput 
+                type="text" 
+                placeholder="（例）100-0001" 
+                #employeeZipcodeRef="ngModel"
+                [(ngModel)]="employeeDisplayZipcode"
+                maxlength="8"
+                name="employeeZipcode"
+                pattern="^\d{3}-\d{4}$"
+            />
+            @if(employeeZipcodeRef.invalid && (employeeZipcodeRef.touched || employeeZipcodeRef.dirty)){
+                @if(employeeZipcodeRef.errors?.['pattern']){
+                    <p class="error-message">郵便番号を正しく入力してください</p>
+                }
+            }
+        </mat-form-field>
+        <button matButton="outlined" class="autofill-button" (click)="getEmployeeAddress(employeeForm.zipcode)">
+            <span>住所自動入力</span>
+        </button>
+    </div>
+    <div class="field-container">
+        <label class="label-name">
+            住所：
+            @if (dataService.isEmployeeAddressMissing) {
+                <span class="required-badge"></span>
+            }
+        </label>
+        <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+            <input 
+                matInput 
+                type="text" 
+                placeholder="（例）東京都千代田区千代田"
+                [(ngModel)]="employeeForm.address.address1"
+                name="employeeAddress1"
+            />
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+            <input 
+                matInput 
+                type="text" 
+                placeholder="（例）1-1-1"
+                [(ngModel)]="employeeForm.address.address2"
+                name="employeeAddress2"
+            />
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+            <input 
+                matInput 
+                type="text" 
+                placeholder="（例）縄文ハイツ101号室" 
+                [(ngModel)]="employeeForm.address.address3"
+                name="employeeAddress3"
+            />
+        </mat-form-field>
+    </div>
+    <div class="field-container">
+        <label class="label-name">
+            電話番号：
+            @if (dataService.isEmployeePhoneNumberMissing) {
+                <span class="required-badge"></span>
+            }
+        </label>
+        <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+            <mat-label>電話番号</mat-label>
+            <input 
+                matInput 
+                type="tel" 
+                placeholder="（例）03-1234-5678" 
+                [(ngModel)]="employeeForm.phoneNumberRaw"
+                #employeePhoneNumberRef="ngModel"
+                name="employeePhoneNumber"
+                pattern="^(?:\d{2,5}-\d{1,4}-\d{4}|\d{3}-\d{4}-\d{4})$"
+            />
+            @if(employeePhoneNumberRef.invalid && (employeePhoneNumberRef.touched || employeePhoneNumberRef.dirty)){
+                @if(employeePhoneNumberRef.errors?.['pattern']){
+                    <p class="error-message">電話番号を正しく入力してください</p>
+                }
+            }
+        </mat-form-field>
+        <div class="comment-text">※ハイフン(-)を含めて入力してください。</div>
+    </div>
+    <div class="field-container">
+        <label class="label-name">
+            生年月日：
+            @if (dataService.isEmployeeBirthDateMissing) {
+                <span class="required-badge"></span>
+            }
+        </label>
+        <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+            <mat-label>生年月日</mat-label>
+            <input
+                matInput
+                type="date"
+                [(ngModel)]="employeeForm.birthDate"\
+                name="birthDate"
+            />
+        </mat-form-field>
+    </div>
+    <div class="field-container">
+        <label class="label-name">
+            マイナンバー：
+            @if (dataService.isEmployeeMyNumberMissing) {
+                <span class="required-badge"></span>
+            }
+        </label>
+        <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+            <mat-label>マイナンバー</mat-label>
+            <input
+                matInput
+                type="text"
+                inputmode="numeric"
+                placeholder="（例）123456789012"
+                [(ngModel)]="employeeForm.myNumber"
+                #employeeMyNumberRef="ngModel"
+                name="myNumber"
+                maxlength="12"
+                pattern="^\d{12}$"
+            />
+            @if(employeeMyNumberRef.invalid && (employeeMyNumberRef.touched || employeeMyNumberRef.dirty)){
+                @if(employeeMyNumberRef.errors?.['pattern']){
+                    <p class="error-message">マイナンバーは12桁の数字で入力してください</p>
+                }
+            }
+        </mat-form-field>
+        <div class="comment-text">※半角数字12桁で入力してください。</div>
+    </div>
+    <div class="field-container">
+        <label class="label-name">
+            基礎年金番号：
+            @if (dataService.isEmployeeBasicPensionNumberMissing) {
+                <span class="required-badge"></span>
+            }
+        </label>
+        <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+            <mat-label>基礎年金番号</mat-label>
+            <input
+                matInput
+                type="text"
+                inputmode="numeric"
+                placeholder="（例）1234-6789012"
+                [(ngModel)]="employeeForm.basicPensionNumber"
+                #employeeBasicPensionNumberRef="ngModel"
+                name="basicPensionNumber"
+                maxlength="11"
+                pattern="^\d{4}-\d{6}$"
+            />
+            @if(employeeBasicPensionNumberRef.invalid && (employeeBasicPensionNumberRef.touched || employeeBasicPensionNumberRef.dirty)){
+                @if(employeeBasicPensionNumberRef.errors?.['pattern']){
+                    <p class="error-message">基礎年金番号は4桁-6桁の数字で入力してください</p>
+                }
+            }
+        </mat-form-field>
+        <div class="comment-text">※半角数字4桁-6桁で入力してください。</div>
+    </div>
+    <div class="field-container">
+        <label class="label-name">
+            扶養家族の有無
+        </label>
+        <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+            <mat-label>扶養家族の有無</mat-label>
+            <mat-select 
+                [(ngModel)]="employeeForm.hasDependents" 
+                name="hasDependents"
+                (selectionChange)="onHasDependentsChange($event.value)"
+            >
+                <mat-option [value]="true">有</mat-option>
+                <mat-option [value]="false">無</mat-option>
+            </mat-select>
+        </mat-form-field>
+    </div>
+    @if (employeeForm.hasDependents) {
+        <div class="field-container">
+            @for (dependent of employeeForm.dependentsInfo; track $index) {
+                <label class="label-name">
+                    扶養家族(#{{ $index + 1 }})の誕生日
+                </label>
+                <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                    <mat-label>誕生日</mat-label>
+                    <input
+                        matInput
+                        type="date"
+                        [(ngModel)]="employeeForm.dependentsInfo[$index]"
+                        [name]="'dependentsInfo_'+$index"
+                    />
+                </mat-form-field>
+                <div class="button-container">
+                    <button 
+                        mat-icon-button 
+                        type="button" 
+                        (click)="removeDependent($index)"
+                        title="この扶養家族を削除"
+                    >
+                        <mat-icon>delete</mat-icon>
+                    </button>
+                    @if ($index == employeeForm.dependentsInfo.length - 1) {
+                        <button 
+                            mat-icon-button 
+                            type="button" 
+                            (click)="addDependent()"
+                            title="扶養家族を追加"
+                        >
+                                <mat-icon>add</mat-icon>
+                        </button>
+                    }
+                </div>
+            }
+        </div>
+    }
+</form>
+<div class="actions">
+    <div class="comment-text">
+        入力を変更したら「保存」ボタンを押してください。
+    </div>
+    <button
+        matButton="outlined"
+        type="button"
+        (click)="cancel()"
+        [disabled]="submitBusy"
+    >キャンセル</button>
+    <button
+        mat-raised-button
+        color="primary"
+        type="button"
+        class="save-button"
+        [class.busy]="submitBusy"
+        [disabled]="submitBusy || !employeeInfoEditForm.valid"
+        (click)="save()"
+    >
+        @if (submitBusy) {
+            <mat-spinner diameter="20"></mat-spinner>
+        } @else {
+            保存
+        }
+    </button>
+</div>

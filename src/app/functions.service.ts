@@ -13,7 +13,7 @@ export class FunctionsService {
 
   private saveInvitationTemplateFn = httpsCallable(this.functions, 'saveInvitationTemplate');
 
-  private sendInvitationMailFn = httpsCallable(this.functions, 'sendInvitationMail');
+  private sendInvitationMailFn = httpsCallable(this.functions, 'sendInvitationMailVirtual');
 
   private validateInvitationTokenFn = httpsCallable(this.functions, 'validateInvitationToken');
 
@@ -24,7 +24,7 @@ export class FunctionsService {
   }
 
   async saveInvitationImportSettings(payload: {
-    eid: string;
+    tid: string;
     nameHeaders: string[];
     emailHeaders: string[];
   }) {
@@ -32,7 +32,7 @@ export class FunctionsService {
   }
 
   async saveInvitationTemplate(payload: {
-    eid: string;
+    tid: string;
     templateText: string;
     replyToEmail: string;
   }) {
@@ -40,7 +40,7 @@ export class FunctionsService {
   }
 
   async sendInvitationMail(payload: {
-    eid: string;
+    tid: string;
     email: string;
     name: string;
     role: 'admin' | 'member';

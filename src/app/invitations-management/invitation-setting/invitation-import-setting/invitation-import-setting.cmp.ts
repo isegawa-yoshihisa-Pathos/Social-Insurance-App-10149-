@@ -6,8 +6,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { ErrorDialogCmp } from '../../error-dialog/error-dialog.cmp';
-import { FunctionsService } from '../../functions.service';
+import { ErrorDialogCmp } from '../../../error-dialog/error-dialog.cmp';
+import { FunctionsService } from '../../../functions.service';
 
 @Component({
   selector: 'app-invitation-import-setting',
@@ -29,7 +29,7 @@ export class InvitationImportSettingCmp {
   private readonly dialog = inject(MatDialog);
   private readonly functionsService = inject(FunctionsService);
 
-  @Input({ required: true }) eid = '';
+  @Input({ required: true }) tid = '';
 
   @Input()
   set nameHeaders(value: string[] | null | undefined) {
@@ -57,7 +57,7 @@ export class InvitationImportSettingCmp {
   saveBusy = false;
 
   async saveInvitationImportSettings(): Promise<void> {
-    if (!this.eid) {
+    if (!this.tid) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: '事業所が選択されていません' },
       });
@@ -67,7 +67,7 @@ export class InvitationImportSettingCmp {
     try {
       this.saveBusy = true;
       await this.functionsService.saveInvitationImportSettings({
-        eid: this.eid,
+        tid: this.tid,
         nameHeaders: this.nameHeaders,
         emailHeaders: this.emailHeaders,
       });
