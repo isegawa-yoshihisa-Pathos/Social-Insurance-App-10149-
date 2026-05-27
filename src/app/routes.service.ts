@@ -57,6 +57,10 @@ export class RoutesService {
     void this.router.navigate(['/invitations-management']);
   }
 
+  redirectToInvitationDetail(id: string): void {
+    void this.router.navigate(['/invitations-management', 'detail', id]);
+  }
+
   redirectToPersonalSetting(): void {
     void this.router.navigate(['/personal-setting']);
   }

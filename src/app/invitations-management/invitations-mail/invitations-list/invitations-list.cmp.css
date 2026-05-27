@@ -10,3 +10,11 @@
   margin: 0;
   color: #666;
 }
+
+.invitation-row {
+  cursor: pointer;
+}
+
+.invitation-row:hover {
+  background-color: #f0f0f0;
+}

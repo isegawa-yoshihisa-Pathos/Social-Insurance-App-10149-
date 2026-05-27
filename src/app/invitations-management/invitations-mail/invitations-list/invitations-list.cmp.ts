@@ -1,25 +1,10 @@
-import { Component, OnInit, inject, ViewChild, effect } from '@angular/core';
-import { Firestore, collection, getDocs, Timestamp, query, orderBy } from '@angular/fire/firestore';
+import { Component, inject, ViewChild, effect } from '@angular/core';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { InvitationListItem, InvitationDataService } from '../../invitation-data.service';
 import { CurrentTenantService } from '../../../current-tenant.service';
-
-interface InvitationDoc {
-  name: string;
-  contactEmail: string;
-  role: 'admin' | 'member';
-  expiresAt?: Timestamp | null | undefined;
-  status: string;
-}
-
-interface InvitationListItem {
-  name: string;
-  contactEmail: string;
-  role: 'admin' | 'member';
-  expiresAt: Date | null;
-  status: string;
-}
+import { RoutesService } from '../../../routes.service';
 
 @Component({
   selector: 'app-invitations-list',
@@ -27,11 +12,10 @@ interface InvitationListItem {
   templateUrl: './invitations-list.cmp.html',
   styleUrl: './invitations-list.cmp.css',
 })
-export class InvitationsListCmp implements OnInit {
-  private readonly firestore = inject(Firestore);
+export class InvitationsListCmp {
+  readonly invitationDataService = inject(InvitationDataService);
   private readonly currentTenantService = inject(CurrentTenantService);
-
-  tid = '';
+  private readonly routesService = inject(RoutesService);
 
   @ViewChild(MatSort) set matSort(sort: MatSort) {
     if (sort) {
@@ -42,40 +26,22 @@ export class InvitationsListCmp implements OnInit {
   dataSource = new MatTableDataSource<InvitationListItem>([]);
   displayedColumns = ['name', 'contactEmail', 'role', 'expiresAt', 'status'];
 
-  loading = true;
-
-  async ngOnInit(): Promise<void> {
-    await this.load();
+  constructor() {
+    effect(async () => {
+      const tid = this.currentTenantService.currentTid();
+      if (!tid) {
+        this.dataSource.data = [];
+        this.invitationDataService.invitationListLoading.set(false);
+        return;
+      }
+      await this.invitationDataService.loadInvitationList(tid);
+      this.dataSource.data = this.invitationDataService.invitationList();
+      this.invitationDataService.invitationListLoading.set(false);
+    })
   }
 
-  async reload(): Promise<void> {
-    await this.load();
-  }
-
-  private async load(): Promise<void> {
-    this.loading = true;
-    this.tid = this.currentTenantService.currentTid() ?? '';
-    if (!this.tid) {
-      this.loading = false;
-      return;
-    }
-
-    const invitationsRef = collection(this.firestore, 'tenants', this.tid, 'invitations');
-    const q = query(invitationsRef, orderBy('createdAt', 'asc'));
-    const invitations = await getDocs(q);
-
-    const data = invitations.docs.map((doc) => {
-      const rawData = doc.data() as InvitationDoc;
-
-      return {
-        ...rawData,
-        expiresAt: rawData.expiresAt instanceof Timestamp ? rawData.expiresAt.toDate() : null
-      } as InvitationListItem;
-    });
-
-    this.dataSource.data = data;
-
-    this.loading = false;
+  selectInvitation(id: string) {
+    this.routesService.redirectToInvitationDetail(id);
   }
 
   roleLabel(role: InvitationListItem['role']): string {

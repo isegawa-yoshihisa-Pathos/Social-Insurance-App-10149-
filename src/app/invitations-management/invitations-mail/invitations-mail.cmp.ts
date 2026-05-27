@@ -1,11 +1,9 @@
 import { Component, inject, OnInit, ViewChild } from '@angular/core';
 import { CurrentTenantService } from '../../current-tenant.service';
 import { RoutesService } from '../../routes.service';
-import { Firestore } from '@angular/fire/firestore';
 import { MatDialog } from '@angular/material/dialog';
 import { InvitationDataService, InvitationData } from '../invitation-data.service';
 import { FunctionsService } from '../../functions.service';
-import { collection, getDocs } from '@angular/fire/firestore';
 import { ErrorDialogCmp, mapFirebaseError } from '../../error-dialog/error-dialog.cmp';
 import { SuccessDialogCmp } from '../../success-dialog/success-dialog.cmp';
 import { MatDialogModule } from '@angular/material/dialog';
@@ -17,8 +15,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { FormsModule } from '@angular/forms';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { InvitationsListCmp } from './invitations-list/invitations-list.cmp';
 import { HelpContentCmp } from '../../help-content/help-content.cmp';
+import { InvitationsListCmp } from './invitations-list/invitations-list.cmp';
 
 @Component({
   selector: 'app-invitations-mail',
@@ -27,9 +25,7 @@ import { HelpContentCmp } from '../../help-content/help-content.cmp';
   styleUrls: ['./invitations-mail.cmp.css', '../invitations-management.cmp.css'],
 })
 export class InvitationsMailCmp implements OnInit{
-  @ViewChild(InvitationsListCmp) invitationsListCmp!: InvitationsListCmp;
   tid = '';
-  invitations: any[] = [];
   invitationsData: InvitationData[] = [{ email: '', name: '', isAdmin: false }];
   templateText: string = '';
 
@@ -37,7 +33,6 @@ export class InvitationsMailCmp implements OnInit{
 
   private readonly currentTenantService = inject(CurrentTenantService);
   private readonly routesService = inject(RoutesService);
-  private readonly firestore = inject(Firestore);
   private readonly dialog = inject(MatDialog);
   private readonly invitationDataService = inject(InvitationDataService);
   private readonly functionsService = inject(FunctionsService);
@@ -52,9 +47,7 @@ export class InvitationsMailCmp implements OnInit{
 
     try {
       await this.invitationDataService.loadSettings(tid);
-      const invitationsRef = collection(this.firestore, 'tenants', this.tid, 'invitations');
-      const invitations = await getDocs(invitationsRef);
-      this.invitations = invitations.docs.map((doc) => doc.data());
+      await this.invitationDataService.loadInvitationList(tid);
     } catch (error) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: mapFirebaseError(error) },
@@ -121,7 +114,7 @@ export class InvitationsMailCmp implements OnInit{
       });
     }
 
-    await this.invitationsListCmp?.reload();
+    await this.invitationDataService.loadInvitationList(this.tid);
   }
 
   async addInvitationEmail(): Promise<void> {

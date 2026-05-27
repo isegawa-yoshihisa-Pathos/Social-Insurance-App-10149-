@@ -1,4 +1,4 @@
-@if (loading) {
+@if (invitationDataService.invitationListLoading()) {
     <p class="loading-message">招待履歴を読み込んでいます...</p>
 } @else if (dataSource.data.length === 0) {
     <p class="empty-message">招待履歴はありません。</p>
@@ -30,6 +30,11 @@
       </ng-container>
   
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      <tr 
+        mat-row 
+        *matRowDef="let row; columns: displayedColumns;"
+        class="invitation-row"
+        (click)="selectInvitation(row.id)"
+      ></tr>
     </table>
   }

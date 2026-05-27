@@ -1,5 +1,5 @@
 import { EnvironmentInjector, inject, Injectable, runInInjectionContext, signal } from '@angular/core';
-import { doc, Firestore, getDoc } from '@angular/fire/firestore';
+import { doc, Firestore, getDoc, Timestamp, collection, query, orderBy, getDocs } from '@angular/fire/firestore';
 
 export interface InvitationData {
   email: string;
@@ -12,6 +12,22 @@ export interface InvitationSettingDocument {
   emailHeaders: string[];
   nameHeaders: string[];
   replyToEmail?: string;
+}
+
+export interface InvitationDoc {
+  name: string;
+  contactEmail: string;
+  role: 'admin' | 'member';
+  expiresAt?: Timestamp | null | undefined;
+  status: string;
+}
+
+export interface InvitationListItem {
+  name: string;
+  contactEmail: string;
+  role: 'admin' | 'member';
+  expiresAt: Date | null;
+  status: string;
 }
 
 export const DEFAULT_INVITATION_NAME_HEADERS = ['名前', '氏名', 'name'];
@@ -35,6 +51,9 @@ export class InvitationDataService {
   readonly replyToEmail = signal<string>('');
   readonly settingsLoading = signal(false);
 
+  readonly invitationListLoading = signal(false);
+  readonly invitationList = signal<InvitationListItem[]>([]);
+
   async loadSettings(tid: string): Promise<void> {
     this.settingsLoading.set(true);
     try {
@@ -46,6 +65,26 @@ export class InvitationDataService {
       }
     } finally {
       this.settingsLoading.set(false);
+    }
+  }
+
+  async loadInvitationList(tid: string): Promise<void> {
+    this.invitationListLoading.set(true);
+    try {
+      const ref = collection(this.firestore, 'tenants', tid, 'invitations');
+      const q = query(ref, orderBy('createdAt', 'asc'));
+      const snap = await getDocs(q);
+      const data = snap.docs.map((doc) => {
+        const rawData = doc.data() as InvitationDoc;
+  
+        return {
+          ...rawData,
+          expiresAt: rawData.expiresAt instanceof Timestamp ? rawData.expiresAt.toDate() : null
+        } as InvitationListItem;
+      });
+      this.invitationList.set(data);
+    } finally {
+      this.invitationListLoading.set(false);
     }
   }
 
