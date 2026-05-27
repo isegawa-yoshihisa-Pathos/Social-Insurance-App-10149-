@@ -1,0 +1,19 @@
+<nav mat-tab-nav-bar [tabPanel]="tabPanel" animationDuration="0ms">
+    <a
+        mat-tab-link
+        [routerLink]="['/monthly-management']"
+        [active]="!isSettingActive"
+    >月次管理</a>
+    <a
+        mat-tab-link
+        [routerLink]="['/monthly-management', 'setting']"
+        [active]="isSettingActive"
+    >設定</a>
+</nav>
+<mat-tab-nav-panel #tabPanel>
+    <div class="monthly-management">
+        <div class="monthly-list-container">
+            <router-outlet></router-outlet>
+        </div>
+    </div>
+</mat-tab-nav-panel>

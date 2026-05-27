@@ -1,54 +1,58 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { Firestore, getDoc, updateDoc, doc, serverTimestamp, getDocs, query, collection, where } from '@angular/fire/firestore';
-import { BehaviorSubject, combineLatest } from 'rxjs';
-import { map } from 'rxjs/operators';
 import { AffiliationDocument, AccountDocument } from './document-interfaces';
-import { Auth, authState } from '@angular/fire/auth';
 
 @Injectable({
   providedIn: 'root',
 })
 export class CurrentTenantService {
   private readonly firestore = inject(Firestore);
-  private readonly auth = inject(Auth);
   
-  private affiliations = new BehaviorSubject<AffiliationDocument[]>([]);
-  private currentTid = new BehaviorSubject<string | null>(null);
-  private loading = new BehaviorSubject<boolean>(false);
+  readonly affiliations = signal<AffiliationDocument[]>([]);
+  readonly currentTid = signal<string | null>(null);
+  readonly loading = signal<boolean>(false);
 
-  affiliations$ = this.affiliations.asObservable();
-  currentTid$ = this.currentTid.asObservable();
-  loading$ = this.loading.asObservable();
+  readonly currentAffiliation = computed(() => {
+    const tid = this.currentTid();
+    return tid ? this.affiliations().find((aff) => aff.tid === tid) ?? null : null;
+  })
 
-  currentAffiliation$ = combineLatest([
-    this.affiliations$,
-    this.currentTid$,
-  ]).pipe(
-    map(([affiliations, tid]) => 
-      tid ? affiliations.find((aff) => aff.tid === tid) ?? null : null
-    )
+  readonly isAdmin = computed(
+    () => this.currentAffiliation()?.role === 'admin',
   );
 
-  private lastUid: string | null = null;
+  async bootstrap(uid: string): Promise<void> {
+    if (this.currentTid() !== null) return;
+    await this.loadAffiliations(uid);
+  }
 
-  constructor() {
-    authState(this.auth).subscribe((user) => {
-      const uid = user?.uid ?? null;
-      if (this.lastUid !== uid) {
-        this.reset();
-        this.lastUid = uid;
-      }
+  signOut(): void {
+    this.affiliations.set([]);
+    this.currentTid.set(null);
+  }
+  
+  getCurrentAffiliation(): AffiliationDocument | null {
+    return this.currentAffiliation();
+  }
+
+  async setTenant(uid: string, tid: string): Promise<void> {
+    const affiliation = this.affiliations().find(
+      (aff) => aff.uid === uid && aff.tid === tid,
+    );
+    if (!affiliation) {
+      throw new Error('この事業所への所属が見つかりません。');
+    }
+
+    await updateDoc(doc(this.firestore, 'accounts', uid), {
+      currentTenantId: tid,
+      lastView: serverTimestamp(),
     });
+
+    this.currentTid.set(tid);
   }
 
-  private reset(): void {
-    this.affiliations.next([]);
-    this.currentTid.next(null);
-    this.loading.next(false);
-  }
-
-  async initialize(uid: string): Promise<void> {
-    this.loading.next(true);
+  private async loadAffiliations(uid: string): Promise<void> {
+    this.loading.set(true);
 
     try {
       const accountSnap = await getDoc(doc(this.firestore, 'accounts', uid));
@@ -61,7 +65,6 @@ export class CurrentTenantService {
         query(
           collection(this.firestore, 'affiliations'),
           where('uid', '==', uid),
-          where('status', '==', 'active'),
         ),
       );
 
@@ -69,7 +72,7 @@ export class CurrentTenantService {
         (doc) => ({ ...doc.data() }) as AffiliationDocument,
       );
 
-      this.affiliations.next(affiliations);
+      this.affiliations.set(affiliations);
 
       const savedTid = accountData.currentTenantId;
       const validTid = affiliations.some((aff) => aff.tid === savedTid)
@@ -78,7 +81,7 @@ export class CurrentTenantService {
           ? affiliations[0].tid
           : null;
 
-      this.currentTid.next(validTid);
+      this.currentTid.set(validTid);
 
       if(validTid && validTid !== savedTid) {
         await updateDoc(doc(this.firestore, 'accounts', uid), {
@@ -89,52 +92,22 @@ export class CurrentTenantService {
     } catch (error) {
       throw error;
     } finally {
-      this.loading.next(false);
+      this.loading.set(false);
     }
-  }
-
-  async setTenant(uid: string, tid: string): Promise<void> {
-    const affiliation = this.affiliations.value.find(
-      (aff) => aff.uid === uid && aff.tid === tid && aff.status === 'active',
-    );
-    if (!affiliation) {
-      throw new Error('この事業所への所属が見つかりません。');
-    }
-
-    await updateDoc(doc(this.firestore, 'accounts', uid), {
-      currentTenantId: tid,
-      lastView: serverTimestamp(),
-    });
-
-    this.currentTid.next(tid);
-  }
-
-  getAffiliations(): AffiliationDocument[] {
-    return this.affiliations.value;
   }
 
   updateAffiliationDisplayName(uid: string, tid: string, displayName: string): void {
-    const affiliations = this.affiliations.value.map((affiliation) => {
-      if (affiliation.uid !== uid || affiliation.tid !== tid) {
-        return affiliation;
+    const affiliations = this.affiliations().map((aff) => {
+      if (aff.uid !== uid || aff.tid !== tid) {
+        return aff;
       }
 
       return {
-        ...affiliation,
+        ...aff,
         displayName,
       };
     });
 
-    this.affiliations.next(affiliations);
-  }
-
-  getTenant(): string | null {
-    return this.currentTid.value;
-  }
-
-  getCurrentAffiliation(): AffiliationDocument | null {
-    const tid = this.getTenant();
-    if (!tid) return null;
-    return this.affiliations.value.find(aff => aff.tid === tid) || null;
+    this.affiliations.set(affiliations);
   }
 }

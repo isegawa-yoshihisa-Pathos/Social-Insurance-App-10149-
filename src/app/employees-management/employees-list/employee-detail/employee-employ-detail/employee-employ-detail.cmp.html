@@ -1,1 +1,61 @@
-<p>employee-employ-detail works!</p>
+<div class="info-container">
+  <div class="info-row">
+    <span class="info-label">役職：</span>
+    <span class="info-value">{{ dataService.employForm.position }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">部署：</span>
+    <span class="info-value">{{ dataService.employForm.department }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">給与区分：</span>
+    <span class="info-value">{{ dataService.employForm.payType }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">雇用形態：</span>
+    <span class="info-value">{{ dataService.employForm.employmentType }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">勤務状況：</span>
+    <span class="info-value">{{ statusLabel(dataService.employForm.status) }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">入社日：</span>
+    <span class="info-value">{{ formatDate(dataService.employForm.joinedAt) }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">休職日：</span>
+    <span class="info-value">{{ formatDate(dataService.employForm.leaveAt) }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">復職日：</span>
+    <span class="info-value">{{ formatDate(dataService.employForm.returnAt) }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">退職日：</span>
+    <span class="info-value">{{ formatDate(dataService.employForm.resignAt) }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">資格取得日：</span>
+    <span class="info-value">{{ formatDate(dataService.employForm.licenseStartAt) }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">資格喪失日：</span>
+    <span class="info-value">{{ formatDate(dataService.employForm.licenseEndAt) }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">健康保険整理番号：</span>
+    <span class="info-value">{{ dataService.employForm.healthInsuranceRecordNumber }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">厚生年金整理番号：</span>
+    <span class="info-value">{{ dataService.employForm.pensionInsuranceRecordNumber }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">権限：</span>
+    <span class="info-value">{{ dataService.role }}</span>
+  </div>
+</div>
+<div class="actions">
+  <button mat-raised-button color="primary" type="button" (click)="edit()">編集</button>
+</div>

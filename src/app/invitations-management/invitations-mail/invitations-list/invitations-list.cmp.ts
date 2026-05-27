@@ -1,8 +1,9 @@
-import { Component, Input, OnInit, inject, ViewChild } from '@angular/core';
+import { Component, OnInit, inject, ViewChild, effect } from '@angular/core';
 import { Firestore, collection, getDocs, Timestamp, query, orderBy } from '@angular/fire/firestore';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { CurrentTenantService } from '../../../current-tenant.service';
 
 interface InvitationDoc {
   name: string;
@@ -28,8 +29,9 @@ interface InvitationListItem {
 })
 export class InvitationsListCmp implements OnInit {
   private readonly firestore = inject(Firestore);
+  private readonly currentTenantService = inject(CurrentTenantService);
 
-  @Input() tid = '';
+  tid = '';
 
   @ViewChild(MatSort) set matSort(sort: MatSort) {
     if (sort) {
@@ -52,6 +54,7 @@ export class InvitationsListCmp implements OnInit {
 
   private async load(): Promise<void> {
     this.loading = true;
+    this.tid = this.currentTenantService.currentTid() ?? '';
     if (!this.tid) {
       this.loading = false;
       return;

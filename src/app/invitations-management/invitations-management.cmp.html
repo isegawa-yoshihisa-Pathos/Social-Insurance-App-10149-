@@ -1,101 +1,17 @@
-<mat-tab-group animationDuration="0ms">
-    <mat-tab label="招待管理">
-        <div class="invitations-management">
-            <div class="invitation-button-container">
-                <div class="content-text">
-                    招待する方のメールアドレスを入力してください。
-                    <br>
-                    一括で招待する際は「＋」ボタンを押して招待するメールアドレスを追加してください。
-                    <br>
-                    管理者権限を付与する場合は「管理者権限」チェックボックスをチェックしてください。
-                    <br>
-                    所定のCSVファイルでインポートできます。
-                    <app-help-content key="invitationImport"></app-help-content>
-                </div>
-                <div class="invitation-form-container">
-                    <div class="invitation-form-list">
-                        @for (invitation of invitationsData; track $index) {
-                            <div class="invitation-form-item">
-                                <mat-form-field appearance="outline" class="invitation-form-field" subscriptSizing="dynamic">
-                                    <mat-label>名前</mat-label>
-                                    <input
-                                        matInput
-                                        type="text"
-                                        placeholder="名前"
-                                        [(ngModel)]="invitationsData[$index].name"
-                                        #invitationNameRef="ngModel"
-                                        [name]="'name' + $index"
-                                        pattern="^[a-zA-Zぁ-んァ-ン一-龥\sー]+$"
-                                    />
-                                </mat-form-field>
-                                <mat-form-field appearance="outline" class="invitation-form-field" subscriptSizing="dynamic">
-                                    <mat-label>メールアドレス</mat-label>
-                                    <input 
-                                        matInput 
-                                        type="email" 
-                                        placeholder="メールアドレス" 
-                                        [(ngModel)]="invitationsData[$index].email"
-                                        #invitationEmailRef="ngModel"
-                                        [name]="'email' + $index"
-                                        pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-                                    />
-                                    @if(invitationEmailRef.invalid && (invitationEmailRef.touched || invitationEmailRef.dirty)){
-                                        @if(invitationEmailRef.errors?.['pattern']){
-                                            <p class="error-message">メールアドレスが正しくありません</p>
-                                        }
-                                    }
-                                </mat-form-field>
-                                <mat-checkbox 
-                                    [(ngModel)]="invitationsData[$index].isAdmin" 
-                                    matTooltip="管理者権限を付与"
-                                    [name]="'isAdmin' + $index">
-                                </mat-checkbox>
-                                @if ($index > 0) {
-                                    <button 
-                                        mat-icon-button
-                                        class="delete-invitation-email-button"
-                                        (click)="deleteInvitationEmail($index)"
-                                        matTooltip="削除">
-                                        <mat-icon>delete</mat-icon>
-                                    </button>
-                                }
-                                @if ($index === 0){
-                                    <button mat-icon-button class="add-invitation-email-button" (click)="addInvitationEmail()" matTooltip="追加">
-                                        <mat-icon>add</mat-icon>
-                                    </button>
-                                }
-                            </div>
-                        }
-                    </div>
-                    <div class="invitation-action-buttons">
-                        <input
-                            #csvFileInput
-                            type="file"
-                            accept=".csv,text/csv"
-                            hidden
-                            (change)="attachFile($event)">
-                        <button 
-                            mat-icon-button 
-                            type="button"
-                            class="import-invitation-emails-button" 
-                            (click)="csvFileInput.click()"
-                            matTooltip="CSVファイルをアップロード">
-                            <mat-icon>attach_file</mat-icon>
-                        </button>
-                        <button mat-flat-button color="primary" class="send-invitation-button" (click)="sendInvitation()">
-                            <span>{{sendBusy ? '送信中...' : '送信'}}</span>
-                            <mat-icon>send</mat-icon>
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <div class="invitation-list-container">
-                <app-invitations-list [tid]="tid"></app-invitations-list>
-            </div>
-        </div>
-    </mat-tab>
-    <mat-tab label="設定">
-        <app-invitation-setting></app-invitation-setting>
-    </mat-tab>
-</mat-tab-group>
-
+<nav mat-tab-nav-bar [tabPanel]="tabPanel" animationDuration="0ms">
+    <a
+      mat-tab-link
+      [routerLink]="['/invitations-management']"
+      [active]="!isSettingActive"
+    >招待管理</a>
+    <a
+      mat-tab-link
+      [routerLink]="['/invitations-management', 'setting']"
+      [active]="isSettingActive"
+    >設定</a>
+</nav>
+  <mat-tab-nav-panel #tabPanel>
+    <div class="invitations-management">
+      <router-outlet></router-outlet>
+    </div>
+  </mat-tab-nav-panel>

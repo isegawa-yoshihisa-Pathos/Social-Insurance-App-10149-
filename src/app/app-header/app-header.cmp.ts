@@ -1,6 +1,6 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Auth, authState } from '@angular/fire/auth';
+import { Auth } from '@angular/fire/auth';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -8,9 +8,11 @@ import { MatMenuModule } from '@angular/material/menu';
 import { RoutesService } from '../routes.service';
 import { AuthService } from '../auth.service';
 import { CurrentTenantService } from '../current-tenant.service';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { filter } from 'rxjs/operators';
-import { take } from 'rxjs/operators';
+import { ProfileCompletionService } from '../profile-completion.service';
+import { PersonalSettingDataService } from '../personal-setting/personal-setting-data.service';
+import { EmployeeDetailDataService } from '../employees-management/employees-list/employee-detail/employee-detail-data.service';
+import { InvitationDataService } from '../invitations-management/invitation-data.service';
+import { EmployeesManagementDataService } from '../employees-management/employees-management-data.service';
 
 @Component({
   selector: 'app-header',
@@ -25,25 +27,17 @@ import { take } from 'rxjs/operators';
   templateUrl: './app-header.cmp.html',
   styleUrl: './app-header.cmp.css',
 })
-export class AppHeaderCmp implements OnInit {
+export class AppHeaderCmp {
   private readonly routesService = inject(RoutesService);
   private readonly authService = inject(AuthService);
   readonly auth = inject(Auth);
   readonly currentTenantService = inject(CurrentTenantService);
-
-  currentAffiliation = toSignal(this.currentTenantService.currentAffiliation$, { initialValue: null });
-
-  async ngOnInit(): Promise<void> {
-    authState(this.auth).pipe(filter(Boolean), take(1)).subscribe(async (user) => {
-      await user.getIdToken(true);
-      if (this.currentTenantService.getAffiliations().length === 0) {
-        await this.currentTenantService.initialize(user.uid);
-      }
-      if (this.currentAffiliation() === null) {
-        this.routesService.redirectToHome();
-      }
-    });
-  }
+  readonly profileCompletionService = inject(ProfileCompletionService);
+  readonly personalSettingDataService = inject(PersonalSettingDataService);
+  readonly employeeDetailDataService = inject(EmployeeDetailDataService);
+  readonly invitationDataService = inject(InvitationDataService);
+  readonly currentAffiliation = this.currentTenantService.currentAffiliation;
+  readonly employeesManagementDataService = inject(EmployeesManagementDataService);
 
   async switchTenant(tid: string): Promise<void> {
     const user = this.auth.currentUser;
@@ -52,11 +46,19 @@ export class AppHeaderCmp implements OnInit {
       return;
     }
     await this.currentTenantService.setTenant(user.uid, tid);
+    await this.personalSettingDataService.reloadForTenantChange();
+    this.invitationDataService.reset();
     this.routesService.redirectToMainPage();
   }
 
   signOut(): void {
     this.authService.signOut();
+    this.currentTenantService.signOut();
+    this.profileCompletionService.signOut();
+    this.personalSettingDataService.signOut();
+    this.employeeDetailDataService.signOut();
+    this.invitationDataService.reset();
+    this.employeesManagementDataService.reset();
     this.routesService.redirectToHome();
   }
 

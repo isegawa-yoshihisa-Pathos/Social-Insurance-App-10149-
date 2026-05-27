@@ -1,12 +1,10 @@
-<div class="invitation-setting">
-    <app-invitation-mail-setting
-        [tid]="tid"
-        [templateText]="mailTemplateText"
-        [replyToEmail]="replyToEmail"
-    ></app-invitation-mail-setting>
-    <app-invitation-import-setting
-        [tid]="tid"
-        [nameHeaders]="nameHeaders"
-        [emailHeaders]="emailHeaders"
-    ></app-invitation-import-setting>
-</div>
+@if (invitationDataService.settingsLoading()) {
+    <div class="loading-container">
+        <mat-spinner diameter="40"></mat-spinner>
+    </div>
+} @else {
+    <div class="invitation-setting">
+        <app-invitation-mail-setting></app-invitation-mail-setting>
+        <app-invitation-import-setting></app-invitation-import-setting>
+    </div>
+}

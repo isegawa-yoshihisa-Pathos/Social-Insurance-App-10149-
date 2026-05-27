@@ -134,7 +134,7 @@ export class CreateTenantCmp implements OnInit {
       };
       await this.authService.signIn(email, password);
       await this.auth.currentUser?.getIdToken(true);
-      await this.currentTenantService.initialize(uid);
+      await this.currentTenantService.bootstrap(uid);
       
       this.sharedDataService.clearSignupData();
       this.routesService.redirectToMainPage();

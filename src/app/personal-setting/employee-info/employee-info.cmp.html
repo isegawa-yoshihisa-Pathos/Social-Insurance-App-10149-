@@ -62,7 +62,7 @@
                 <span class="required-badge"></span>
             }
         </span>
-        <span class="info-value">{{ dataService.employeeForm.birthDate }}</span>
+        <span class="info-value">{{ formatDate(dataService.employeeForm.birthDate) }}</span>
     </div>
     <div class="info-row">
         <span class="info-label">マイナンバー：
@@ -80,6 +80,26 @@
         </span>
         <span class="info-value">{{ dataService.employeeForm.basicPensionNumber }}</span>
     </div>
+    <div class="info-row">
+        <span class="info-label">扶養家族の有無：</span>
+        <span class="info-value">{{ dataService.employeeForm.hasDependents ? '有' : '無' }}</span>
+    </div>
+    @if (dataService.employeeForm.hasDependents) {
+        @for (dependent of dataService.employeeForm.dependentsInfo; track $index) {
+        <div class="info-row">
+            <span class="info-label">扶養家族(#{{ $index + 1 }})：</span>
+            <span class="info-value">
+                {{ formatDependentName(dependent) }}
+                @if (dependent.relationship) {
+                    （{{ relationshipLabel(dependent.relationship) }}）
+                }
+                @if (formatDate(dependent.birthDate)) {
+                    ／ 誕生日 {{ formatDate(dependent.birthDate) }}
+                }
+            </span>
+        </div>
+        }
+    }
 </div>
 <div class="actions">
     <button mat-raised-button color="primary" (click)="edit()">編集</button>

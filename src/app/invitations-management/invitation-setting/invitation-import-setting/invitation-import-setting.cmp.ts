@@ -1,4 +1,4 @@
-import { Component, Input, inject } from '@angular/core';
+import { Component, inject, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
@@ -8,6 +8,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ErrorDialogCmp } from '../../../error-dialog/error-dialog.cmp';
 import { FunctionsService } from '../../../functions.service';
+import { CurrentTenantService } from '../../../current-tenant.service';
+import { InvitationDataService } from '../../invitation-data.service';
 
 @Component({
   selector: 'app-invitation-import-setting',
@@ -23,38 +25,23 @@ import { FunctionsService } from '../../../functions.service';
   styleUrl: './invitation-import-setting.cmp.css',
 })
 export class InvitationImportSettingCmp {
-  readonly defaultNameHeaders = ['名前', '氏名', 'name'];
-  readonly defaultEmailHeaders = ['メールアドレス', 'メール', 'email', 'mail'];
+  readonly invitationDataService = inject(InvitationDataService);
 
   private readonly dialog = inject(MatDialog);
   private readonly functionsService = inject(FunctionsService);
+  private readonly currentTenantService = inject(CurrentTenantService);
 
-  @Input({ required: true }) tid = '';
-
-  @Input()
-  set nameHeaders(value: string[] | null | undefined) {
-    this._nameHeaders = [...(value?.length ? value : this.defaultNameHeaders)];
-  }
-
-  get nameHeaders(): string[] {
-    return this._nameHeaders;
-  }
-
-  @Input()
-  set emailHeaders(value: string[] | null | undefined) {
-    this._emailHeaders = [...(value?.length ? value : this.defaultEmailHeaders)];
-  }
-
-  get emailHeaders(): string[] {
-    return this._emailHeaders;
-  }
-
-  private _nameHeaders: string[] = [...this.defaultNameHeaders];
-  private _emailHeaders: string[] = [...this.defaultEmailHeaders];
+  tid = '';
 
   newNameHeader = '';
   newEmailHeader = '';
   saveBusy = false;
+
+  constructor() {
+    effect(() => {
+      this.tid = this.currentTenantService.currentTid() ?? '';
+    });
+  }
 
   async saveInvitationImportSettings(): Promise<void> {
     if (!this.tid) {
@@ -64,13 +51,17 @@ export class InvitationImportSettingCmp {
       return;
     }
 
+    const nameHeaders = this.invitationDataService.nameHeaders();
+    const emailHeaders = this.invitationDataService.emailHeaders();
+
     try {
       this.saveBusy = true;
       await this.functionsService.saveInvitationImportSettings({
         tid: this.tid,
-        nameHeaders: this.nameHeaders,
-        emailHeaders: this.emailHeaders,
+        nameHeaders,
+        emailHeaders,
       });
+      this.invitationDataService.setImportHeaders(nameHeaders, emailHeaders);
     } catch (error) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: 'ヘッダーの保存に失敗しました' },
@@ -85,11 +76,11 @@ export class InvitationImportSettingCmp {
     if (!header) {
       return;
     }
-    if (this.nameHeaders.includes(header)) {
+    if (this.invitationDataService.nameHeaders().includes(header)) {
       this.openDuplicateHeaderError();
       return;
     }
-    this._nameHeaders = [...this._nameHeaders, header];
+    this.invitationDataService.addNameHeader(header);
     this.newNameHeader = '';
   }
 
@@ -98,20 +89,20 @@ export class InvitationImportSettingCmp {
     if (!header) {
       return;
     }
-    if (this.emailHeaders.includes(header)) {
+    if (this.invitationDataService.emailHeaders().includes(header)) {
       this.openDuplicateHeaderError();
       return;
     }
-    this._emailHeaders = [...this._emailHeaders, header];
+    this.invitationDataService.addEmailHeader(header);
     this.newEmailHeader = '';
   }
 
   deleteNameHeader(header: string): void {
-    this._nameHeaders = this.nameHeaders.filter((item) => item !== header);
+    this.invitationDataService.deleteNameHeader(header);
   }
 
   deleteEmailHeader(header: string): void {
-    this._emailHeaders = this.emailHeaders.filter((item) => item !== header);
+    this.invitationDataService.deleteEmailHeader(header);
   }
 
   private openDuplicateHeaderError(): void {

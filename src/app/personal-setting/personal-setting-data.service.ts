@@ -21,31 +21,21 @@ import {
   employeePersonalInfoToForm,
   personalFormToSavePayload,
 } from '../personal-form-data';
+import { AuthService } from '../auth.service';
 
 @Injectable({ providedIn: 'root' })
 export class PersonalSettingDataService {
   private readonly firestore = inject(Firestore);
   private readonly auth = inject(Auth);
-  private readonly currentTenantService = inject(CurrentTenantService);
+  private readonly tenantService = inject(CurrentTenantService);
   private readonly profileCompletionService = inject(ProfileCompletionService);
+  private readonly authService = inject(AuthService);
 
   personalForm: PersonalFormData = createEmptyPersonalForm();
   employeeForm: EmployeeFormData = createEmptyEmployeeForm();
   tid = '';
   loading = false;
   loaded = false;
-
-  private lastUid: string | null = null;
-
-  constructor() {
-    authState(this.auth).subscribe((user) => {
-      const uid = user?.uid ?? null;
-      if (this.lastUid !== uid) {
-        this.reset();
-        this.lastUid = uid;
-      }
-    });
-  }
 
   private reset(): void {
     this.personalForm = createEmptyPersonalForm();
@@ -66,7 +56,7 @@ export class PersonalSettingDataService {
     return !this.personalForm.address.address1?.trim() || !this.personalForm.address.address2?.trim();
   }
   get isPersonalPhoneNumberMissing(): boolean { return !this.personalForm.phoneNumberRaw?.trim(); }
-  get isPersonalBirthDateMissing(): boolean { return !this.personalForm.birthDate?.trim(); }
+  get isPersonalBirthDateMissing(): boolean { return !this.personalForm.birthDate; }
   get isPersonalMyNumberMissing(): boolean { return !this.personalForm.myNumber?.trim(); }
   get isPersonalBasicPensionNumberMissing(): boolean { return !this.personalForm.basicPensionNumber?.trim(); }
 
@@ -83,21 +73,21 @@ export class PersonalSettingDataService {
     return !this.employeeForm.address.address1?.trim() || !this.employeeForm.address.address2?.trim();
   }
   get isEmployeePhoneNumberMissing(): boolean { return !this.employeeForm.phoneNumberRaw?.trim(); }
-  get isEmployeeBirthDateMissing(): boolean { return !this.employeeForm.birthDate?.trim(); }
+  get isEmployeeBirthDateMissing(): boolean { return !this.employeeForm.birthDate; }
   get isEmployeeMyNumberMissing(): boolean { return !this.employeeForm.myNumber?.trim(); }
   get isEmployeeBasicPensionNumberMissing(): boolean { return !this.employeeForm.basicPensionNumber?.trim(); }
 
 
   async loadAll(): Promise<void> {
     if (this.loaded) return;
+    const uid = this.authService.uid();
+    if (!uid) throw new Error('ユーザーが見つかりません。');
+    const tid = this.tenantService.currentTid();
+    if (!tid) throw new Error('事業所が見つかりません。');
+    this.tid = tid;
     this.loading = true;
     try {
-      const user = await firstValueFrom(authState(this.auth).pipe(take(1)));
-      if (!user) throw new Error('ユーザーが見つかりません。');
-
-      this.tid = await this.resolveCurrentTid(user.uid);
-
-      const accountSnap = await getDoc(doc(this.firestore, 'accounts', user.uid));
+      const accountSnap = await getDoc(doc(this.firestore, 'accounts', uid));
       if (!accountSnap.exists()) throw new Error('アカウント情報が見つかりません。');
       const account = accountSnap.data();
       this.personalForm = accountPersonalInfoToForm(account['personalInfo']);
@@ -119,8 +109,13 @@ export class PersonalSettingDataService {
     }
   }
 
+  async reloadForTenantChange(): Promise<void> {
+    this.loaded = false;
+    await this.loadAll();
+  }
+
   async savePersonal(): Promise<void> {
-    const uid = this.auth.currentUser?.uid;
+    const uid = this.authService.uid();
     if (!uid) throw new Error('ユーザーが見つかりません。');
     await updateDoc(doc(this.firestore, 'accounts', uid), {
       personalInfo: personalFormToSavePayload(this.personalForm),
@@ -132,7 +127,7 @@ export class PersonalSettingDataService {
   }
 
   async saveEmployee(): Promise<void> {
-    const uid = this.auth.currentUser?.uid;
+    const uid = this.authService.uid();
     if (!uid) throw new Error('ユーザーが見つかりません。');
     const tid = this.tid || (await this.resolveCurrentTid(uid));
     const accountSnap = await getDoc(doc(this.firestore, 'accounts', uid));
@@ -152,7 +147,7 @@ export class PersonalSettingDataService {
     });
     await batch.commit();
 
-    this.currentTenantService.updateAffiliationDisplayName(
+    this.tenantService.updateAffiliationDisplayName(
       uid, tid, this.employeeForm.displayName,
     );
     this.profileCompletionService.updateFromPersonalForms(
@@ -182,11 +177,14 @@ export class PersonalSettingDataService {
   }
 
   private async resolveCurrentTid(uid: string): Promise<string> {
-    const currentTid = this.currentTenantService.getTenant();
+    const currentTid = this.tenantService.currentTid();
     if (currentTid) return currentTid;
-    await this.currentTenantService.initialize(uid);
-    const tid = this.currentTenantService.getTenant();
+    const tid = this.tenantService.currentTid();
     if (!tid) throw new Error('事業所が見つかりません。');
     return tid;
+  }
+
+  signOut(): void {
+    this.reset();
   }
 }

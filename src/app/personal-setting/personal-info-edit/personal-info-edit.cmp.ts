@@ -9,6 +9,7 @@ import { ErrorDialogCmp, mapFirebaseError } from '../../error-dialog/error-dialo
 import { ZipcodeToAddressService } from '../../zipcode-to-address.service';
 import { PersonalSettingDataService } from '../personal-setting-data.service';
 import { RoutesService } from '../../routes.service';
+import { MatDatepickerModule, MatDatepickerToggle } from '@angular/material/datepicker';
 
 @Component({
   selector: 'app-personal-info-edit',
@@ -18,6 +19,8 @@ import { RoutesService } from '../../routes.service';
     MatInputModule,
     MatButtonModule,
     MatProgressSpinnerModule,
+    MatDatepickerModule,
+    MatDatepickerToggle,
   ],
   templateUrl: './personal-info-edit.cmp.html',
   styleUrls: ['./personal-info-edit.cmp.css', '../personal-setting.cmp.css'],

@@ -1,6 +1,5 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Auth } from '@angular/fire/auth';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -24,6 +23,7 @@ import {
   TenantFormData,
 } from '../tenant-form-data';
 import { ProfileCompletionService } from '../profile-completion.service';
+import { AuthService } from '../auth.service';
 
 @Component({
   selector: 'app-setting-tenant',
@@ -47,8 +47,8 @@ export class SettingTenantCmp implements OnInit {
   private readonly currentTenantService = inject(CurrentTenantService);
   private readonly routesService = inject(RoutesService);
   private readonly profileCompletionService = inject(ProfileCompletionService);
+  private readonly authService = inject(AuthService);
   private readonly dialog = inject(MatDialog);
-  private readonly auth = inject(Auth);
   private readonly zipcodeToAddressService = inject(ZipcodeToAddressService);
   tid = '';
   loading = true;
@@ -96,7 +96,7 @@ export class SettingTenantCmp implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
-    const tid = this.currentTenantService.getTenant();
+    const tid = this.currentTenantService.currentTid();
 
     if (!tid) {
       this.routesService.redirectToHome();
@@ -137,7 +137,7 @@ export class SettingTenantCmp implements OnInit {
   }
 
   async save(): Promise<void> {
-    const uid = this.auth.currentUser?.uid;
+    const uid = this.authService.uid();
     if (!uid) {
       this.routesService.redirectToSignin();
       return;
@@ -149,7 +149,7 @@ export class SettingTenantCmp implements OnInit {
     try {
       this.submitBusy = true;
       await this.tenantsDataService.saveTenant(this.tid, payload);
-      await this.currentTenantService.initialize(uid);
+      await this.profileCompletionService.refresh(uid, this.tid);
     } catch (error) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: mapFirebaseError(error) },

@@ -202,10 +202,12 @@
             <mat-label>生年月日</mat-label>
             <input
                 matInput
-                type="date"
-                [(ngModel)]="employeeForm.birthDate"\
+                [matDatepicker]="birthDatePicker"
+                [(ngModel)]="employeeForm.birthDate"
                 name="birthDate"
             />
+            <mat-datepicker-toggle matIconSuffix [for]="birthDatePicker"></mat-datepicker-toggle>
+            <mat-datepicker #birthDatePicker></mat-datepicker>
         </mat-form-field>
     </div>
     <div class="field-container">
@@ -266,7 +268,7 @@
     </div>
     <div class="field-container">
         <label class="label-name">
-            扶養家族の有無
+            扶養家族の有無：
         </label>
         <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
             <mat-label>扶養家族の有無</mat-label>
@@ -281,42 +283,98 @@
         </mat-form-field>
     </div>
     @if (employeeForm.hasDependents) {
-        <div class="field-container">
-            @for (dependent of employeeForm.dependentsInfo; track $index) {
-                <label class="label-name">
-                    扶養家族(#{{ $index + 1 }})の誕生日
-                </label>
+        @for (dependent of employeeForm.dependentsInfo; track $index) {
+            <div class="field-container">
+                <label class="label-name">扶養家族(#{{ $index + 1 }})本名：</label>
+                <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                    <mat-label>姓</mat-label>
+                    <input
+                        matInput
+                        type="text"
+                        [(ngModel)]="dependent.realName.lastName"
+                        [name]="'dependentLastName_' + $index"
+                    />
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                    <mat-label>名</mat-label>
+                    <input
+                        matInput
+                        type="text"
+                        [(ngModel)]="dependent.realName.firstName"
+                        [name]="'dependentFirstName_' + $index"
+                    />
+                </mat-form-field>
+            </div>
+            <div class="field-container">
+                <label class="label-name">本名(フリガナ)：</label>
+                <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                    <mat-label>姓（フリガナ）</mat-label>
+                    <input
+                        matInput
+                        type="text"
+                        [(ngModel)]="dependent.realName.lastNameKana"
+                        [name]="'dependentLastNameKana_' + $index"
+                    />
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                    <mat-label>名（フリガナ）</mat-label>
+                    <input
+                        matInput
+                        type="text"
+                        [(ngModel)]="dependent.realName.firstNameKana"
+                        [name]="'dependentFirstNameKana_' + $index"
+                    />
+                </mat-form-field>
+            </div>
+            <div class="field-container">
+                <label class="label-name">続柄：</label>
+                <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                    <mat-label>続柄</mat-label>
+                    <mat-select
+                        [(ngModel)]="dependent.relationship"
+                        [name]="'dependentRelationship_' + $index"
+                    >
+                        @for (option of relationshipOptions; track option.value) {
+                            <mat-option [value]="option.value">{{ option.label }}</mat-option>
+                        }
+                    </mat-select>
+                </mat-form-field>
+            </div>
+            <div class="field-container">
+                <label class="label-name">誕生日：</label>
                 <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
                     <mat-label>誕生日</mat-label>
                     <input
                         matInput
-                        type="date"
-                        [(ngModel)]="employeeForm.dependentsInfo[$index]"
-                        [name]="'dependentsInfo_'+$index"
+                        [matDatepicker]="dependentBirthDatePicker"
+                        [(ngModel)]="dependent.birthDate"
+                        [name]="'dependentBirthDate_' + $index"
                     />
+                    <mat-datepicker-toggle matIconSuffix [for]="dependentBirthDatePicker"></mat-datepicker-toggle>
+                    <mat-datepicker #dependentBirthDatePicker></mat-datepicker>
                 </mat-form-field>
                 <div class="button-container">
-                    <button 
-                        mat-icon-button 
-                        type="button" 
+                    <button
+                        mat-icon-button
+                        type="button"
                         (click)="removeDependent($index)"
                         title="この扶養家族を削除"
                     >
                         <mat-icon>delete</mat-icon>
                     </button>
-                    @if ($index == employeeForm.dependentsInfo.length - 1) {
-                        <button 
-                            mat-icon-button 
-                            type="button" 
+                    @if ($index === employeeForm.dependentsInfo.length - 1) {
+                        <button
+                            mat-icon-button
+                            type="button"
                             (click)="addDependent()"
                             title="扶養家族を追加"
                         >
-                                <mat-icon>add</mat-icon>
+                            <mat-icon>add</mat-icon>
                         </button>
                     }
                 </div>
-            }
-        </div>
+            </div>
+        }
     }
 </form>
 <div class="actions">

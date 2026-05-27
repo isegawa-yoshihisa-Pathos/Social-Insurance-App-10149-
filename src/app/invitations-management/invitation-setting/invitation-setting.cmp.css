@@ -6,3 +6,9 @@
 .invitation-setting {
   padding: 20px;
 }
+
+.loading-container {
+  display: grid;
+  min-height: 240px;
+  place-items: center;
+}

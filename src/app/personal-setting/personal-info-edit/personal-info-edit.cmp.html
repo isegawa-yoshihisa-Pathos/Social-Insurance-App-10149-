@@ -176,11 +176,12 @@
             <mat-label>生年月日</mat-label>
             <input
                 matInput
-                type="date"
+                [matDatepicker]="birthDatePicker"
                 [(ngModel)]="form.birthDate"
-                #birthDateRef="ngModel"
                 name="birthDate"
             />
+            <mat-datepicker-toggle matIconSuffix [for]="birthDatePicker"></mat-datepicker-toggle>
+            <mat-datepicker #birthDatePicker></mat-datepicker>
         </mat-form-field>
     </div>
     <div class="field-container">

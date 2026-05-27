@@ -1,0 +1,26 @@
+<nav mat-tab-nav-bar [tabPanel]="tabPanel" animationDuration="0ms" class="setting-tabs">
+    <a
+        mat-tab-link
+        [routerLink]="['/employees-management', 'detail', eid, 'employ']"
+        [active]="!isPersonalActive"
+    >
+        <span>雇用情報</span>
+    </a>
+    <a 
+        mat-tab-link
+        [routerLink]="['/employees-management', 'detail', eid, 'personal']"
+        [active]="isPersonalActive"
+    >
+        <span>個人情報</span>
+    </a>
+</nav>
+
+<mat-tab-nav-panel #tabPanel>
+    <div class="setting-page">
+        @if (dataService.loading) {
+            <mat-spinner diameter="40"></mat-spinner>
+        } @else {
+            <router-outlet />
+        }
+    </div>
+</mat-tab-nav-panel>

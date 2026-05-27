@@ -13,25 +13,66 @@
             }
             </h3>
 
-            <button mat-flat-button class="menu-button" type="button" (click)="navigateToMainPage()">マイページ</button>
-            <button mat-flat-button class="menu-button" type="button" (click)="navigateToPersonalSetting()">
+            <button 
+                mat-flat-button 
+                class="menu-button" 
+                type="button" 
+                (click)="navigateToMainPage()" 
+                [class.selected]="isSelected() === 'myPage'"
+            >マイページ</button>
+            <button 
+                mat-flat-button 
+                class="menu-button" 
+                type="button" 
+                (click)="navigateToPersonalSetting()" 
+                [class.selected]="isSelected() === 'personalSetting'">
                 <span>個人設定</span>
                 @if (completion().personal || completion().employee) {
                     <span class="required-badge"></span>
                 }
             </button>
-            <button mat-flat-button class="menu-button" type="button" (click)="navigateToTaskBoard()">手続き一覧</button>
+            <button 
+                mat-flat-button 
+                class="menu-button" 
+                type="button" 
+                (click)="navigateToTaskBoard()" 
+                [class.selected]="isSelected() === 'taskBoard'"
+            >手続き一覧</button>
 
             @if (isAdmin()) {
             <hr class="menu-divider" />
-            <button mat-flat-button class="menu-button" type="button" (click)="navigateToSettingTenant()">
+            <button 
+                mat-flat-button 
+                class="menu-button" 
+                type="button" 
+                (click)="navigateToSettingTenant()" 
+                [class.selected]="isSelected() === 'tenantSetting'">
                 <span>事業所設定</span>
                 @if (completion().tenant || completion().socialInsuranceSettings) {
                     <span class="required-badge"></span>
                 }
             </button>
-            <button mat-flat-button class="menu-button" type="button" (click)="navigateToEmployeesManagement()">従業員管理</button>
-            <button mat-flat-button class="menu-button" type="button" (click)="navigateToInvitationsManagement()">招待管理</button>
+            <button 
+                mat-flat-button 
+                class="menu-button" 
+                type="button" 
+                (click)="navigateToEmployeesManagement()" 
+                [class.selected]="isSelected() === 'employeesManagement'"
+            >従業員管理</button>
+            <button 
+                mat-flat-button 
+                class="menu-button" 
+                type="button" 
+                (click)="navigateToInvitationsManagement()" 
+                [class.selected]="isSelected() === 'invitationsManagement'"
+            >招待管理</button>
+            <button
+                mat-flat-button
+                class="menu-button"
+                type="button"
+                (click)="navigateToMonthlyManagement()"
+                [class.selected]="isSelected() === 'monthlyManagement'"
+            >月次管理</button>
             }
         </div>
     </mat-sidenav>

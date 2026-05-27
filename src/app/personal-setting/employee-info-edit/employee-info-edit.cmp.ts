@@ -9,8 +9,11 @@ import { MatDialog } from '@angular/material/dialog';
 import { ErrorDialogCmp, mapFirebaseError } from '../../error-dialog/error-dialog.cmp';
 import { ZipcodeToAddressService } from '../../zipcode-to-address.service';
 import { PersonalSettingDataService } from '../personal-setting-data.service';
+import { createEmptyDependentForm } from '../../personal-form-data';
+import { DEPENDENT_RELATIONSHIP_LABELS, DependentRelationship } from '../../personal-document';
 import { RoutesService } from '../../routes.service';
 import { MatIconModule } from '@angular/material/icon';
+import { MatDatepickerModule, MatDatepickerToggle } from '@angular/material/datepicker';
 
 @Component({
   selector: 'app-employee-info-edit',
@@ -22,6 +25,8 @@ import { MatIconModule } from '@angular/material/icon';
     MatProgressSpinnerModule,
     MatSelectModule,
     MatIconModule,
+    MatDatepickerModule,
+    MatDatepickerToggle,
   ],
   templateUrl: './employee-info-edit.cmp.html',
   styleUrls: ['./employee-info-edit.cmp.css', '../personal-setting.cmp.css'],
@@ -33,6 +38,10 @@ export class EmployeeInfoEditCmp {
   private readonly routesService = inject(RoutesService);
 
   submitBusy = false;
+
+  readonly relationshipOptions = (
+    Object.entries(DEPENDENT_RELATIONSHIP_LABELS) as [DependentRelationship, string][]
+  ).map(([value, label]) => ({ value, label }));
 
   get employeeForm() { return this.dataService.employeeForm; }
 
@@ -47,15 +56,15 @@ export class EmployeeInfoEditCmp {
 
   onHasDependentsChange(value: boolean): void {
     this.employeeForm.hasDependents = value;
-    if (value && (!this.employeeForm.dependentsInfo || this.employeeForm.dependentsInfo.length === 0)) {
-      this.employeeForm.dependentsInfo = [''];
+    if (value && this.employeeForm.dependentsInfo.length === 0) {
+      this.employeeForm.dependentsInfo = [createEmptyDependentForm()];
     }
   }
 
   addDependent(): void {
     this.employeeForm.dependentsInfo = [
-      ...(this.employeeForm.dependentsInfo ?? []),
-      '',
+      ...this.employeeForm.dependentsInfo,
+      createEmptyDependentForm(),
     ];
   }
 

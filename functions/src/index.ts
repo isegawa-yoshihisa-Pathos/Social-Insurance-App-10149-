@@ -11,7 +11,7 @@ import {setGlobalOptions} from "firebase-functions";
 export { registerAdminAndTenant } from './registerAdminAndTenant';
 export { saveInvitationTemplate } from './invitation-functions';
 export { saveInvitationImportSettings } from './invitation-functions';
-export { sendInvitationMail } from './invitation-mail-send';
+// export { sendInvitationMail } from './invitation-mail-send';
 export { sendInvitationMailVirtual } from './invitation-mail-virtual-send';
 export { validateInvitationToken } from './invitation-accept-functions';
 export { acceptInvitation } from './invitation-accept-functions';

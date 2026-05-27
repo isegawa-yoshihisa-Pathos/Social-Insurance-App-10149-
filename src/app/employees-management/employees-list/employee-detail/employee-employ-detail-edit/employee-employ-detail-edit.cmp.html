@@ -1,0 +1,198 @@
+<form #employeeEmployEditForm="ngForm" class="input-container">
+  <div class="field-container">
+    <label class="label-name">役職：</label>
+    <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+      <mat-label>役職</mat-label>
+      <input matInput type="text" [(ngModel)]="employForm.position" name="position" />
+    </mat-form-field>
+  </div>
+
+  <div class="field-container">
+    <label class="label-name">部署：</label>
+    <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+      <mat-label>部署</mat-label>
+      <input matInput type="text" [(ngModel)]="employForm.department" name="department" />
+    </mat-form-field>
+  </div>
+
+  <div class="field-container">
+    <label class="label-name">給与区分：</label>
+    <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+      <mat-label>給与区分</mat-label>
+      <mat-select [(ngModel)]="employForm.payType" name="payType">
+        <mat-option value="">未設定</mat-option>
+        <mat-option value="monthly">月給</mat-option>
+        <mat-option value="weekly">週給</mat-option>
+        <mat-option value="daily">日給</mat-option>
+        <mat-option value="hourly">時給</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <div class="field-container">
+    <label class="label-name">雇用形態：</label>
+    <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+      <mat-label>雇用形態</mat-label>
+      <mat-select [(ngModel)]="employForm.employmentType" name="employmentType">
+        <mat-option value="">未設定</mat-option>
+        <mat-option value="full-time">正社員</mat-option>
+        <mat-option value="part-time">パート</mat-option>
+        <mat-option value="temporary">契約・派遣</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <div class="field-container">
+    <label class="label-name">勤務状況：</label>
+    <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+      <mat-label>勤務状況</mat-label>
+      <mat-select [(ngModel)]="employForm.status" name="status">
+        <mat-option value="active">在職</mat-option>
+        <mat-option value="leave">休職</mat-option>
+        <mat-option value="resigned">退職</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <div class="field-container">
+    <label class="label-name">入社日：</label>
+    <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+      <mat-label>入社日</mat-label>
+      <input 
+        matInput 
+        [matDatepicker]="joinedAtPicker" 
+        [(ngModel)]="employForm.joinedAt" 
+        name="joinedAt" 
+      />
+      <mat-datepicker-toggle matIconSuffix [for]="joinedAtPicker"></mat-datepicker-toggle>
+      <mat-datepicker #joinedAtPicker></mat-datepicker>
+    </mat-form-field>
+  </div>
+
+  <div class="field-container">
+    <label class="label-name">休職日：</label>
+    <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+      <mat-label>休職日</mat-label>
+      <input 
+        matInput 
+        [matDatepicker]="leaveAtPicker" 
+        [(ngModel)]="employForm.leaveAt" 
+        name="leaveAt" 
+      />
+      <mat-datepicker-toggle matIconSuffix [for]="leaveAtPicker"></mat-datepicker-toggle>
+      <mat-datepicker #leaveAtPicker></mat-datepicker>
+    </mat-form-field>
+  </div>
+
+  <div class="field-container">
+    <label class="label-name">復職日：</label>
+    <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+      <mat-label>復職日</mat-label>
+      <input 
+        matInput 
+        [matDatepicker]="returnAtPicker" 
+        [(ngModel)]="employForm.returnAt" 
+        name="returnAt" 
+      />
+      <mat-datepicker-toggle matIconSuffix [for]="returnAtPicker"></mat-datepicker-toggle>
+      <mat-datepicker #returnAtPicker></mat-datepicker>
+    </mat-form-field>
+  </div>
+
+  <div class="field-container">
+    <label class="label-name">退職日：</label>
+    <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+      <mat-label>退職日</mat-label>
+      <input 
+        matInput 
+        [matDatepicker]="resignAtPicker" 
+        [(ngModel)]="employForm.resignAt" 
+        name="resignAt" 
+      />
+      <mat-datepicker-toggle matIconSuffix [for]="resignAtPicker"></mat-datepicker-toggle>
+      <mat-datepicker #resignAtPicker></mat-datepicker>
+    </mat-form-field>
+  </div>
+
+  <div class="field-container">
+    <label class="label-name">資格取得日：</label>
+    <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+      <mat-label>資格取得日</mat-label>
+      <input 
+        matInput 
+        [matDatepicker]="licenseStartAtPicker" 
+        [(ngModel)]="employForm.licenseStartAt" 
+        name="licenseStartAt" 
+      />
+      <mat-datepicker-toggle matIconSuffix [for]="licenseStartAtPicker"></mat-datepicker-toggle>
+      <mat-datepicker #licenseStartAtPicker></mat-datepicker>
+    </mat-form-field>
+  </div>
+
+  <div class="field-container">
+    <label class="label-name">資格喪失日：</label>
+    <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+      <mat-label>資格喪失日</mat-label>
+      <input 
+        matInput 
+        [matDatepicker]="licenseEndAtPicker" 
+        [(ngModel)]="employForm.licenseEndAt" 
+        name="licenseEndAt" 
+      />
+      <mat-datepicker-toggle matIconSuffix [for]="licenseEndAtPicker"></mat-datepicker-toggle>
+      <mat-datepicker #licenseEndAtPicker></mat-datepicker>
+    </mat-form-field>
+  </div>
+
+  <div class="field-container">
+    <label class="label-name">健康保険整理番号：</label>
+    <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+      <mat-label>健康保険整理番号</mat-label>
+      <input
+        matInput
+        type="text"
+        [(ngModel)]="employForm.healthInsuranceRecordNumber"
+        name="healthInsuranceRecordNumber"
+      />
+    </mat-form-field>
+  </div>
+
+  <div class="field-container">
+    <label class="label-name">厚生年金整理番号：</label>
+    <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+      <mat-label>厚生年金整理番号</mat-label>
+      <input
+        matInput
+        type="text"
+        [(ngModel)]="employForm.pensionInsuranceRecordNumber"
+        name="pensionInsuranceRecordNumber"
+      />
+    </mat-form-field>
+  </div>
+
+  <div class="button-container">
+    <button
+      mat-flat-button
+      color="primary"
+      class="save-button"
+      type="button"
+      [disabled]="submitBusy"
+      (click)="save()"
+    >
+      @if (submitBusy) {
+        <mat-spinner diameter="24" strokeWidth="3"></mat-spinner>
+      } @else {
+        保存
+      }
+    </button>
+    <button
+      matButton="outlined"
+      class="cancel-button"
+      type="button"
+      [disabled]="submitBusy"
+      (click)="cancel()"
+    >
+      キャンセル
+    </button>
+  </div>
+</form>

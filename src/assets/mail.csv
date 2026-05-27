@@ -1,5 +1,8 @@
-mane,uuuu
-asas,test1@example.com
-asasd,test2@example.com
-asas,test3@example.com
-asasas,test4@example.com
+mail,name
+guestA@example.com,ゲストA
+guestB@example.com,ゲストB
+guestC@example.com,ゲストC
+guestD@example.com,ゲストD
+guestE@example.com,ゲストE
+guestF@example.com,ゲストF
+guestG@example.com,ゲストG

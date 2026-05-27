@@ -1,4 +1,4 @@
-import { Component, Input, TemplateRef, inject } from '@angular/core';
+import { Component, TemplateRef, inject, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -7,6 +7,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ErrorDialogCmp } from '../../../error-dialog/error-dialog.cmp';
 import { FunctionsService } from '../../../functions.service';
+import { CurrentTenantService } from '../../../current-tenant.service';
+import { InvitationDataService } from '../../invitation-data.service';
 
 @Component({
   selector: 'app-invitation-mail-setting',
@@ -22,32 +24,13 @@ import { FunctionsService } from '../../../functions.service';
   styleUrl: './invitation-mail-setting.cmp.css',
 })
 export class InvitationMailSettingCmp {
-  readonly defaultTemplateText = `{name} 様
-  
-  {tenantName} より、社会保険管理システム「縄文」への招待が届いています。
-  
-  以下のボタンからアカウントの初期設定を行い、必要な情報の登録をお願いします。
-  
-  ご不明な点がある場合は、管理者（{replyToEmail}）へお問い合わせください。`;
+  readonly invitationDataService = inject(InvitationDataService);
 
   private readonly dialog = inject(MatDialog);
   private readonly functionsService = inject(FunctionsService);
+  private readonly currentTenantService = inject(CurrentTenantService);
 
-  @Input({ required: true }) tid = '';
-
-  @Input()
-  set templateText(value: string | null | undefined) {
-    this.mailTemplateText = value?.trim() ? value : this.defaultTemplateText;
-  }
-
-  @Input()
-  set replyToEmail(value: string | null | undefined) {
-    this.mailReplyToEmail = value ?? '';
-  }
-
-  mailReplyToEmail = '';
-
-  mailTemplateText = this.defaultTemplateText
+  tid = '';
   saveBusy = false;
 
   readonly previewValues = {
@@ -57,6 +40,28 @@ export class InvitationMailSettingCmp {
     replyToEmail: 'admin@jomon.com',
     invitationUrl: 'https://jomon.com/invitation?token=sample',
   };
+
+  constructor() {
+    effect(() => {
+      this.tid = this.currentTenantService.currentTid() ?? '';
+    });
+  }
+
+  get mailTemplateText(): string {
+    return this.invitationDataService.templateText();
+  }
+
+  set mailTemplateText(value: string) {
+    this.invitationDataService.templateText.set(value);
+  }
+
+  get mailReplyToEmail(): string {
+    return this.invitationDataService.replyToEmail();
+  }
+
+  set mailReplyToEmail(value: string) {
+    this.invitationDataService.replyToEmail.set(value);
+  }
 
   get previewText(): string {
     return this.renderTemplate(this.mailTemplateText);
@@ -81,13 +86,17 @@ export class InvitationMailSettingCmp {
       return;
     }
 
+    const templateText = this.mailTemplateText;
+    const replyToEmail = this.mailReplyToEmail.trim();
+
     try {
       this.saveBusy = true;
       await this.functionsService.saveInvitationTemplate({
         tid: this.tid,
-        templateText: this.mailTemplateText,
-        replyToEmail: this.mailReplyToEmail.trim(),
+        templateText,
+        replyToEmail,
       });
+      this.invitationDataService.setMailSettings(templateText, replyToEmail);
     } catch (error) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: 'メールテンプレートの保存に失敗しました' },

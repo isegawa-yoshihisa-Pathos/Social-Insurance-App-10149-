@@ -118,7 +118,7 @@ export class InvitationAcceptCmp {
       if (mode === 'create') {
         await this.authService.signIn(this.loginEmail, this.password);
       }
-      await this.currentTenantService.initialize(this.authService.userId() ?? '');
+      await this.currentTenantService.bootstrap(this.authService.uid() ?? '');
       this.routesService.redirectToMainPage();
     } catch (error) {
       if (mode === 'link') {

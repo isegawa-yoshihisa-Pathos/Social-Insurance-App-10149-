@@ -41,8 +41,16 @@ export class RoutesService {
     void this.router.navigate(['/employees-management']);
   }
 
-  redirectToEmployeeDetail(uid: string): void {
-    void this.router.navigate(['/employees-management', 'detail', uid]);
+  redirectToEmployeeDetail(eid: string): void {
+    void this.router.navigate(['/employees-management', 'detail', eid, 'personal']);
+  }
+  
+  redirectToEmployeeEmployDetail(eid: string): void {
+    void this.router.navigate(['/employees-management', 'detail', eid, 'employ']);
+  }
+
+  redirectToEmployeeEmployDetailEdit(eid: string): void {
+    void this.router.navigate(['/employees-management', 'detail', eid, 'employ', 'edit']);
   }
 
   redirectToInvitationsManagement(): void {
@@ -63,5 +71,9 @@ export class RoutesService {
   
   redirectToEmployeeSettingEdit(): void {
     void this.router.navigate(['/personal-setting', 'employee', 'edit']);
+  }
+
+  redirectToMonthlyManagement(): void {
+    void this.router.navigate(['/monthly-management']);
   }
 }

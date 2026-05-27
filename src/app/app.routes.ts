@@ -7,6 +7,8 @@ import { SignupCmp } from './signup/signup.cmp';
 import { CreateTenantCmp } from './create-tenant/create-tenant.cmp';
 import { InvitationAcceptCmp } from './invitation-accept/invitation-accept.cmp';
 import { VirtualMailCheckerCmp } from './virtual-mail-checker/virtual-mail-checker.cmp';
+import { profileCompletionResolver } from './profile-completion-resolver';
+import { tenantGuard } from './tenant.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -17,7 +19,10 @@ export const routes: Routes = [
   { 
     path: '',
     loadComponent: () => import('./main-layout/main-layout.cmp').then(m => m.MainLayoutCmp),
-    canActivate: [authGuard],
+    canActivate: [authGuard, tenantGuard],
+    resolve: {
+      profileCompletion: profileCompletionResolver,
+    },
     children: [
       { 
         path: 'main-page',
@@ -72,14 +77,60 @@ export const routes: Routes = [
           {
             path: 'detail/:eid',
             loadComponent: () => import('./employees-management/employees-list/employee-detail/employee-detail.cmp').then(m => m.EmployeeDetailCmp),
+            children: [
+              {
+                path: '',
+                pathMatch: 'full',
+                redirectTo: 'employ',
+              },
+              {
+                path: 'personal',
+                loadComponent: () => import('./employees-management/employees-list/employee-detail/employee-personal-detail/employee-personal-detail.cmp').then(m => m.EmployeePersonalDetailCmp),
+              },
+              {
+                path: 'employ',
+                loadComponent: () => import('./employees-management/employees-list/employee-detail/employee-employ-detail/employee-employ-detail.cmp').then(m => m.EmployeeEmployDetailCmp),
+              },
+              {
+                path: 'employ/edit',
+                loadComponent: () => import('./employees-management/employees-list/employee-detail/employee-employ-detail-edit/employee-employ-detail-edit.cmp').then(m => m.EmployeeEmployDetailEditCmp),
+              },
+            ]
           },
         ],
       },
       { 
         path: 'invitations-management', 
         loadComponent: () => import('./invitations-management/invitations-management.cmp').then(m => m.InvitationsManagementCmp), 
-        canActivate: [adminGuard] 
+        canActivate: [adminGuard],
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            loadComponent: () => import('./invitations-management/invitations-mail/invitations-mail.cmp').then(m => m.InvitationsMailCmp),
+          },
+          {
+            path: 'setting',
+            loadComponent: () => import('./invitations-management/invitation-setting/invitation-setting.cmp').then(m => m.InvitationSettingCmp),
+          },
+        ]
       },
+      {
+        path: 'monthly-management',
+        loadComponent: () => import('./monthly-management/monthly-management.cmp').then(m => m.MonthlyManagementCmp),
+        canActivate: [adminGuard],
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            loadComponent: () => import('./monthly-management/monthly-list/monthly-list.cmp').then(m => m.MonthlyListCmp),
+          },
+          {
+            path: 'setting',
+            loadComponent: () => import('./monthly-management/monthly-setting/monthly-setting.cmp').then(m => m.MonthlySettingCmp),
+          },
+        ],
+      }
     ]
   },
   { path: 'invitation', component: InvitationAcceptCmp },

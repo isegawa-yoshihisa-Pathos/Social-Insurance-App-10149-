@@ -19,11 +19,19 @@ export interface Address {
   address3: string;
 }
 
+export type DependentRelationship = 'spouse' | 'other' | '';
+
+export interface DependentInfo {
+  realName: RealName;
+  birthDate: Timestamp | null;
+  relationship: DependentRelationship;
+}
+
 export interface AccountPersonalInfo {
   realName: RealName;
   myNumber: string;
   basicPensionNumber: string;
-  birthDate: string;
+  birthDate: Timestamp | null;
   phoneNumber: PhoneNumber;
   zipcode: string;
   address: Address;
@@ -35,7 +43,7 @@ export interface EmployeePersonalInfo {
   realName: RealName;
   myNumber: string;
   basicPensionNumber: string;
-  birthDate: string;
+  birthDate: Timestamp | null;
   phoneNumber: PhoneNumber;
   zipcode: string;
   address: Address;
@@ -43,8 +51,14 @@ export interface EmployeePersonalInfo {
 
   allowances?: Record<string, number>;
   hasDependents: boolean;
-  dependentsInfo: string[];
+  dependentsInfo: DependentInfo[];
 }
 
 export type AccountPersonalInfoSavePayload = Omit<AccountPersonalInfo, 'updatedAt'>;
 export type EmployeePersonalInfoSavePayload = Omit<EmployeePersonalInfo, 'updatedAt'>;
+
+export const DEPENDENT_RELATIONSHIP_LABELS: Record<DependentRelationship, string> = {
+  '': '未設定',
+  spouse: '配偶者',
+  other: 'その他',
+};

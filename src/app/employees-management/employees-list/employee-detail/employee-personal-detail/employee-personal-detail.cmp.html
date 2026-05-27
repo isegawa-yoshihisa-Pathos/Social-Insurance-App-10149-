@@ -1,1 +1,66 @@
-<p>employee-personal-detail works!</p>
+<div class="info-container">
+  <div class="info-row">
+    <span class="info-label">表示名：</span>
+    <span class="info-value">{{ dataService.personalForm.displayName }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">本名：</span>
+    <span class="info-value">
+      {{ dataService.personalForm.realName.lastName }} {{ dataService.personalForm.realName.firstName }}
+    </span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">本名(フリガナ)：</span>
+    <span class="info-value">
+      {{ dataService.personalForm.realName.lastNameKana }} {{ dataService.personalForm.realName.firstNameKana }}
+    </span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">郵便番号：</span>
+    <span class="info-value">{{ dataService.personalForm.zipcode }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">住所：</span>
+    <span class="info-value">
+      {{ dataService.personalForm.address.address1 }}
+      {{ dataService.personalForm.address.address2 }}
+      {{ dataService.personalForm.address.address3 }}
+    </span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">電話番号：</span>
+    <span class="info-value">{{ dataService.personalForm.phoneNumberRaw }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">生年月日：</span>
+    <span class="info-value">{{ formatDate(dataService.personalForm.birthDate) }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">マイナンバー：</span>
+    <span class="info-value">{{ dataService.personalForm.myNumber }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">基礎年金番号：</span>
+    <span class="info-value">{{ dataService.personalForm.basicPensionNumber }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">扶養家族の有無：</span>
+    <span class="info-value">{{ dataService.personalForm.hasDependents ? '有' : '無' }}</span>
+  </div>
+  @if (dataService.personalForm.hasDependents) {
+    @for (dependent of dataService.personalForm.dependentsInfo; track $index) {
+      <div class="info-row">
+        <span class="info-label">扶養家族(#{{ $index + 1 }})：</span>
+        <span class="info-value">
+          {{ formatDependentName(dependent) }}
+          @if (dependent.relationship) {
+            （{{ relationshipLabel(dependent.relationship) }}）
+          }
+          @if (formatDate(dependent.birthDate)) {
+            ／ 誕生日 {{ formatDate(dependent.birthDate) }}
+          }
+        </span>
+      </div>
+    }
+  }
+</div>

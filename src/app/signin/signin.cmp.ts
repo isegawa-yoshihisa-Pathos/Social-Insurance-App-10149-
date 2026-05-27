@@ -37,8 +37,8 @@ export class SigninCmp {
       const uid = await this.authService.signIn(this.email, this.password);
       if (!uid) return;
       await this.auth.currentUser?.getIdToken(true);
-      await this.currentTenantService.initialize(uid);
-      const affiliations = this.currentTenantService.getAffiliations();
+      await this.currentTenantService.bootstrap(uid);
+      const affiliations = this.currentTenantService.affiliations();
       if (affiliations.length === 0) {
         this.dialog.open(ErrorDialogCmp, {
           data: { message: '所属事業所が見つかりません' },
