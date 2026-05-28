@@ -4,7 +4,7 @@ import { EmployeePersonalInfo } from './personal-document';
 export interface EmployeeDocument {
   uid: string;
   employeePersonalInfo: EmployeePersonalInfo;
-  employeeEmployInfo?: EmployeeEmployInfo;
+  employeeEmployInfo: EmployeeEmployInfo;
 
   role: 'admin' | 'member';
   updatedAt?: Timestamp;

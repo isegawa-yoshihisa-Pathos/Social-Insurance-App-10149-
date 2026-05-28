@@ -60,4 +60,8 @@ export class SigninCmp {
       this.submitBusy = false;
     }
   }
+
+  navigateToSignup(): void {
+    this.routesService.redirectToSignup();
+  }
 }

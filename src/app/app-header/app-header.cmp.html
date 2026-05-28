@@ -29,16 +29,38 @@
                     </button>
                 }
             </mat-menu>
-            <button mat-button class="notification-button">
+            <button mat-button class="notification-button" [matMenuTriggerFor]="notificationMenu">
                 <mat-icon>notifications</mat-icon>
+                @if (tenantNotificationService.unreadCount() > 0) {
+                    <span class="notification-badge">{{ tenantNotificationService.unreadCount() }}</span>
+                }
                 <mat-icon>arrow_drop_down</mat-icon>
             </button>
+            <mat-menu #notificationMenu="matMenu" class="notification-menu">
+                @if (tenantNotificationService.notifications().length === 0) {
+                    <div class="notification-empty">通知はありません</div>
+                } @else {
+                    @for (notification of tenantNotificationService.notifications(); track notification.id + notification.scope) {
+                        <button mat-menu-item type="button" (click)="readNotification(notification)">
+                            <div class="notification-row">
+                                <div class="notification-title-line">
+                                    <span class="notification-scope">{{ notification.scope === 'tenant' ? '事業所' : '個人' }}</span>
+                                    @if (!notification.read) {
+                                        <span class="notification-unread-dot"></span>
+                                    }
+                                </div>
+                                <div class="notification-title">{{ notification.title ?? '通知' }}</div>
+                                <div class="notification-message">{{ notificationMessage(notification) }}</div>
+                            </div>
+                        </button>
+                    }
+                }
+            </mat-menu>
             <button mat-button class="user-name" [matMenuTriggerFor]="accountMenu">
                 <span class="user-name-text">{{ currentAffiliation()?.displayName || 'ユーザー名未設定' }}</span>
                 <mat-icon>arrow_drop_down</mat-icon>
             </button>
             <mat-menu #accountMenu="matMenu" class="account-menu">
-                <button mat-menu-item type="button" >通知</button>
                 <button mat-menu-item type="button" (click)="navigateToPersonalSetting()">個人設定</button>
                 <button mat-menu-item type="button" (click)="signOut()">サインアウト</button>
             </mat-menu>

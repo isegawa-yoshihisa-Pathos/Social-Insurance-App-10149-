@@ -34,10 +34,18 @@ export function mapCallableError(error: { code?: string, message?: string }): st
       return 'このメールアドレスは既に登録されています';
     case 'functions/invalid-argument':
       return error.message ?? '入力内容を確認してください';
+    case 'functions/permission-denied':
+      return error.message ?? 'この操作を行う権限がありません';
+    case 'functions/unauthenticated':
+      return error.message ?? 'ログインが必要です';
+    case 'functions/not-found':
+      return error.message ?? '対象データが見つかりません';
+    case 'functions/failed-precondition':
+      return error.message ?? '前提条件を満たしていません';
     case 'functions/internal':
       return error.message ?? '事業所登録に失敗しました';
     default:
-      return '事業所登録に失敗しました';
+      return error.message ?? '処理に失敗しました';
   }
 }
 

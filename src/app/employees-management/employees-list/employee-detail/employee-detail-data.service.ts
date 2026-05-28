@@ -47,12 +47,10 @@ export class EmployeeDetailDataService {
       const snap = await getDoc(doc(this.firestore, 'tenants', tid, 'employees', eid));
       if (!snap.exists()) throw new Error('従業員が見つかりません。');
 
-      const rawData = snap.data();
-      const data = rawData as Partial<EmployeeDocument> & Record<string, unknown>;
-      const personalInfo = (data.employeePersonalInfo ?? data) as EmployeeDocument['employeePersonalInfo'];
+      const data = snap.data() as Partial<EmployeeDocument>;
 
-      this.personalForm = employeePersonalInfoToForm(personalInfo);
-      this.employForm = employeeEmployInfoToForm(data);
+      this.personalForm = employeePersonalInfoToForm(data.employeePersonalInfo);
+      this.employForm = employeeEmployInfoToForm(data.employeeEmployInfo);
       this.role = data.role ?? 'member';
       this.loaded = true;
     } finally {

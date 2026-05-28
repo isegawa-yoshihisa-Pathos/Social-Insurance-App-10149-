@@ -37,7 +37,14 @@
                 type="button" 
                 (click)="navigateToTaskBoard()" 
                 [class.selected]="isSelected() === 'taskBoard'"
-            >手続き一覧</button>
+            >手続き一覧
+            </button>
+            <button 
+                mat-flat-button 
+                class="menu-button" 
+                type="button"
+            >通知管理
+            </button>
 
             @if (isAdmin()) {
             <hr class="menu-divider" />

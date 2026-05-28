@@ -27,17 +27,20 @@ export class InvitationsListCmp {
   displayedColumns = ['name', 'contactEmail', 'role', 'expiresAt', 'status'];
 
   constructor() {
-    effect(async () => {
+    effect((onCleanup) => {
       const tid = this.currentTenantService.currentTid();
       if (!tid) {
+        this.invitationDataService.unsubscribeInvitationList();
         this.dataSource.data = [];
-        this.invitationDataService.invitationListLoading.set(false);
         return;
       }
-      await this.invitationDataService.loadInvitationList(tid);
+      this.invitationDataService.subscribeInvitationList(tid);
+      onCleanup(() => this.invitationDataService.unsubscribeInvitationList());
+    });
+
+    effect(() => {
       this.dataSource.data = this.invitationDataService.invitationList();
-      this.invitationDataService.invitationListLoading.set(false);
-    })
+    });
   }
 
   selectInvitation(id: string) {
@@ -52,14 +55,14 @@ export class InvitationsListCmp {
     switch (status) {
       case 'sent':
         return '送信';
-      case 'pending':
-        return '未使用';
+      case 'queued':
+        return '待機';
+      case 'sending':
+        return '送信中';
       case 'accepted':
         return '登録済み';
       case 'expired':
         return '期限切れ';
-      case 'revoked':
-        return '取り消し';
       case 'failed':
         return '失敗';
       default:

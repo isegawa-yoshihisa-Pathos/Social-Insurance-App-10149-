@@ -1,0 +1,36 @@
+<h2 mat-dialog-title>賞与内訳</h2>
+
+<div mat-dialog-content class="bonus-detail-content">
+  <p class="employee-line">{{ data.displayName }}（{{ data.yyyyMm }}）</p>
+
+  @if (entries.length === 0) {
+    <p class="empty-message">この月の賞与データはありません。</p>
+  } @else {
+    <table class="bonus-table">
+      <thead>
+        <tr>
+          <th>種類</th>
+          <th class="amount-col">金額</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (entry of entries; track entry.type) {
+          <tr>
+            <td>{{ bonusTypeLabels[entry.type] }}</td>
+            <td class="amount-col">{{ entry.amount | number }}円</td>
+          </tr>
+        }
+      </tbody>
+      <tfoot>
+        <tr>
+          <th>合計</th>
+          <th class="amount-col">{{ total | number }}円</th>
+        </tr>
+      </tfoot>
+    </table>
+  }
+</div>
+
+<div mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>閉じる</button>
+</div>

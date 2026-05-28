@@ -1,4 +1,4 @@
-import { EmployeeEmployInfo } from "./employee-document";
+import { EmployeeEmployInfo } from "../../employee-document";
 
 export type EmployeeListColumnKey = 
     | 'displayName' 

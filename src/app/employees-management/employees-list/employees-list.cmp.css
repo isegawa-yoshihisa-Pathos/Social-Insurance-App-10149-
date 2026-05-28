@@ -2,6 +2,21 @@
   display: block;
 }
 
+.table-scroll-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.employees-table {
+  width: max-content;
+  min-width: 100%;
+}
+
+.employees-table th,
+.employees-table td {
+  white-space: nowrap;
+}
+
 .employee-row {
   cursor: pointer;
 }

@@ -22,6 +22,7 @@ import {
   personalFormToSavePayload,
 } from '../personal-form-data';
 import { AuthService } from '../auth.service';
+import { EmployeeDocument } from '../employee-document';
 
 @Injectable({ providedIn: 'root' })
 export class PersonalSettingDataService {
@@ -97,7 +98,8 @@ export class PersonalSettingDataService {
         const employeeSnap = await getDoc(
           doc(this.firestore, 'tenants', this.tid, 'employees', eid),
         );
-        this.employeeForm = employeePersonalInfoToForm(employeeSnap.data());
+        const employee = employeeSnap.data() as Partial<EmployeeDocument> | undefined;
+        this.employeeForm = employeePersonalInfoToForm(employee?.employeePersonalInfo);
       }
 
       this.profileCompletionService.updateFromPersonalForms(
@@ -138,7 +140,7 @@ export class PersonalSettingDataService {
 
     const batch = writeBatch(this.firestore);
     batch.update(doc(this.firestore, 'tenants', tid, 'employees', eid), {
-      ...employeeFormToSavePayload(this.employeeForm),
+      employeePersonalInfo: employeeFormToSavePayload(this.employeeForm),
       updatedAt: serverTimestamp(),
     });
     batch.update(doc(this.firestore, 'affiliations', `${uid}_${tid}`), {

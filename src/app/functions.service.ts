@@ -13,7 +13,7 @@ export class FunctionsService {
 
   private saveInvitationTemplateFn = httpsCallable(this.functions, 'saveInvitationTemplate');
 
-  private sendInvitationMailFn = httpsCallable(this.functions, 'sendInvitationMailVirtual');
+  private startInvitationMailBatchFn = httpsCallable(this.functions, 'startInvitationMailBatch');
 
   private validateInvitationTokenFn = httpsCallable(this.functions, 'validateInvitationToken');
 
@@ -39,13 +39,12 @@ export class FunctionsService {
     return await this.saveInvitationTemplateFn(payload);
   }
 
-  async sendInvitationMail(payload: {
+  async startInvitationMailBatch(payload: {
     tid: string;
-    email: string;
-    name: string;
-    role: 'admin' | 'member';
+    items: { email: string; name: string; role: 'admin' | 'member' }[];
   }) {
-    return await this.sendInvitationMailFn(payload);
+    const result = await this.startInvitationMailBatchFn(payload);
+    return result.data as { jobId: string; total: number };
   }
 
   async validateInvitationToken(payload: {

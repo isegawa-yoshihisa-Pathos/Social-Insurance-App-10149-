@@ -11,7 +11,7 @@ import { EmployeesManagementDataService } from '../../employees-management-data.
 import {
   OPTIONAL_EMPLOYEE_LIST_COLUMNS,
   EmployeeListColumnKey,
-} from '../../../employee-list-columns';
+} from '../../employees-list/employee-list-columns';
 
 @Component({
   selector: 'app-employees-list-header-setting',

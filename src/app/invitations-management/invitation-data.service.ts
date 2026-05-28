@@ -1,5 +1,5 @@
 import { EnvironmentInjector, inject, Injectable, runInInjectionContext, signal } from '@angular/core';
-import { doc, Firestore, getDoc, Timestamp, collection, query, orderBy, getDocs } from '@angular/fire/firestore';
+import { doc, Firestore, getDoc, Timestamp, collection, query, orderBy, onSnapshot, Unsubscribe } from '@angular/fire/firestore';
 
 export interface InvitationData {
   email: string;
@@ -15,19 +15,21 @@ export interface InvitationSettingDocument {
 }
 
 export interface InvitationDoc {
+  id: string;
   name: string;
   contactEmail: string;
   role: 'admin' | 'member';
   expiresAt?: Timestamp | null | undefined;
-  status: string;
+  status: 'queued' | 'sending' | 'failed' | 'sent' | 'accepted' | 'expired';
 }
 
 export interface InvitationListItem {
+  id: string;
   name: string;
   contactEmail: string;
   role: 'admin' | 'member';
   expiresAt: Date | null;
-  status: string;
+  status: 'queued' | 'sending' | 'failed' | 'sent' | 'accepted' | 'expired';
 }
 
 export const DEFAULT_INVITATION_NAME_HEADERS = ['名前', '氏名', 'name'];
@@ -54,6 +56,8 @@ export class InvitationDataService {
   readonly invitationListLoading = signal(false);
   readonly invitationList = signal<InvitationListItem[]>([]);
 
+  private invitationListUnsub: Unsubscribe | null = null;
+
   async loadSettings(tid: string): Promise<void> {
     this.settingsLoading.set(true);
     try {
@@ -68,24 +72,38 @@ export class InvitationDataService {
     }
   }
 
-  async loadInvitationList(tid: string): Promise<void> {
+  subscribeInvitationList(tid: string): void {
+    this.unsubscribeInvitationList();
     this.invitationListLoading.set(true);
-    try {
-      const ref = collection(this.firestore, 'tenants', tid, 'invitations');
-      const q = query(ref, orderBy('createdAt', 'asc'));
-      const snap = await getDocs(q);
-      const data = snap.docs.map((doc) => {
-        const rawData = doc.data() as InvitationDoc;
-  
-        return {
-          ...rawData,
-          expiresAt: rawData.expiresAt instanceof Timestamp ? rawData.expiresAt.toDate() : null
-        } as InvitationListItem;
-      });
-      this.invitationList.set(data);
-    } finally {
-      this.invitationListLoading.set(false);
-    }
+    const ref = collection(this.firestore, 'tenants', tid, 'invitations');
+    const q = query(ref, orderBy('createdAt', 'desc'));
+    this.invitationListUnsub = onSnapshot(
+      q,
+      (snap) => {
+        const data = snap.docs.map((doc) => {
+          const raw = doc.data() as InvitationDoc;
+          return {
+            id: doc.id,
+            name: raw.name,
+            contactEmail: raw.contactEmail,
+            role: raw.role,
+            status: raw.status,
+            expiresAt:
+              raw.expiresAt instanceof Timestamp
+                ? raw.expiresAt.toDate()
+                : null,
+          } satisfies InvitationListItem;
+        });
+        this.invitationList.set(data);
+        this.invitationListLoading.set(false);
+      },
+      () => this.invitationListLoading.set(false),
+    );
+  }
+
+  unsubscribeInvitationList(): void {
+    this.invitationListUnsub?.();
+    this.invitationListUnsub = null;
   }
 
   extractInvitationsFromCsvText(

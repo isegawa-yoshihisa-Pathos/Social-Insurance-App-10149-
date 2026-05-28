@@ -37,7 +37,7 @@ export const saveInvitationTemplate = onCall({
 
     const affiliation = affiliationSnap.data();
 
-    if (affiliation?.role !== 'admin' || affiliation?.status !== 'active') {
+    if (affiliation?.role !== 'admin') {
         throw new HttpsError('permission-denied', '管理者権限が必要です。');
     }
 
@@ -88,7 +88,7 @@ export const saveInvitationImportSettings = onCall({
 
     const affiliation = affiliationSnap.data();
 
-    if (affiliation?.role !== 'admin' || affiliation?.status !== 'active') {
+    if (affiliation?.role !== 'admin') {
         throw new HttpsError('permission-denied', '管理者権限が必要です。');
     }
 

@@ -1,0 +1,35 @@
+.bonus-detail-content {
+  min-width: 320px;
+}
+
+.employee-line {
+  margin: 0 0 12px;
+  color: #555;
+}
+
+.empty-message {
+  margin: 0;
+  color: #666;
+}
+
+.bonus-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.bonus-table th,
+.bonus-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #e0e0e0;
+  text-align: left;
+}
+
+.bonus-table tfoot th {
+  border-bottom: none;
+  border-top: 2px solid #ccc;
+}
+
+.amount-col {
+  text-align: right;
+  white-space: nowrap;
+}

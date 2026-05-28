@@ -5,7 +5,6 @@ import { MatDialog } from '@angular/material/dialog';
 import { InvitationDataService, InvitationData } from '../invitation-data.service';
 import { FunctionsService } from '../../functions.service';
 import { ErrorDialogCmp, mapFirebaseError } from '../../error-dialog/error-dialog.cmp';
-import { SuccessDialogCmp } from '../../success-dialog/success-dialog.cmp';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -17,6 +16,7 @@ import { FormsModule } from '@angular/forms';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { HelpContentCmp } from '../../help-content/help-content.cmp';
 import { InvitationsListCmp } from './invitations-list/invitations-list.cmp';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Component({
   selector: 'app-invitations-mail',
@@ -36,6 +36,7 @@ export class InvitationsMailCmp implements OnInit{
   private readonly dialog = inject(MatDialog);
   private readonly invitationDataService = inject(InvitationDataService);
   private readonly functionsService = inject(FunctionsService);
+  private readonly snackBar = inject(MatSnackBar);
 
   async ngOnInit(): Promise<void> {
     const tid = this.currentTenantService.currentTid();
@@ -47,7 +48,6 @@ export class InvitationsMailCmp implements OnInit{
 
     try {
       await this.invitationDataService.loadSettings(tid);
-      await this.invitationDataService.loadInvitationList(tid);
     } catch (error) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: mapFirebaseError(error) },
@@ -57,12 +57,12 @@ export class InvitationsMailCmp implements OnInit{
 
   async sendInvitation(): Promise<void> {
     const validInvitations = this.invitationsData
-    .map((invitation) => ({
-      name: invitation.name.trim(),
-      email: invitation.email.trim(),
-      role: invitation.isAdmin ? 'admin' : 'member',
-    }))
-    .filter((invitation) => invitation.name || invitation.email);
+      .map((invitation) => ({
+        name: invitation.name.trim(),
+        email: invitation.email.trim(),
+        role: (invitation.isAdmin ? 'admin' : 'member') as 'admin' | 'member',
+      }))
+      .filter((invitation) => invitation.name || invitation.email);
     const hasInvalid = validInvitations.some(
       (invitation) =>
         !invitation.name ||
@@ -75,46 +75,25 @@ export class InvitationsMailCmp implements OnInit{
       return;
     }
     this.sendBusy = true;
-
-    const failed: { email: string; message: string }[] = [];
-    let successCount = 0;
-
-    for (const invitation of validInvitations) {
-      try {
-        await this.functionsService.sendInvitationMail({
-          tid: this.tid,
-          email: invitation.email,
-          name: invitation.name,
-          role: invitation.role as 'admin' | 'member',
-        });
-        successCount++;
-      } catch (error) {
-        failed.push({ 
-          email: invitation.email, 
-          message: mapFirebaseError(error) 
-        });
-      }
-    }
-
-    this.sendBusy = false;
-
-    const total = validInvitations.length;
-    if (failed.length === 0) {
-      this.dialog.open(SuccessDialogCmp, {
-        data: { message: `招待メールを ${successCount}/${total} 件送信しました。` },
+    try {
+      const { total } = await this.functionsService.startInvitationMailBatch({
+        tid: this.tid,
+        items: validInvitations,
       });
-    } else {
-      const detail = failed.map(f => `・${f.email}: ${f.message}`).join('\n');
+      this.snackBar.open(
+        `${total}件の招待送信を開始しました。進捗は一覧、完了は通知で確認できます。`,
+        '閉じる',
+        { duration: 6000 },
+      );
+      // 入力クリア（任意）
+      this.invitationsData = [{ email: '', name: '', isAdmin: false }];
+    } catch (error) {
       this.dialog.open(ErrorDialogCmp, {
-        data: {
-          message:
-            `${successCount}/${total} 件送信しました。\n\n` +
-            `送信に失敗したメール：\n${detail}`,
-        },
+        data: { message: mapFirebaseError(error) },
       });
+    } finally {
+      this.sendBusy = false;
     }
-
-    await this.invitationDataService.loadInvitationList(this.tid);
   }
 
   async addInvitationEmail(): Promise<void> {

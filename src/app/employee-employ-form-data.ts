@@ -1,4 +1,4 @@
-import { EmployeeDocument, EmployeeEmployFormData, EmployeeEmployInfo } from './employee-document';
+import { EmployeeEmployFormData, EmployeeEmployInfo } from './employee-document';
 import { formatJapaneseDate, toFirestoreTimestamp, toFormDate } from './date-utils';
 
 export function createEmptyEmployForm(): EmployeeEmployFormData {
@@ -29,21 +29,17 @@ const EMPLOY_DATE_FIELDS = [
 ] as const;
 
 export function employeeEmployInfoToForm(
-  doc?: Partial<EmployeeDocument> & Record<string, unknown>,
+  info?: Partial<EmployeeEmployInfo>,
 ): EmployeeEmployFormData {
-  const nested = doc?.employeeEmployInfo as Partial<EmployeeEmployInfo> | undefined;
-  const legacy = doc as Partial<EmployeeEmployInfo> | undefined;
-  const source = nested ?? legacy;
-
   const form: EmployeeEmployFormData = {
     ...createEmptyEmployForm(),
-    position: source?.position ?? '',
-    department: source?.department ?? '',
-    payType: source?.payType ?? '',
-    employmentType: source?.employmentType ?? '',
-    status: source?.status ?? 'active',
-    healthInsuranceRecordNumber: source?.healthInsuranceRecordNumber ?? '',
-    pensionInsuranceRecordNumber: source?.pensionInsuranceRecordNumber ?? '',
+    position: info?.position ?? '',
+    department: info?.department ?? '',
+    payType: info?.payType ?? '',
+    employmentType: info?.employmentType ?? '',
+    status: info?.status ?? 'active',
+    healthInsuranceRecordNumber: info?.healthInsuranceRecordNumber ?? '',
+    pensionInsuranceRecordNumber: info?.pensionInsuranceRecordNumber ?? '',
     joinedAt: null,
     leaveAt: null,
     returnAt: null,
@@ -53,7 +49,7 @@ export function employeeEmployInfoToForm(
   };
 
   for (const field of EMPLOY_DATE_FIELDS) {
-    form[field] = toFormDate(source?.[field]);
+    form[field] = toFormDate(info?.[field]);
   }
 
   return form;
@@ -61,7 +57,7 @@ export function employeeEmployInfoToForm(
 
 export function employFormToSavePayload(
   form: EmployeeEmployFormData,
-): Pick<EmployeeDocument, 'employeeEmployInfo'> {
+): { employeeEmployInfo: EmployeeEmployInfo } {
   const employeeEmployInfo: EmployeeEmployInfo = {
     position: form.position,
     department: form.department,

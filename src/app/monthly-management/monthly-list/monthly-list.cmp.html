@@ -1,1 +1,90 @@
-<p>monthly-employees-list works!</p>
+<div class="monthly-list-container">
+  <div class="monthly-list-content">
+    <div class="month-picker-container">
+      <mat-form-field appearance="outline">
+        <mat-label>対象月</mat-label>
+        <input
+          matInput
+          [matDatepicker]="monthPicker"
+          [ngModel]="selectedMonth()"
+          (ngModelChange)="onSelectedMonthChange($event)"
+        />
+        <mat-datepicker-toggle matIconSuffix [for]="monthPicker"></mat-datepicker-toggle>
+        <mat-datepicker
+          #monthPicker
+          startView="multi-year"
+          (monthSelected)="onMonthSelected($event, monthPicker)"
+        ></mat-datepicker>
+      </mat-form-field>
+      <span class="selected-month-label">{{ yyyyMm() }}</span>
+    </div>
+
+    <div class="search-container">
+      <mat-form-field appearance="outline">
+        <mat-label>検索項目</mat-label>
+        <mat-select [(ngModel)]="searchTargetColumn" (ngModelChange)="search()">
+          @for (col of visibleColumns(); track col) {
+            <mat-option [value]="col">{{ getColumnLabel(col) }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="search-query-field">
+        <mat-label>検索ワード</mat-label>
+        <input
+          matInput
+          [(ngModel)]="searchQuery"
+          (ngModelChange)="search()"
+          placeholder="キーワードを入力"
+        />
+      </mat-form-field>
+    </div>
+
+    @if (loading) {
+      <p class="loading-message">月次データを読み込んでいます...</p>
+    } @else if (dataSource.data.length === 0) {
+      <p class="empty-message">{{ yyyyMm() }} の月次データはありません。</p>
+    } @else {
+      <div class="table-scroll-container">
+        <table mat-table [dataSource]="dataSource" matSort class="monthly-table">
+          <ng-container matColumnDef="selected">
+            <th mat-header-cell *matHeaderCellDef class="check-col">
+              <mat-checkbox
+                [checked]="isAllSelectedInView()"
+                (change)="toggleAllInView($event.checked)"
+              />
+            </th>
+            <td mat-cell *matCellDef="let row" class="check-col" (click)="$event.stopPropagation()">
+              <mat-checkbox
+                [checked]="isSelected(row.eid)"
+                (change)="toggleSelection(row.eid, $event.checked)"
+              />
+            </td>
+          </ng-container>
+
+          @for (col of visibleColumns(); track col) {
+            <ng-container matColumnDef="{{ col }}">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                {{ getColumnLabel(col) }}
+              </th>
+              <td
+                mat-cell
+                *matCellDef="let row"
+                (click)="onCellClick(row, col)"
+                [class.bonus-cell]="isBonusSummaryColumn(col)"
+                [matTooltip]="isBonusSummaryColumn(col) ? bonusTooltip(row) : ''"
+                [matTooltipDisabled]="!isBonusSummaryColumn(col) || !bonusTooltip(row)"
+                matTooltipClass="bonus-tooltip"
+              >
+                {{ formatCellValue(row, col) }}
+              </td>
+            </ng-container>
+          }
+
+          <tr mat-header-row *matHeaderRowDef="tableColumns()"></tr>
+          <tr mat-row *matRowDef="let row; columns: tableColumns()" class="monthly-row"></tr>
+        </table>
+      </div>
+    }
+  </div>
+</div>

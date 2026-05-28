@@ -185,10 +185,39 @@ export const acceptInvitation = onCall<AcceptInvitationInput>(
 
       batch.set(employeeRef, {
         uid,
-        displayName,
         role,
-        status: 'active',
-        joinedAt: now,
+        employeePersonalInfo: {
+          displayName,
+          realName: {
+            lastName: '',
+            firstName: '',
+            lastNameKana: '',
+            firstNameKana: '',
+          },
+          myNumber: '',
+          basicPensionNumber: '',
+          birthDate: null,
+          phoneNumber: { tel1: '', tel2: '', tel3: '' },
+          zipcode: '',
+          address: { address1: '', address2: '', address3: '' },
+          hasDependents: false,
+          dependentsInfo: [],
+        },
+        employeeEmployInfo: {
+          position: '',
+          department: '',
+          payType: '',
+          employmentType: '',
+          status: 'active',
+          joinedAt: now,
+          leaveAt: null,
+          returnAt: null,
+          resignAt: null,
+          licenseStartAt: null,
+          licenseEndAt: null,
+          healthInsuranceRecordNumber: '',
+          pensionInsuranceRecordNumber: '',
+        },
         updatedAt: now,
       });
 

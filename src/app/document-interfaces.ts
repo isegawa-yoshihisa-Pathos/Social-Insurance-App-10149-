@@ -13,6 +13,6 @@ export interface AffiliationDocument {
     displayName: string,
     tenantName: string,
     role: 'admin' | 'member',
-    status: 'active' | 'invited' | 'suspended' | 'archived',
+    status: 'active' | 'leave' | 'resigned',
     joinedAt: Timestamp,
 }

@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Auth } from '@angular/fire/auth';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -13,6 +13,7 @@ import { PersonalSettingDataService } from '../personal-setting/personal-setting
 import { EmployeeDetailDataService } from '../employees-management/employees-list/employee-detail/employee-detail-data.service';
 import { InvitationDataService } from '../invitations-management/invitation-data.service';
 import { EmployeesManagementDataService } from '../employees-management/employees-management-data.service';
+import { AppNotification, TenantNotificationService } from '../notifications/tenant-notification/tenant-notification.service';
 
 @Component({
   selector: 'app-header',
@@ -38,6 +39,21 @@ export class AppHeaderCmp {
   readonly invitationDataService = inject(InvitationDataService);
   readonly currentAffiliation = this.currentTenantService.currentAffiliation;
   readonly employeesManagementDataService = inject(EmployeesManagementDataService);
+  readonly tenantNotificationService = inject(TenantNotificationService);
+
+  constructor() {
+    effect((onCleanup) => {
+      const uid = this.auth.currentUser?.uid;
+      const tid = this.currentTenantService.currentTid();
+      const isAdmin = this.currentTenantService.isAdmin();
+      if (!uid || !tid) {
+        this.tenantNotificationService.unsubscribe();
+        return;
+      }
+      this.tenantNotificationService.subscribe({ uid, tid, isAdmin });
+      onCleanup(() => this.tenantNotificationService.unsubscribe());
+    });
+  }
 
   async switchTenant(tid: string): Promise<void> {
     const user = this.auth.currentUser;
@@ -48,6 +64,7 @@ export class AppHeaderCmp {
     await this.currentTenantService.setTenant(user.uid, tid);
     await this.personalSettingDataService.reloadForTenantChange();
     this.invitationDataService.reset();
+    this.tenantNotificationService.unsubscribe();
     this.routesService.redirectToMainPage();
   }
 
@@ -58,6 +75,7 @@ export class AppHeaderCmp {
     this.personalSettingDataService.signOut();
     this.employeeDetailDataService.signOut();
     this.invitationDataService.reset();
+    this.tenantNotificationService.unsubscribe();
     this.employeesManagementDataService.reset();
     this.routesService.redirectToHome();
   }
@@ -80,5 +98,13 @@ export class AppHeaderCmp {
 
   navigateToPersonalSetting(): void {
     this.routesService.redirectToPersonalSetting();
+  }
+
+  async readNotification(notification: AppNotification): Promise<void> {
+    await this.tenantNotificationService.markAsRead(notification);
+  }
+
+  notificationMessage(notification: AppNotification): string {
+    return notification.body || notification.message || '';
   }
 }

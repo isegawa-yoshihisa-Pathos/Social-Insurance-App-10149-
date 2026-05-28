@@ -1,5 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { DEFAULT_EMPLOYEE_LIST_COLUMNS, EmployeeListColumnKey } from '../employee-list-columns';
+import { DEFAULT_EMPLOYEE_LIST_COLUMNS, EmployeeListColumnKey } from './employees-list/employee-list-columns';
 import { Firestore, doc, getDoc, serverTimestamp, setDoc } from '@angular/fire/firestore';
 
 @Injectable({
