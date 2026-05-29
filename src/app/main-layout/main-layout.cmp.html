@@ -81,6 +81,16 @@
                 [class.selected]="isSelected() === 'monthlyManagement'"
             >月次管理</button>
             }
+            
+            <hr class="menu-divider" />
+            <p class="menu-comment">本番環境には存在しません。</p>
+            <button 
+                mat-flat-button 
+                class="menu-button" 
+                type="button" 
+                (click)="navigateToVirtualMailChecker()" 
+                [class.selected]="isSelected() === 'virtualMailChecker'"
+            >仮想メールチェッカー</button>
         </div>
     </mat-sidenav>
 

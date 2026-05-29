@@ -1,0 +1,56 @@
+@if (loading) {
+  <div class="loading-row">
+    <mat-spinner diameter="32"></mat-spinner>
+  </div>
+} @else {
+  <section class="bonus-setting-section">
+    <h2 class="section-title">賞与の設定</h2>
+    <p class="section-description">
+      賞与の種別を追加・削除できます。
+    </p>
+
+    @for (item of types; track $index) {
+      <div class="type-row">
+        <label class="type-label">賞与種別#{{ $index + 1 }}</label>
+        <mat-form-field appearance="outline" class="label-field">
+          <mat-label>表示名</mat-label>
+          <input matInput [(ngModel)]="item.label" placeholder="定期賞与" />
+        </mat-form-field>
+
+        <button
+          mat-icon-button
+          type="button"
+          aria-label="種別を削除"
+          [disabled]="types.length <= 1"
+          (click)="removeType($index)"
+        >
+          <mat-icon>delete</mat-icon>
+        </button>
+      </div>
+    }
+
+    <button mat-stroked-button type="button" (click)="addType()">
+      種別を追加
+    </button>
+
+    @if (validationError) {
+      <p class="validation-error">{{ validationError }}</p>
+    }
+
+    <div class="actions">
+      <button
+        mat-flat-button
+        color="primary"
+        type="button"
+        [disabled]="saveBusy"
+        (click)="save()"
+      >
+        @if (saveBusy) {
+          <mat-spinner diameter="20"></mat-spinner>
+        } @else {
+          保存
+        }
+      </button>
+    </div>
+  </section>
+}

@@ -88,7 +88,6 @@ export function buildInviteLink(frontendUrl: string, rawToken: string): string {
   return `${frontendUrl}/invitation?token=${encodeURIComponent(rawToken)}`;
 }
 
-/** 現行 virtual-send と同じ送信処理 */
 export async function sendVirtualInvitationMail(
   params: SendVirtualInvitationMailParams,
 ): Promise<SendVirtualInvitationMailResult> {
@@ -102,29 +101,15 @@ export async function sendVirtualInvitationMail(
     replyToEmail,
   });
 
-  const html = `
-    <div style="font-family: Arial, sans-serif; color: #333;">
-      ${escapeAndConvertNewlines(editableBody)}
-      <div style="text-align: center; margin: 30px 0;">
-        <a href="${escapeHtml(inviteLink)}" style="background-color: #3f51b5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px;">
-          アカウント初期設定を行う
-        </a>
-      </div>
-      <p style="font-size: 12px; color: #666;">
-        ※このリンクの有効期限は24時間です。<br>
-        ※このメールに心当たりがない場合は、このメールを破棄してください。
-      </p>
-    </div>
-  `;
-
   const mailRef = admin.firestore().collection('invitation-mails').doc();
   await mailRef.set({
     id: mailRef.id,
-    from: '縄文 社会保険アプリ <onboarding@resend.dev>',
+    from: '縄文 社会保険アプリ <no-reply@jomon.jp>',
     to: [email],
     subject: `【重要】${tenantName} から社会保険管理システムへの招待`,
     replyTo: replyToEmail,
-    html,
+    bodyText: editableBody,
+    inviteLink,
     opened: false,
     tid,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -152,24 +137,14 @@ export function mapCoreErrorToHttpsError(error: unknown): never {
   }
 }
 
-// --- helpers（既存 virtual-send からそのまま） ---
 function renderTemplate(template: string, values: Record<string, string>): string {
   return template.replace(/\{(\w+)\}/g, (_, key) => values[key] ?? '');
 }
-function escapeAndConvertNewlines(text: string): string {
-  return escapeHtml(text).replace(/\n/g, '<br>');
-}
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
+
 export function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
+
 export function isValidEmail(email: string): boolean {
   return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email);
 }

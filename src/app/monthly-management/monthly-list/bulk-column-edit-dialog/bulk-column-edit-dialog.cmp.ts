@@ -8,9 +8,10 @@ import { BulkEditableColumn, BulkEditValue } from '../monthly-bulk-edit.types';
 
 export interface BulkColumnEditDialogData {
   column: BulkEditableColumn;
+  displayName?: string;
   label: string;
   selectedCount: number;
-  initialValue: unknown;
+  initialValue: BulkEditValue;
 }
 
 @Component({
@@ -27,15 +28,7 @@ export class BulkColumnEditDialogCmp {
   numberValue: number | null = null;
 
   constructor() {
-    const initial = this.data.initialValue;
-    if (typeof initial === 'number') {
-      this.numberValue = initial;
-    } else if (initial == null || initial === '') {
-      this.numberValue = null;
-    } else {
-      const parsed = Number(initial);
-      this.numberValue = Number.isNaN(parsed) ? null : parsed;
-    }
+    this.numberValue = this.data.initialValue;
   }
 
   save(): void {

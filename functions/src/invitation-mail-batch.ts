@@ -150,23 +150,12 @@ export const startInvitationMailBatch = onCall<StartBatchInput>(
       );
     } catch (error) {
       const rawMessage = error instanceof Error ? error.message : String(error);
-      console.error('Failed to enqueue invitation tasks', {
-        tid,
-        jobId,
-        count: taskPayloads.length,
-        error: rawMessage,
-      });
 
       await jobRef.update({
         status: 'failed',
         errorMessage: rawMessage,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
-
-      throw new HttpsError(
-        'failed-precondition',
-        '送信キューの作成に失敗しました。Cloud Tasks の設定を確認してください。',
-      );
     }
 
     return { jobId, total: normalized.length };

@@ -1,27 +1,28 @@
 :host {
   display: block;
   height: auto;
-  min-height: auto;
 }
 
 .sidenav-container {
-  height: auto;
-  min-height: calc(100vh - 80px);
   width: 100%;
+  height: auto;
+  overflow: visible;
 }
 
 .main-content {
   padding: 16px;
+  min-height: 100vh;
   height: auto;
-  overflow: auto;
+  overflow: visible;
   box-sizing: border-box;
 }
 
 .page-body {
-  min-height: auto;
+  min-height: min-content;
 }
 
 .sidebar {
+  min-height: 100vh;
   width: 260px;
   background-color: #ffffff;
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
@@ -48,6 +49,13 @@
 .menu-button.selected {
   background-color: rgb(240, 240, 240);
   color: rgb(54, 199, 139);
+}
+
+.menu-comment {
+  font-size: 12px;
+  color: rgb(139, 139, 139);
+  margin-top: 8px;
+  margin-bottom: 8px;
 }
 
 .required-badge {

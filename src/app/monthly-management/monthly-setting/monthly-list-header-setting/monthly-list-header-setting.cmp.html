@@ -6,11 +6,21 @@
   <section class="header-setting-section">
     <h2 class="section-title">月次一覧の表示項目</h2>
 
+    <mat-checkbox 
+      [checked]="isAllSelected()"
+      (change)="toggleAll($event.checked)">
+        @if (isAllSelected()) {
+          すべて解除
+        } @else {
+          すべて選択
+        }
+    </mat-checkbox>
+
     <div class="checkbox-row disabled">
       <mat-checkbox [checked]="true" [disabled]="true">氏名（必須）</mat-checkbox>
     </div>
 
-    @for (col of optionalColumns; track col.key) {
+    @for (col of optionalColumns(); track col.key) {
       <div class="checkbox-row">
         <mat-checkbox
           [checked]="isChecked(col.key)"

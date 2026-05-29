@@ -38,13 +38,14 @@ export class MainLayoutCmp {
     { initialValue: this.urlToSection(this.router.url) },
   );
 
-  private urlToSection(url: string): 'myPage' | 'personalSetting' | 'taskBoard' | 'tenantSetting' | 'employeesManagement' | 'invitationsManagement' | 'monthlyManagement' {
+  private urlToSection(url: string): 'myPage' | 'personalSetting' | 'taskBoard' | 'tenantSetting' | 'employeesManagement' | 'invitationsManagement' | 'monthlyManagement' | 'virtualMailChecker' {
     if (url.startsWith('/personal-setting')) return 'personalSetting';
     if (url.startsWith('/task-board')) return 'taskBoard';
     if (url.startsWith('/setting-tenant')) return 'tenantSetting';
     if (url.startsWith('/employees-management')) return 'employeesManagement';
     if (url.startsWith('/invitations-management')) return 'invitationsManagement';
     if (url.startsWith('/monthly-management')) return 'monthlyManagement';
+    if (url.startsWith('/virtual-mail-checker')) return 'virtualMailChecker';
     return 'myPage';
   }
 
@@ -91,4 +92,8 @@ export class MainLayoutCmp {
   navigateToMonthlyManagement(): void {
     this.routesService.redirectToMonthlyManagement();
   }
-}
+
+  navigateToVirtualMailChecker(): void {
+    this.routesService.redirectToVirtualMailChecker();
+  }
+} 

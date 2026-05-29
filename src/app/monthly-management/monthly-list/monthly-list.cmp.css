@@ -15,6 +15,13 @@
   border-radius: 10px;
 }
 
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
 .month-picker-container {
   display: flex;
   align-items: center;
@@ -22,9 +29,8 @@
   margin-bottom: 16px;
 }
 
-.selected-month-label {
-  color: #666;
-  font-size: 14px;
+.date-picker {
+  width: 100px;
 }
 
 .search-container {

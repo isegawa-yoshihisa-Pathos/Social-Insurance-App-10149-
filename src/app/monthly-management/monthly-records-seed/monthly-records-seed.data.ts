@@ -1,3 +1,6 @@
+import { BonusAmountMap, BonusData } from '../../monthly-document';
+import { buildBonusData } from '../monthly-list/bonus-data.util';
+
 export const MONTHLY_SEED_EIDS = [
   '1xPhzoDUSeuj5cYq1mwL',
   'CUoiFmn06wdfnkeLCDbq',
@@ -18,8 +21,6 @@ export const MONTHLY_SEED_MONTHS = [
   '2026-06',
 ] as const;
 
-import { BonusMap } from '../../monthly-document';
-
 export interface MonthlySeedPayload {
   uid: string;
   displayName: string;
@@ -31,12 +32,45 @@ export interface MonthlySeedPayload {
     otherAllowance: number | null;
     retroactivePay: number | null;
   };
-  bonusData?: { bonus: BonusMap };
+  bonusData?: BonusData;
   premiumData: {
     healthInsurance: { employer: number; employee: number };
     careInsurance: { employer: number | null; employee: number | null };
     pensionInsurance: { employer: number; employee: number };
   };
+}
+
+export function buildSeedBonus(month: number, employeeIndex: number): BonusData | undefined {
+  const amounts: BonusAmountMap = {};
+
+  switch (month) {
+    case 1:
+      if (employeeIndex < 2) {
+        amounts['bonus-1'] = 120_000 + employeeIndex * 15_000;
+      }
+      break;
+    case 3:
+      if (employeeIndex % 2 === 1) {
+        amounts['bonus-1'] = 25_000 + employeeIndex * 5_000;
+      }
+      if (employeeIndex === 0) {
+        amounts['bonus-2'] = 10_000;
+      }
+      break;
+    case 5:
+      if (employeeIndex % 3 === 0) {
+        amounts['bonus-1'] = 8_000 + employeeIndex * 1_000;
+      }
+      break;
+    case 6:
+      amounts['bonus-1'] = 150_000 + employeeIndex * 20_000;
+      if (employeeIndex % 2 === 0) {
+        amounts['bonus-1'] = 50_000;
+      }
+      break;
+  }
+
+  return buildBonusData(amounts);
 }
 
 export function buildMonthlySeedPayload(
@@ -83,17 +117,9 @@ export function buildMonthlySeedPayload(
     },
   };
 
-  if (month === 6) {
-    const bonus: BonusMap = {
-      annual: 150_000 + employeeIndex * 20_000,
-    };
-    if (employeeIndex % 2 === 0) {
-      bonus.special = 50_000;
-    }
-    if (employeeIndex % 3 === 0) {
-      bonus.term_end = 80_000 + employeeIndex * 5_000;
-    }
-    payload.bonusData = { bonus };
+  const bonusData = buildSeedBonus(month, employeeIndex);
+  if (bonusData) {
+    payload.bonusData = bonusData;
   }
 
   return payload;

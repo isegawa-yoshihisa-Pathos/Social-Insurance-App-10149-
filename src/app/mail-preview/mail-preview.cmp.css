@@ -1,0 +1,30 @@
+.mail-body {
+  font-family: Arial, sans-serif;
+  color: #333;
+  line-height: 1.7;
+}
+
+.mail-editable-text {
+  white-space: pre-wrap;
+}
+
+.mail-action {
+  text-align: center;
+  margin: 30px 0;
+}
+
+.mail-action-button {
+  display: inline-block;
+  background-color: #673ab7;
+  color: white;
+  padding: 12px 24px;
+  text-decoration: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.mail-notes {
+  font-size: 12px;
+  color: #666;
+  margin: 0;
+}

@@ -63,20 +63,10 @@
                 <div><span>Subject</span> {{ previewSubject }}</div>
               </div>
               <div class="mail-preview-frame">
-                <div class="mail-body">
-                    <div class="mail-editable-text">
-                        {{ previewText }}
-                    </div>
-                    <div class="mail-action">
-                      <a class="mail-action-button">
-                        アカウント初期設定を行う
-                      </a>
-                    </div>
-                    <p class="mail-notes">
-                      ※このリンクの有効期限は24時間です。<br>
-                      ※このメールに心当たりがない場合は、このメールを破棄してください。
-                    </p>
-                  </div>
+                <app-mail-preview 
+                  [bodyText]="previewBody" 
+                  [inviteLink]="null"
+                />
               </div>
               <div class="mail-preview-actions">
                 <button mat-flat-button color="primary" mat-dialog-close>閉じる</button>

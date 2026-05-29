@@ -9,6 +9,8 @@ import { ErrorDialogCmp } from '../../../error-dialog/error-dialog.cmp';
 import { FunctionsService } from '../../../functions.service';
 import { CurrentTenantService } from '../../../current-tenant.service';
 import { InvitationDataService } from '../../invitation-data.service';
+import { MailPreviewCmp } from '../../../mail-preview/mail-preview.cmp';
+import { renderInvitationTemplate } from '../../../mail-preview/render-template';
 
 @Component({
   selector: 'app-invitation-mail-setting',
@@ -19,6 +21,7 @@ import { InvitationDataService } from '../../invitation-data.service';
     MatFormFieldModule,
     MatInputModule,
     MatProgressSpinnerModule,
+    MailPreviewCmp,
   ],
   templateUrl: './invitation-mail-setting.cmp.html',
   styleUrl: './invitation-mail-setting.cmp.css',
@@ -38,8 +41,16 @@ export class InvitationMailSettingCmp {
     email: 'yamada.taro@example.com',
     tenantName: '縄文事業所',
     replyToEmail: 'admin@jomon.com',
-    invitationUrl: 'https://jomon.com/invitation?token=sample',
   };
+
+  get previewBody(): string {
+    return renderInvitationTemplate(this.mailTemplateText, {
+      name: this.previewValues.name,
+      email: this.previewValues.email,
+      tenantName: this.previewValues.tenantName,
+      replyToEmail: this.previewValues.replyToEmail,
+    });
+  }
 
   constructor() {
     effect(() => {
@@ -61,10 +72,6 @@ export class InvitationMailSettingCmp {
 
   set mailReplyToEmail(value: string) {
     this.invitationDataService.replyToEmail.set(value);
-  }
-
-  get previewText(): string {
-    return this.renderTemplate(this.mailTemplateText);
   }
 
   get previewSubject(): string {
@@ -104,12 +111,5 @@ export class InvitationMailSettingCmp {
     } finally {
       this.saveBusy = false;
     }
-  }
-
-  private renderTemplate(template: string): string {
-    return template.replace(
-      /\{\s*(\w+)\s*\}/g,
-      (_, key: keyof typeof this.previewValues) => this.previewValues[key] ?? '',
-    );
   }
 }

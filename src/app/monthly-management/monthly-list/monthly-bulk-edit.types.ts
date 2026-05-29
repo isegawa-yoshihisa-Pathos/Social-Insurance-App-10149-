@@ -1,27 +1,15 @@
+import { BonusAmountMap } from '../../monthly-document';
 import { MonthlyListColumnKey } from './monthly-list-columns';
 
-export type BulkEditableColumn = Exclude<
-  MonthlyListColumnKey,
-  'displayName' | 'bonus' | `bonus_${string}`
->;
+export type BulkEditableColumn = Exclude<MonthlyListColumnKey, 'displayName' | 'bonus'>;
 
 export type BulkEditValue = number | null;
 
-const NUMERIC_BULK_COLUMNS: readonly BulkEditableColumn[] = [
-  'totalPay',
-  'basicSalary',
-  'overtimePay',
-  'commuterAllowance',
-  'otherAllowance',
-  'retroactivePay',
-  'healthInsurance_employer',
-  'healthInsurance_employee',
-  'careInsurance_employer',
-  'careInsurance_employee',
-  'pensionInsurance_employer',
-  'pensionInsurance_employee',
-] as const;
+export interface BulkEditTarget {
+  eid: string;
+  bonus: BonusAmountMap;
+}
 
-export function isNumericBulkColumn(column: BulkEditableColumn): boolean {
-  return NUMERIC_BULK_COLUMNS.includes(column);
+export function isEditableColumn(column: MonthlyListColumnKey): column is BulkEditableColumn {
+  return column !== 'displayName' && column !== 'bonus';
 }

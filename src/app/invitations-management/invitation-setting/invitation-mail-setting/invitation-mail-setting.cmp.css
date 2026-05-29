@@ -67,36 +67,6 @@
   background: #fff;
 }
 
-.mail-preview-frame .mail-body {
-  font-family: Arial, sans-serif;
-  color: #333;
-  line-height: 1.7;
-}
-
-.mail-preview-frame .mail-editable-text {
-  white-space: pre-wrap;
-}
-
-.mail-preview-frame .mail-action {
-  text-align: center;
-  margin: 30px 0;
-}
-
-.mail-preview-frame .mail-action-button {
-  display: inline-block;
-  background-color: #673ab7;
-  color: white;
-  padding: 12px 24px;
-  text-decoration: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.mail-preview-frame .mail-notes {
-  font-size: 12px;
-  color: #666;
-}
-
 .mail-preview-actions {
   display: flex;
   justify-content: flex-end;

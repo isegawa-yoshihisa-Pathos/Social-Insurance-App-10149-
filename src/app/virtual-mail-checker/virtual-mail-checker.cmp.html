@@ -2,13 +2,21 @@
     <div class="label">
         メールボックス
     </div>
+    <div class="comment">
+      本来はResend等を用いて、それぞれの招待メールアドレスにメールを送信します。<br>
+      今回は疑似的なメールを作成し、メールの内容を確認できるようにしています。
+    </div>
     <div class="invitation-mails">
         
         <div class="mail-list">
             @for (mail of mails; track mail.id) {
                 <button class="mail-item" (click)="openPreview(mailPreviewDialog, mail)">
-                    <div class="mail-item-to">To:{{ mail.to }}</div>
-                    <div class="mail-item-subject">Subject:{{ mail.subject }}</div>
+                    <div class="mail-item-to">
+                      <span class="mail-item-label">To:</span> {{ formatTo(mail.to) }}
+                    </div>
+                    <div class="mail-item-subject">
+                      <span class="mail-item-label">Subject:</span> {{ mail.subject }}
+                    </div>
                 </button>
             }
         </div>
@@ -17,14 +25,15 @@
             <div class="mail-preview-dialog">
               <div class="mail-meta">
                 <div><span>From</span> {{ selectedMail?.from }}</div>
-                <div><span>To</span> {{ selectedMail?.to }}</div>
+                <div><span>To</span> {{ formatTo(selectedMail?.to) }}</div>
                 <div><span>Reply-To</span> {{ selectedMail?.replyTo || '未設定' }}</div>
                 <div><span>Subject</span> {{ selectedMail?.subject }}</div>
               </div>
               <div class="mail-preview-frame">
-                <div class="mail-body">
-                    <div class="mail-editable-text" [innerHTML]="selectedMail?.html"></div>
-                </div>
+                <app-mail-preview
+                  [bodyText]="selectedMail?.bodyText ?? ''"
+                  [inviteLink]="selectedMail?.inviteLink ?? null"
+                />
               </div>
               <div class="mail-preview-actions">
                 <button mat-flat-button color="primary" mat-dialog-close>閉じる</button>

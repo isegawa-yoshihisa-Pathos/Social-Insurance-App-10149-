@@ -14,7 +14,6 @@
 .import-file-setting {
   display: flex;
   flex-direction: column;
-  gap: 28px;
 }
 
 .import-file-setting-content {
@@ -24,6 +23,8 @@
 }
 
 .header-label {
+  color: #333;
+  font-size: 18px;
   font-weight: bold;
 }
 
@@ -31,65 +32,19 @@
   padding: 0 50px;
 }
 
-.header-chip-list {
+.header-setting-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 8px;
-  min-height: 32px;
-}
-
-.header-chip {
-  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 10px;
-  border-radius: 16px;
-  background-color: #ececec;
-  box-sizing: border-box;
+  gap: 12px;
 }
 
-.header-chip-text {
-  display: block;
-  line-height: 20px;
-  font-size: 13px;
+.header-input {
+  flex: 1;
+  max-width: 320px;
 }
 
-.delete-header-button {
-  display: grid;
-  place-items: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  padding: 0;
-  margin: 0;
-  border: none;
-  background: transparent;
-  color: #b91e1b;
-  cursor: pointer;
-}
-
-.delete-header-button:hover {
-  background-color: #b91e1b;
-  color: white;
-}
-
-.delete-header-button mat-icon {
-  display: block;
-  font-size: 16px;
-  width: 16px;
-  height: 16px;
-  line-height: 16px;
-}
-
-.save-setting-button {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 4px;
-}
-
-.add-header-button {
-  margin-left: 8px;
+.current-header {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: #555;
 }

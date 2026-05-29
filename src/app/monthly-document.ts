@@ -6,7 +6,7 @@ export interface MonthlyDocument {
 
     payrollData: PayrollData;
     bonusData?: BonusData;
-    premiumData: PremiumData;
+    // premiumData: PremiumData;
 
     updatedAt: Timestamp;
 }
@@ -19,13 +19,13 @@ export interface MonthlyFormData {
     commuterAllowance: number | null;
     otherAllowance: number | null;
     retroactivePay: number | null;
-    bonus: BonusMap;
-    healthInsurance_employer: number;
-    healthInsurance_employee: number;
-    careInsurance_employer: number | null;
-    careInsurance_employee: number | null;
-    pensionInsurance_employer: number;
-    pensionInsurance_employee: number;
+    bonus: BonusAmountMap;
+    // healthInsurance_employer: number;
+    // healthInsurance_employee: number;
+    // careInsurance_employer: number | null;
+    // careInsurance_employee: number | null;
+    // pensionInsurance_employer: number;
+    // pensionInsurance_employee: number;
 }
 
 export interface PayrollData {
@@ -37,39 +37,26 @@ export interface PayrollData {
     retroactivePay: number | null;
 }
 
-export interface BonusData {
-    bonus: BonusMap;
+export interface BonusTypeDefinition {
+    label: string;
+    type: string;
 }
 
-export type StoredBonusType =
-    | 'annual'
-    | 'term_end'
-    | 'incentive'
-    | 'allowance'
-    | 'special'
-    | 'other';
+export type BonusAmountMap = Record<string, number>;
 
-export type BonusType = StoredBonusType | '';
+export interface BonusData {
+    total: number;
+    [bonusType: string]: number;
+}
 
-export type BonusMap = Partial<Record<StoredBonusType, number>>;
-
-export const STORED_BONUS_TYPES: readonly StoredBonusType[] = [
-    'annual',
-    'term_end',
-    'incentive',
-    'allowance',
-    'special',
-    'other',
+export const DEFAULT_BONUS_TYPE_DEFINITIONS: readonly BonusTypeDefinition[] = [
+    { label: '定期賞与', type: 'bonus-1' },
+    { label: '期末賞与', type: 'bonus-2' },
+    { label: 'インセンティブ', type: 'bonus-3' },
+    { label: '臨時手当', type: 'bonus-4' },
+    { label: '特別賞与', type: 'bonus-5' },
+    { label: 'その他', type: 'bonus-6' },
 ] as const;
-
-export const BONUS_TYPE_LABELS: Record<StoredBonusType, string> = {
-    annual: '定期賞与',
-    term_end: '期末賞与',
-    incentive: 'インセンティブ',
-    allowance: '臨時手当',
-    special: '特別賞与',
-    other: 'その他',
-};
 
 export interface PremiumData {
     healthInsurance: {

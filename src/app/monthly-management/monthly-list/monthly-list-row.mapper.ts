@@ -1,20 +1,21 @@
-import { MonthlyDocument } from '../../monthly-document';
+import { BonusTypeDefinition, MonthlyDocument } from '../../monthly-document';
 import {
   buildBonusDisplayParts,
   bonusTypeFromColumnKey,
-  formatBonusAmount,
-  normalizeBonusMap,
 } from './bonus-display.util';
+import { extractBonusAmounts } from './bonus-data.util';
+import { BulkEditValue } from './monthly-bulk-edit.types';
 import { MonthlyListColumnKey, MonthlyListRow } from './monthly-list-columns';
+import { Format } from '../../format-number-jp';
 
 export function toMonthlyListRow(
   eid: string,
   data: Partial<MonthlyDocument>,
+  bonusTypeDefinitions: BonusTypeDefinition[],
 ): MonthlyListRow {
   const payroll = data.payrollData;
-  const premium = data.premiumData;
-  const bonus = normalizeBonusMap(data.bonusData?.bonus);
-  const bonusParts = buildBonusDisplayParts(bonus);
+  const bonus = data.bonusData ? extractBonusAmounts(data.bonusData) : {};
+  const bonusParts = buildBonusDisplayParts(bonus, bonusTypeDefinitions);
 
   return {
     eid,
@@ -29,13 +30,23 @@ export function toMonthlyListRow(
     bonusDisplay: bonusParts.display,
     bonusTooltip: bonusParts.tooltip,
     bonusTotal: bonusParts.total,
-    healthInsurance_employer: premium?.healthInsurance?.employer ?? 0,
-    healthInsurance_employee: premium?.healthInsurance?.employee ?? 0,
-    careInsurance_employer: premium?.careInsurance?.employer ?? null,
-    careInsurance_employee: premium?.careInsurance?.employee ?? null,
-    pensionInsurance_employer: premium?.pensionInsurance?.employer ?? 0,
-    pensionInsurance_employee: premium?.pensionInsurance?.employee ?? 0,
   };
+}
+
+export function getMonthlyListEditValue(
+  row: MonthlyListRow,
+  column: MonthlyListColumnKey,
+): BulkEditValue {
+  const bonusType = bonusTypeFromColumnKey(column);
+  if (bonusType) {
+    const amount = row.bonus[bonusType] ?? 0;
+    return amount === 0 ? null : amount;
+  }
+
+  const value = row[column as keyof MonthlyListRow];
+  if (value == null || value === '') return null;
+  if (typeof value === 'number') return value;
+  return null;
 }
 
 export function formatMonthlyListCellValue(
@@ -43,18 +54,22 @@ export function formatMonthlyListCellValue(
   column: MonthlyListColumnKey,
 ): string {
   if (column === 'bonus') {
-    return row.bonusDisplay;
+    return row.bonusTotal === 0 ? '' : Format(row.bonusTotal);
   }
 
   const bonusType = bonusTypeFromColumnKey(column);
   if (bonusType) {
     const amount = row.bonus[bonusType] ?? 0;
-    return amount === 0 ? '' : formatBonusAmount(amount);
+    return amount === 0 ? '' : Format(amount);
+  }
+
+  if (column === 'displayName') {
+    return row.displayName;
   }
 
   const value = row[column as keyof MonthlyListRow];
   if (value == null) return '';
-  return String(value);
+  return Format(value as number);
 }
 
 export function monthlyListSortValue(
@@ -64,12 +79,15 @@ export function monthlyListSortValue(
   if (column === 'bonus') {
     return row.bonusTotal;
   }
+
   const bonusType = bonusTypeFromColumnKey(column);
   if (bonusType) {
     return row.bonus[bonusType] ?? 0;
   }
+
   const value = row[column as keyof MonthlyListRow];
   if (typeof value === 'number') return value;
+
   if (value == null) return '';
   return String(value);
 }

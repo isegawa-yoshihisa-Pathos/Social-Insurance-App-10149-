@@ -1,10 +1,11 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { Firestore, doc, getDoc } from '@angular/fire/firestore';
 import { AccountPersonalInfo, EmployeePersonalInfo } from './personal-document';
-import { PersonalFormData, EmployeeFormData } from './personal-form-data';
+import { PersonalFormData, EmployeeFormData, accountPersonalInfoToForm, employeePersonalInfoToForm } from './personal-form-data';
 import { toFormDate } from './date-utils';
 import { TenantDocument, SocialInsuranceSettings } from './tenant-document';
 import { TenantFormData } from './tenant-form-data';
+import { EmployeeDocument } from './employee-document';
 
 export interface ProfileCompletionState {
   personal: boolean;
@@ -32,22 +33,32 @@ export class ProfileCompletionService {
     personalForm: PersonalFormData,
     employeeForm: EmployeeFormData,
   ): void {
+    const personalMissing = this.hasPersonalMissingFields(personalForm);
+    const employeeMissing = this.hasEmployeeMissingFields(employeeForm);
+    const tenantMissing = this.state().tenant;
+    const socialInsuranceSettingsMissing = this.state().socialInsuranceSettings;
+
     this.state.set({
-      personal: this.hasPersonalMissingFields(personalForm),
-      employee: this.hasEmployeeMissingFields(employeeForm),
-      tenant: this.state().tenant,
-      socialInsuranceSettings: this.state().socialInsuranceSettings,
-      any: this.state().personal || this.state().employee || this.state().tenant || this.state().socialInsuranceSettings,
+      personal: personalMissing,
+      employee: employeeMissing,
+      tenant: tenantMissing,
+      socialInsuranceSettings: socialInsuranceSettingsMissing,
+      any: personalMissing || employeeMissing || tenantMissing || socialInsuranceSettingsMissing,
     });
   }
 
   updateFromTenantForm(form: TenantFormData): void {
+    const personalMissing = this.state().personal;
+    const employeeMissing = this.state().employee;
+    const tenantMissing = this.hasTenantMissingFields(form);
+    const socialInsuranceSettingsMissing = this.hasSocialInsuranceSettingsMissingFields(form.socialInsuranceSettings);
+
     this.state.set({
-      personal: this.state().personal,
-      employee: this.state().employee,
-      tenant: this.hasTenantMissingFields(form),
-      socialInsuranceSettings: this.hasSocialInsuranceSettingsMissingFields(form.socialInsuranceSettings),
-      any: this.state().personal || this.state().employee || this.state().tenant || this.state().socialInsuranceSettings,
+      personal: personalMissing,
+      employee: employeeMissing,
+      tenant: tenantMissing,
+      socialInsuranceSettings: socialInsuranceSettingsMissing,
+      any: personalMissing || employeeMissing || tenantMissing || socialInsuranceSettingsMissing,
     });
   }
 
@@ -58,9 +69,11 @@ export class ProfileCompletionService {
     const personal = account?.['personalInfo'] as Partial<AccountPersonalInfo> | undefined;
     const eid = account?.['affiliations']?.[tid] as string | undefined;
 
-    const employee = eid
-      ? (await getDoc(doc(this.firestore, 'tenants', tid, 'employees', eid))).data() as Partial<EmployeePersonalInfo> | undefined
-      : undefined;
+    const employeeSnap = eid
+      ? await getDoc(doc(this.firestore, 'tenants', tid, 'employees', eid))
+      : null;
+    const employeeDoc = employeeSnap?.data() as Partial<EmployeeDocument> | undefined;
+    const employee = employeeDoc?.employeePersonalInfo;
 
     const tenant = (await getDoc(
       doc(this.firestore, 'tenants', tid),
@@ -68,8 +81,11 @@ export class ProfileCompletionService {
 
     const socialInsuranceSettings = tenant?.socialInsuranceSettings as SocialInsuranceSettings | undefined;
 
-    const personalMissing = this.hasAccountPersonalInfoMissingFields(personal);
-    const employeeMissing = this.hasEmployeeInfoMissingFields(employee);
+    const personalForm = accountPersonalInfoToForm(personal);
+    const employeeForm = employeePersonalInfoToForm(employee);
+
+    const personalMissing = this.hasPersonalMissingFields(personalForm);
+    const employeeMissing = this.hasEmployeeMissingFields(employeeForm);
     const tenantMissing = this.hasTenantDocumentMissingFields(tenant);
     const socialMissing = this.hasSocialInsuranceSettingsDocumentMissingFields(socialInsuranceSettings);
 

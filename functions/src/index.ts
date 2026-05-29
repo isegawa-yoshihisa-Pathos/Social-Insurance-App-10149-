@@ -12,7 +12,6 @@ export { registerAdminAndTenant } from './registerAdminAndTenant';
 export { startInvitationMailBatch } from './invitation-mail-batch';
 export { deliverInvitationMailTask } from './invitation-mail-task';
 export { saveInvitationTemplate } from './invitation-functions';
-export { saveInvitationImportSettings } from './invitation-functions';
 export { validateInvitationToken } from './invitation-accept-functions';
 export { acceptInvitation } from './invitation-accept-functions';
 // import {onRequest} from "firebase-functions/https";

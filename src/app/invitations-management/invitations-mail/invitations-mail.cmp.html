@@ -75,8 +75,8 @@
                 type="button"
                 class="import-invitation-emails-button" 
                 (click)="csvFileInput.click()"
-                matTooltip="CSVファイルをアップロード">
-                <mat-icon>attach_file</mat-icon>
+                matTooltip="CSVファイルからインポート">
+                <mat-icon>download</mat-icon>
             </button>
             <button mat-flat-button color="primary" class="send-invitation-button" (click)="sendInvitation()">
                 <span>{{sendBusy ? '送信中...' : '送信'}}</span>

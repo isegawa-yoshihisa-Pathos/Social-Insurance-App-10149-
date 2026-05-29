@@ -1,7 +1,17 @@
-<h2 mat-dialog-title>{{ data.label }}を一括編集</h2>
+<h2 mat-dialog-title>
+  @if (data.selectedCount === 1) {
+    {{ data.label }}
+  } @else {
+    {{ data.label }}を一括編集
+  }
+</h2>
 
 <div mat-dialog-content>
-  <p>{{ data.selectedCount }}名に同じ値を反映します。</p>
+  @if (data.selectedCount === 1) {
+    <p>{{ data.displayName }}の値を編集します。</p>
+  } @else {
+    <p>{{ data.selectedCount }}名に同じ値を反映します。</p>
+  }
 
   <mat-form-field appearance="outline" style="width: 100%;">
     <mat-label>{{ data.label }}</mat-label>

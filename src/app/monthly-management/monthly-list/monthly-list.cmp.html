@@ -1,22 +1,52 @@
 <div class="monthly-list-container">
   <div class="monthly-list-content">
-    <div class="month-picker-container">
-      <mat-form-field appearance="outline">
-        <mat-label>対象月</mat-label>
+    <div class="header-container">
+      <div class="month-picker-container">
+        <button mat-icon-button (click)="previousMonth()" matTooltip="前月">
+          <mat-icon>arrow_back</mat-icon>
+        </button>
+        <mat-form-field appearance="outline" class="date-picker">
+          <mat-label>年</mat-label>
+          <mat-select [ngModel]="selectedYear()" (ngModelChange)="selectedYear.set($event)">
+            @for (year of yearOptions; track year) {
+              <mat-option [value]="year">{{ year }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="date-picker">
+          <mat-label>月</mat-label>
+          <mat-select [ngModel]="selectedMonth()" (ngModelChange)="selectedMonth.set($event)">
+            @for (month of monthOptions; track month) {
+              <mat-option [value]="month">{{ month }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <button mat-icon-button (click)="nextMonth()" matTooltip="翌月">
+          <mat-icon>arrow_forward</mat-icon>
+        </button>
+        <button mat-button (click)="setThisMonth()">
+          <span>今月</span>
+        </button>
+      </div>
+      <div class="action-buttons">
         <input
-          matInput
-          [matDatepicker]="monthPicker"
-          [ngModel]="selectedMonth()"
-          (ngModelChange)="onSelectedMonthChange($event)"
-        />
-        <mat-datepicker-toggle matIconSuffix [for]="monthPicker"></mat-datepicker-toggle>
-        <mat-datepicker
-          #monthPicker
-          startView="multi-year"
-          (monthSelected)="onMonthSelected($event, monthPicker)"
-        ></mat-datepicker>
-      </mat-form-field>
-      <span class="selected-month-label">{{ yyyyMm() }}</span>
+          #csvFileInput
+          type="file"
+          accept=".csv,text/csv"
+          hidden
+          (change)="importFromCSV($event)">
+        <button 
+          mat-icon-button 
+          type="button"
+          class="import-csv-button" 
+          (click)="csvFileInput.click()"
+          matTooltip="CSVファイルからインポート">
+          <mat-icon>download</mat-icon>
+        </button>
+        <button mat-icon-button matTooltip="CSVエクスポート">
+          <mat-icon>upload</mat-icon>
+        </button>
+      </div>
     </div>
 
     <div class="search-container">

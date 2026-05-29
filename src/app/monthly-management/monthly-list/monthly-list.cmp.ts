@@ -7,25 +7,28 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatDatepicker, MatDatepickerModule } from '@angular/material/datepicker';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { RoutesService } from '../../routes.service';
 import { CurrentTenantService } from '../../current-tenant.service';
 import { MonthlyManagementDataService } from '../monthly-management-data.service';
-import { MonthlyListColumnKey, MonthlyListRow, MONTHLY_LIST_COLUMN_LABELS } from './monthly-list-columns';
+import { MonthlyListColumnKey, MonthlyListRow, getMonthlyListColumnLabel } from './monthly-list-columns';
 import { MonthlyDocument } from '../../monthly-document';
 import { BulkColumnEditDialogCmp, BulkColumnEditDialogData } from './bulk-column-edit-dialog/bulk-column-edit-dialog.cmp';
-import { BulkEditableColumn, BulkEditValue } from './monthly-bulk-edit.types';
+import { BulkEditableColumn, BulkEditValue, isEditableColumn } from './monthly-bulk-edit.types';
 import { MonthlyListBulkEditService } from './monthly-list-bulk-edit.service';
 import {
   formatMonthlyListCellValue,
+  getMonthlyListEditValue,
   monthlyListSearchText,
   monthlyListSortValue,
   toMonthlyListRow,
 } from './monthly-list-row.mapper';
-import { isBonusDetailColumn } from './bonus-display.util';
-import { BonusDetailDialogCmp, BonusDetailDialogData } from './bonus-detail-dialog/bonus-detail-dialog.cmp';
+import { YEAR_OPTIONS, MONTH_OPTIONS } from '../../datePicker';
+import { ErrorDialogCmp } from '../../error-dialog/error-dialog.cmp';
+import { MonthlyListDataService } from './monthly-list-data.service';
 
 @Component({
   selector: 'app-monthly-list',
@@ -36,9 +39,10 @@ import { BonusDetailDialogCmp, BonusDetailDialogData } from './bonus-detail-dial
     MatSelectModule,
     MatInputModule,
     MatCheckboxModule,
-    MatDatepickerModule,
     MatFormFieldModule,
     MatTooltipModule,
+    MatIconModule,
+    MatButtonModule,
   ],
   templateUrl: './monthly-list.cmp.html',
   styleUrl: './monthly-list.cmp.css',
@@ -48,12 +52,15 @@ export class MonthlyListCmp {
   private readonly routesService = inject(RoutesService);
   private readonly currentTenantService = inject(CurrentTenantService);
   private readonly dataService = inject(MonthlyManagementDataService);
+  private readonly monthlyListDataService = inject(MonthlyListDataService);
   private readonly dialog = inject(MatDialog);
   private readonly bulkEditService = inject(MonthlyListBulkEditService);
 
-  readonly monthlyListColumnLabels = MONTHLY_LIST_COLUMN_LABELS;
   readonly visibleColumns = computed(() => this.dataService.visibleColumns());
   readonly tableColumns = computed(() => ['selected', ...this.visibleColumns()]);
+
+  readonly yearOptions = YEAR_OPTIONS;
+  readonly monthOptions = MONTH_OPTIONS;
 
   @ViewChild(MatSort) set matSort(sort: MatSort) {
     if (sort) {
@@ -63,39 +70,63 @@ export class MonthlyListCmp {
 
   dataSource = new MatTableDataSource<MonthlyListRow>([]);
   loading = true;
-  bulkSaving = false;
+  private loadToken = 0;
+  private settingsLoadedTid: string | null = null;
 
   searchTargetColumn: MonthlyListColumnKey = 'displayName';
   searchQuery = '';
 
   selectedEids = new Set<string>();
 
-  readonly selectedMonth = signal(this.startOfMonth(new Date()));
+  readonly selectedYear = signal(new Date().getFullYear());
+  readonly selectedMonth = signal(new Date().getMonth() + 1);
 
   readonly yyyyMm = computed(() => {
-    const d = this.selectedMonth();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const y = this.selectedYear();
+    const m = String(this.selectedMonth()).padStart(2, '0');
     return `${y}-${m}`;
   });
+
+  previousMonth(): void {
+    if (this.selectedMonth() === 1) {
+      this.selectedYear.set(this.selectedYear() - 1);
+      this.selectedMonth.set(12);
+    } else {
+      this.selectedMonth.set(this.selectedMonth() - 1);
+    }
+  }
+
+  nextMonth(): void {
+    if (this.selectedMonth() === 12) {
+      this.selectedYear.set(this.selectedYear() + 1);
+      this.selectedMonth.set(1);
+    } else {
+      this.selectedMonth.set(this.selectedMonth() + 1);
+    }
+  }
+
+  setThisMonth(): void {
+    this.selectedYear.set(new Date().getFullYear());
+    this.selectedMonth.set(new Date().getMonth() + 1);
+  }
 
   constructor() {
     this.dataSource.sortingDataAccessor = (row, property) =>
       monthlyListSortValue(row, property as MonthlyListColumnKey);
 
-    effect(async () => {
+    effect(() => {
       const tid = this.currentTenantService.currentTid();
       const ym = this.yyyyMm();
       if (!tid || !ym) {
         this.dataSource.data = [];
         this.selectedEids.clear();
+        this.settingsLoadedTid = null;
         this.loading = false;
         return;
       }
-      await Promise.all([
-        this.loadMonthlyRecords(tid, ym),
-        this.dataService.loadListSettings(tid),
-      ]);
+
+      const token = ++this.loadToken;
+      void this.loadForPeriod(tid, ym, token);
     });
 
     this.dataSource.filterPredicate = (data: MonthlyListRow, filter: string) => {
@@ -109,22 +140,27 @@ export class MonthlyListCmp {
     };
   }
 
-  onMonthSelected(normalizedMonth: Date, datepicker: MatDatepicker<Date>): void {
-    this.selectedMonth.set(this.startOfMonth(normalizedMonth));
-    datepicker.close();
-  }
-
-  onSelectedMonthChange(value: Date | null): void {
-    if (!value) return;
-    this.selectedMonth.set(this.startOfMonth(value));
-  }
-
-  private startOfMonth(date: Date): Date {
-    return new Date(date.getFullYear(), date.getMonth(), 1);
-  }
-
-  private async loadMonthlyRecords(tid: string, yyyyMm: string): Promise<void> {
+  private async loadForPeriod(tid: string, ym: string, token: number): Promise<void> {
     this.loading = true;
+    try {
+      if (this.settingsLoadedTid !== tid) {
+        await this.dataService.loadListSettings(tid);
+        if (token !== this.loadToken) return;
+        this.settingsLoadedTid = tid;
+      }
+      await this.loadMonthlyRecords(tid, ym, token);
+    } finally {
+      if (token === this.loadToken) {
+        this.loading = false;
+      }
+    }
+  }
+
+  private async loadMonthlyRecords(
+    tid: string,
+    yyyyMm: string,
+    token?: number,
+  ): Promise<void> {
     const monthlyRef = collection(
       this.firestore,
       'tenants',
@@ -134,13 +170,18 @@ export class MonthlyListCmp {
       'employees',
     );
     const monthly = await getDocs(monthlyRef);
+    if (token !== undefined && token !== this.loadToken) return;
+
     const data = monthly.docs.map((snap) =>
-      toMonthlyListRow(snap.id, snap.data() as Partial<MonthlyDocument>),
+      toMonthlyListRow(
+        snap.id,
+        snap.data() as Partial<MonthlyDocument>,
+        this.dataService.bonusTypeDefinitions(),
+      ),
     );
     this.dataSource.data = data;
     const alive = new Set(data.map((r) => r.eid));
     this.selectedEids = new Set([...this.selectedEids].filter((eid) => alive.has(eid)));
-    this.loading = false;
   }
 
   search(): void {
@@ -183,18 +224,15 @@ export class MonthlyListCmp {
   }
 
   onCellClick(row: MonthlyListRow, col: MonthlyListColumnKey): void {
-    if (col === 'displayName') {
-      this.routesService.redirectToEmployeeEmployDetail(row.eid);
-      return;
-    }
-
-    if (isBonusDetailColumn(col)) {
-      this.openBonusDetailDialog(row);
+    if (col === 'displayName' || col === 'bonus' || !isEditableColumn(col)) {
+      if (col === 'displayName') {
+        this.routesService.redirectToEmployeeEmployDetail(row.eid);
+      }
       return;
     }
 
     const targetEids = this.resolveTargetEids(row.eid);
-    this.openBulkEditDialog(col as BulkEditableColumn, row[col as keyof MonthlyListRow], targetEids);
+    this.openBulkEditDialog(col, getMonthlyListEditValue(row, col), targetEids);
   }
 
   formatCellValue(row: MonthlyListRow, col: MonthlyListColumnKey): string {
@@ -217,20 +255,9 @@ export class MonthlyListCmp {
     return this.selectedEids.has(eid) ? [...this.selectedEids] : [eid];
   }
 
-  private openBonusDetailDialog(row: MonthlyListRow): void {
-    this.dialog.open<BonusDetailDialogCmp, BonusDetailDialogData>(BonusDetailDialogCmp, {
-      width: '420px',
-      data: {
-        displayName: row.displayName,
-        yyyyMm: this.yyyyMm(),
-        bonus: row.bonus,
-      },
-    });
-  }
-
   private openBulkEditDialog(
     column: BulkEditableColumn,
-    initialValue: unknown,
+    initialValue: BulkEditValue,
     targetEids: string[],
   ): void {
     const dialogRef = this.dialog.open<
@@ -241,7 +268,8 @@ export class MonthlyListCmp {
       width: '420px',
       data: {
         column,
-        label: this.monthlyListColumnLabels[column],
+        displayName: targetEids.length === 1 ? this.dataSource.data.find((r) => r.eid === targetEids[0])?.displayName : undefined,
+        label: getMonthlyListColumnLabel(column, this.dataService.bonusTypeDefinitions()),
         selectedCount: targetEids.length,
         initialValue,
       },
@@ -261,16 +289,34 @@ export class MonthlyListCmp {
     const tid = this.currentTenantService.currentTid();
     const ym = this.yyyyMm();
     if (!tid || !ym || targetEids.length === 0) return;
-    this.bulkSaving = true;
+
+    const targets = targetEids.map((eid) => {
+      const row = this.dataSource.data.find((r) => r.eid === eid);
+      return { eid, bonus: row?.bonus ?? {} };
+    });
+
     try {
-      await this.bulkEditService.applyBulkEdit(tid, ym, targetEids, column, value);
+      await this.bulkEditService.applyBulkEdit(tid, ym, targets, column, value);
       await this.loadMonthlyRecords(tid, ym);
-    } finally {
-      this.bulkSaving = false;
+    } catch (error) {
+      this.dialog.open(ErrorDialogCmp, {
+        data: {
+          title: 'エラー',
+          message: 'データの更新に失敗しました。',
+        },
+      });
     }
   }
 
   getColumnLabel(column: MonthlyListColumnKey): string {
-    return this.monthlyListColumnLabels[column];
+    return getMonthlyListColumnLabel(column, this.dataService.bonusTypeDefinitions());
+  }
+
+  importFromCSV(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) {
+      return;
+    }
   }
 }

@@ -134,9 +134,12 @@ export const routes: Routes = [
             loadComponent: () => import('./monthly-management/monthly-setting/monthly-setting.cmp').then(m => m.MonthlySettingCmp),
           },
         ],
-      }
+      },
+      {
+        path: 'virtual-mail-checker',
+        loadComponent: () => import('./virtual-mail-checker/virtual-mail-checker.cmp').then(m => m.VirtualMailCheckerCmp),
+      },
     ]
   },
   { path: 'invitation', component: InvitationAcceptCmp },
-  { path: 'virtual-mail-checker', component: VirtualMailCheckerCmp },
 ];

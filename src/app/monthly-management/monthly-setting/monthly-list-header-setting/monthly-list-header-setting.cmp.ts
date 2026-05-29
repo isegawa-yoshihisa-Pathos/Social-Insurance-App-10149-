@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -9,8 +9,8 @@ import { CurrentTenantService } from '../../../current-tenant.service';
 import { RoutesService } from '../../../routes.service';
 import { MonthlyManagementDataService } from '../../monthly-management-data.service';
 import {
+  getOptionalMonthlyListColumns,
   MonthlyListColumnKey,
-  OPTIONAL_MONTHLY_LIST_COLUMNS,
 } from '../../monthly-list/monthly-list-columns';
 
 @Component({
@@ -25,7 +25,9 @@ export class MonthlyListHeaderSettingCmp implements OnInit {
   private readonly routesService = inject(RoutesService);
   private readonly dialog = inject(MatDialog);
 
-  readonly optionalColumns = OPTIONAL_MONTHLY_LIST_COLUMNS;
+  readonly optionalColumns = computed(() =>
+    getOptionalMonthlyListColumns(this.dataService.bonusTypeDefinitions()),
+  );
 
   loading = false;
   saveBusy = false;
@@ -54,6 +56,14 @@ export class MonthlyListHeaderSettingCmp implements OnInit {
 
   onOptionalChange(key: MonthlyListColumnKey, checked: boolean): void {
     this.dataService.toggleOptionalColumn(key, checked);
+  }
+
+  isAllSelected(): boolean {
+    return this.optionalColumns().every((col) => this.isChecked(col.key));
+  }
+
+  toggleAll(checked: boolean): void {
+    this.optionalColumns().forEach((col) => this.onOptionalChange(col.key, checked));
   }
 
   async save(): Promise<void> {

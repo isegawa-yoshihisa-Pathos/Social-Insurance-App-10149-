@@ -21,6 +21,13 @@
   padding-left: 8px;
 }
 
+.comment {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
 .invitation-mails {
   font-size: 14px;
   color: #666;
@@ -44,6 +51,12 @@
   border-radius: 8px;
   background: #f7f7f7;
   cursor: pointer;
+  gap: 16px;
+}
+
+.mail-item-label {
+  font-weight: bold;
+  color: #555;
 }
 
 .mail-list :hover {

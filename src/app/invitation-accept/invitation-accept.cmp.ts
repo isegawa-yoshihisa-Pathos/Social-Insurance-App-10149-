@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -36,7 +36,7 @@ interface InvitationPreview {
   templateUrl: './invitation-accept.cmp.html',
   styleUrl: './invitation-accept.cmp.css',
 })
-export class InvitationAcceptCmp {
+export class InvitationAcceptCmp implements OnInit{
   private readonly route = inject(ActivatedRoute);
   private readonly functionsService = inject(FunctionsService);
   private readonly authService = inject(AuthService);
@@ -56,6 +56,11 @@ export class InvitationAcceptCmp {
   verifying = false;
   accepting: 'create' | 'link' | null = null;
 
+  async ngOnInit(): Promise<void> {
+    if (this.auth.currentUser) {
+      await this.auth.signOut();
+    }
+  }
 
   get canVerify(): boolean {
     return Boolean(this.token && this.email.trim() && !this.verifying);

@@ -6,6 +6,16 @@
     <section class="header-setting-section">
       <h2 class="section-title">従業員一覧の表示項目</h2>
   
+      <mat-checkbox 
+      [checked]="isAllSelected()"
+      (change)="toggleAll($event.checked)">
+        @if (isAllSelected()) {
+          すべて解除
+        } @else {
+          すべて選択
+        }
+      </mat-checkbox>
+      
       <div class="checkbox-row disabled">
         <mat-checkbox [checked]="true" [disabled]="true">表示名（必須）</mat-checkbox>
       </div>

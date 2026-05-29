@@ -6,8 +6,12 @@ import {
   doc,
   serverTimestamp,
   writeBatch,
+  deleteField,
 } from '@angular/fire/firestore';
-import { BulkEditableColumn, BulkEditValue } from './monthly-bulk-edit.types';
+import { buildBonusData } from './bonus-data.util';
+import { bonusTypeFromColumnKey } from './bonus-display.util';
+import { BulkEditableColumn, BulkEditTarget, BulkEditValue } from './monthly-bulk-edit.types';
+import { BonusAmountMap } from '../../monthly-document';
 
 const PAYROLL_COLUMNS: readonly BulkEditableColumn[] = [
   'totalPay',
@@ -27,16 +31,16 @@ export class MonthlyListBulkEditService {
   async applyBulkEdit(
     tid: string,
     yyyyMm: string,
-    targetEids: string[],
+    targets: BulkEditTarget[],
     column: BulkEditableColumn,
     value: BulkEditValue,
   ): Promise<void> {
-    if (targetEids.length === 0) return;
+    if (targets.length === 0) return;
 
+    const bonusType = bonusTypeFromColumnKey(column);
     const batch = writeBatch(this.firestore);
-    const monthlyPayload = this.buildUpdatePayload(column, value);
 
-    for (const eid of targetEids) {
+    for (const { eid, bonus } of targets) {
       const employeeRef = doc(
         this.firestore,
         'tenants',
@@ -46,10 +50,31 @@ export class MonthlyListBulkEditService {
         'employees',
         eid,
       );
-      batch.update(employeeRef, monthlyPayload);
+      const payload = bonusType
+        ? this.buildBonusUpdatePayload(bonus, bonusType, value)
+        : this.buildUpdatePayload(column, value);
+      batch.update(employeeRef, payload);
     }
 
     await batch.commit();
+  }
+
+  private buildBonusUpdatePayload(
+    existing: BonusAmountMap,
+    bonusType: string,
+    value: BulkEditValue,
+  ): UpdateData<DocumentData> {
+    const amounts = { ...existing };
+    if (value == null || value === 0) {
+      delete amounts[bonusType];
+    } else {
+      amounts[bonusType] = value;
+    }
+
+    const bonusData = buildBonusData(amounts);
+    return bonusData === undefined
+      ? { bonusData: deleteField(), updatedAt: serverTimestamp() }
+      : { bonusData, updatedAt: serverTimestamp() };
   }
 
   private buildUpdatePayload(
@@ -63,33 +88,6 @@ export class MonthlyListBulkEditService {
       } as UpdateData<DocumentData>;
     }
 
-    const premiumField = this.resolvePremiumField(column);
-    if (premiumField) {
-      return {
-        [premiumField]: value,
-        updatedAt: serverTimestamp(),
-      } as UpdateData<DocumentData>;
-    }
-
     return { updatedAt: serverTimestamp() };
-  }
-
-  private resolvePremiumField(column: BulkEditableColumn): string | null {
-    switch (column) {
-      case 'healthInsurance_employer':
-        return 'premiumData.healthInsurance.employer';
-      case 'healthInsurance_employee':
-        return 'premiumData.healthInsurance.employee';
-      case 'careInsurance_employer':
-        return 'premiumData.careInsurance.employer';
-      case 'careInsurance_employee':
-        return 'premiumData.careInsurance.employee';
-      case 'pensionInsurance_employer':
-        return 'premiumData.pensionInsurance.employer';
-      case 'pensionInsurance_employee':
-        return 'premiumData.pensionInsurance.employee';
-      default:
-        return null;
-    }
   }
 }

@@ -1,0 +1,16 @@
+<div class="mail-body">
+    <div class="mail-editable-text">{{ bodyText() }}</div>
+    <div class="mail-action">
+        @if (inviteLink()) {
+            <a class="mail-action-button" [href]="inviteLink()!" target="_blank" rel="noopener">
+            アカウント初期設定を行う
+            </a>
+        } @else {
+            <span class="mail-action-button">アカウント初期設定を行う</span>
+        }
+    </div>
+    <p class="mail-notes">
+        ※このリンクの有効期限は24時間です。<br>
+        ※このメールに心当たりがない場合は、このメールを破棄してください。
+    </p>
+</div>

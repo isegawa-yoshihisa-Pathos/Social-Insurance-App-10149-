@@ -118,7 +118,7 @@ export class InvitationsMailCmp implements OnInit{
     reader.onload = () => {
       try {
         const text = String(reader.result ?? '');
-        const invitations = this.invitationDataService.extractInvitationsFromCsvText(text, this.invitationDataService.emailHeaders(), this.invitationDataService.nameHeaders());
+        const invitations = this.invitationDataService.extractInvitationsFromCsvText(text);
         const map = new Map<string, InvitationData>();
         for (const invitation of [...this.invitationsData, ...invitations]) {
           const email = invitation.email.trim();

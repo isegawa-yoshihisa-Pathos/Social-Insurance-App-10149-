@@ -8,7 +8,6 @@ import {
   updateDoc,
   writeBatch,
 } from '@angular/fire/firestore';
-import { firstValueFrom, take } from 'rxjs';
 import { CurrentTenantService } from '../current-tenant.service';
 import { ProfileCompletionService } from '../profile-completion.service';
 import {

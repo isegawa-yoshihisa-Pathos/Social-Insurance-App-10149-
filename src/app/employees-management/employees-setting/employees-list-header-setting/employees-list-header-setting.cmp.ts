@@ -61,6 +61,14 @@ export class EmployeesListHeaderSettingCmp implements OnInit {
     this.dataService.toggleOptionalColumn(key, checked);
   }
 
+  isAllSelected(): boolean {
+    return this.optionalColumns.every((col) => this.isChecked(col.key));
+  }
+
+  toggleAll(checked: boolean): void {
+    this.optionalColumns.forEach((col) => this.onOptionalChange(col.key, checked));
+  }
+
   async save(): Promise<void> {
     const tid = this.currentTenantService.currentTid();
     if (!tid) return;

@@ -80,4 +80,8 @@ export class RoutesService {
   redirectToMonthlyManagement(): void {
     void this.router.navigate(['/monthly-management']);
   }
+
+  redirectToVirtualMailChecker(): void {
+    void this.router.navigate(['/virtual-mail-checker']);
+  }
 }

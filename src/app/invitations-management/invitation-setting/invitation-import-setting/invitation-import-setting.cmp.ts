@@ -1,4 +1,5 @@
 import { Component, inject, effect } from '@angular/core';
+import { Firestore, doc, setDoc, serverTimestamp } from '@angular/fire/firestore';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
@@ -7,7 +8,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ErrorDialogCmp } from '../../../error-dialog/error-dialog.cmp';
-import { FunctionsService } from '../../../functions.service';
 import { CurrentTenantService } from '../../../current-tenant.service';
 import { InvitationDataService } from '../../invitation-data.service';
 
@@ -28,8 +28,8 @@ export class InvitationImportSettingCmp {
   readonly invitationDataService = inject(InvitationDataService);
 
   private readonly dialog = inject(MatDialog);
-  private readonly functionsService = inject(FunctionsService);
   private readonly currentTenantService = inject(CurrentTenantService);
+  private readonly firestore = inject(Firestore);
 
   tid = '';
 
@@ -43,7 +43,7 @@ export class InvitationImportSettingCmp {
     });
   }
 
-  async saveInvitationImportSettings(): Promise<void> {
+  async saveNameHeader(): Promise<void> {
     if (!this.tid) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: '事業所が選択されていません' },
@@ -51,17 +51,16 @@ export class InvitationImportSettingCmp {
       return;
     }
 
-    const nameHeaders = this.invitationDataService.nameHeaders();
-    const emailHeaders = this.invitationDataService.emailHeaders();
+    const nameHeader = this.invitationDataService.nameHeader();
 
     try {
       this.saveBusy = true;
-      await this.functionsService.saveInvitationImportSettings({
-        tid: this.tid,
-        nameHeaders,
-        emailHeaders,
-      });
-      this.invitationDataService.setImportHeaders(nameHeaders, emailHeaders);
+      const docRef = doc(this.firestore, 'tenants', this.tid, 'settings', 'invitationSetting');
+      await setDoc(docRef, {
+        nameHeader,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+      this.invitationDataService.setNameHeader(nameHeader);
     } catch (error) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: 'ヘッダーの保存に失敗しました' },
@@ -71,46 +70,50 @@ export class InvitationImportSettingCmp {
     }
   }
 
-  addNameHeader(): void {
+  async saveEmailHeader(): Promise<void> {
+    if (!this.tid) {
+      this.dialog.open(ErrorDialogCmp, {
+        data: { message: '事業所が選択されていません' },
+      });
+      return;
+    }
+
+    const emailHeader = this.invitationDataService.emailHeader();
+
+    try {
+      this.saveBusy = true;
+      const docRef = doc(this.firestore, 'tenants', this.tid, 'settings', 'invitationSetting');
+      await setDoc(docRef, {
+        emailHeader,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+      this.invitationDataService.setEmailHeader(emailHeader);
+    } catch (error) {
+      this.dialog.open(ErrorDialogCmp, {
+        data: { message: 'ヘッダーの保存に失敗しました' },
+      });
+    } finally {
+      this.saveBusy = false;
+    }
+  }
+
+  changeNameHeader(): void {
     const header = this.newNameHeader.trim();
     if (!header) {
       return;
     }
-    if (this.invitationDataService.nameHeaders().includes(header)) {
-      this.openDuplicateHeaderError();
-      return;
-    }
-    this.invitationDataService.addNameHeader(header);
+    this.invitationDataService.setNameHeader(header);
+    this.saveNameHeader();
     this.newNameHeader = '';
   }
 
-  addEmailHeader(): void {
+  changeEmailHeader(): void {
     const header = this.newEmailHeader.trim();
     if (!header) {
       return;
     }
-    if (this.invitationDataService.emailHeaders().includes(header)) {
-      this.openDuplicateHeaderError();
-      return;
-    }
-    this.invitationDataService.addEmailHeader(header);
+    this.invitationDataService.setEmailHeader(header);
+    this.saveEmailHeader();
     this.newEmailHeader = '';
-  }
-
-  deleteNameHeader(header: string): void {
-    this.invitationDataService.deleteNameHeader(header);
-  }
-
-  deleteEmailHeader(header: string): void {
-    this.invitationDataService.deleteEmailHeader(header);
-  }
-
-  private openDuplicateHeaderError(): void {
-    this.dialog.open(ErrorDialogCmp, {
-      data: {
-        title: 'エラー',
-        message: 'そのヘッダーはすでに存在します',
-      },
-    });
   }
 }

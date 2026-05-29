@@ -9,8 +9,8 @@ export interface InvitationData {
 
 export interface InvitationSettingDocument {
   templateText: string;
-  emailHeaders: string[];
-  nameHeaders: string[];
+  emailHeader: string;
+  nameHeader: string;
   replyToEmail?: string;
 }
 
@@ -32,8 +32,8 @@ export interface InvitationListItem {
   status: 'queued' | 'sending' | 'failed' | 'sent' | 'accepted' | 'expired';
 }
 
-export const DEFAULT_INVITATION_NAME_HEADERS = ['名前', '氏名', 'name'];
-export const DEFAULT_INVITATION_EMAIL_HEADERS = ['メールアドレス', 'メール', 'email', 'mail'];
+export const DEFAULT_INVITATION_NAME_HEADER = 'name';
+export const DEFAULT_INVITATION_EMAIL_HEADER = 'mail';
 export const DEFAULT_INVITATION_TEMPLATE_TEXT = `{name} 様
 
 {tenantName} より、社会保険管理システム「縄文」への招待が届いています。
@@ -47,8 +47,8 @@ export class InvitationDataService {
   private readonly firestore = inject(Firestore);
   private readonly injector = inject(EnvironmentInjector);
 
-  readonly nameHeaders = signal<string[]>([...DEFAULT_INVITATION_NAME_HEADERS]);
-  readonly emailHeaders = signal<string[]>([...DEFAULT_INVITATION_EMAIL_HEADERS]);
+  readonly nameHeader = signal<string>(DEFAULT_INVITATION_NAME_HEADER);
+  readonly emailHeader = signal<string>(DEFAULT_INVITATION_EMAIL_HEADER);
   readonly templateText = signal<string>(DEFAULT_INVITATION_TEMPLATE_TEXT);
   readonly replyToEmail = signal<string>('');
   readonly settingsLoading = signal(false);
@@ -108,8 +108,6 @@ export class InvitationDataService {
 
   extractInvitationsFromCsvText(
     csvText: string,
-    emailHeaders: string[],
-    nameHeaders: string[],
   ): InvitationData[] {
     const lines = csvText
       .split(/\r?\n/)
@@ -120,10 +118,10 @@ export class InvitationDataService {
     }
     const headers = lines[0].split(',').map((header) => header.trim());
     const emailIndex = headers.findIndex(
-      (header) => emailHeaders.includes(header),
+      (header) => header === this.emailHeader(),
     );
     const nameIndex = headers.findIndex(
-      (header) => nameHeaders.includes(header),
+      (header) => header === this.nameHeader(),
     );
     if (emailIndex === -1) {
       throw new Error('CSVにメールアドレス列がありません。');
@@ -151,8 +149,8 @@ export class InvitationDataService {
   }
 
   applyDefaults(): void {
-    this.nameHeaders.set([...DEFAULT_INVITATION_NAME_HEADERS]);
-    this.emailHeaders.set([...DEFAULT_INVITATION_EMAIL_HEADERS]);
+    this.nameHeader.set(DEFAULT_INVITATION_NAME_HEADER);
+    this.emailHeader.set(DEFAULT_INVITATION_EMAIL_HEADER);
     this.templateText.set(DEFAULT_INVITATION_TEMPLATE_TEXT);
     this.replyToEmail.set('');
   }
@@ -161,52 +159,19 @@ export class InvitationDataService {
     this.templateText.set(
       doc.templateText?.trim() ? doc.templateText : DEFAULT_INVITATION_TEMPLATE_TEXT,
     );
-    this.nameHeaders.set(
-      doc.nameHeaders?.length ? [...doc.nameHeaders] : [...DEFAULT_INVITATION_NAME_HEADERS],
-    );
-    this.emailHeaders.set(
-      doc.emailHeaders?.length ? [...doc.emailHeaders] : [...DEFAULT_INVITATION_EMAIL_HEADERS],
-    );
+    this.nameHeader.set(doc.nameHeader ?? DEFAULT_INVITATION_NAME_HEADER);
+    this.emailHeader.set(doc.emailHeader ?? DEFAULT_INVITATION_EMAIL_HEADER);
     this.replyToEmail.set(doc.replyToEmail ?? '');
   }
 
-  setImportHeaders(nameHeaders: string[], emailHeaders: string[]): void {
-    this.nameHeaders.set([...nameHeaders]);
-    this.emailHeaders.set([...emailHeaders]);
+  setNameHeader(nameHeader: string): void {
+    this.nameHeader.set(nameHeader);
   }
 
-  addNameHeader(header: string): void {
-    const trimmed = header.trim();
-    if (!trimmed || this.nameHeaders().includes(trimmed)) {
-      return;
-    }
-    this.nameHeaders.set([...this.nameHeaders(), trimmed]);
+  setEmailHeader(emailHeader: string): void {
+    this.emailHeader.set(emailHeader);
   }
-
-  addEmailHeader(header: string): void {
-    const trimmed = header.trim();
-    if (!trimmed || this.emailHeaders().includes(trimmed)) {
-      return;
-    }
-    this.emailHeaders.set([...this.emailHeaders(), trimmed]);
-  }
-
-  deleteNameHeader(header: string): void {
-    const next = this.nameHeaders().filter((item) => item !== header);
-    if (next.length === 0) {
-      return;
-    }
-    this.nameHeaders.set(next);
-  }
-
-  deleteEmailHeader(header: string): void {
-    const next = this.emailHeaders().filter((item) => item !== header);
-    if (next.length === 0) {
-      return;
-    }
-    this.emailHeaders.set(next);
-  }
-
+  
   setMailSettings(templateText: string, replyToEmail: string): void {
     this.templateText.set(templateText);
     this.replyToEmail.set(replyToEmail);
