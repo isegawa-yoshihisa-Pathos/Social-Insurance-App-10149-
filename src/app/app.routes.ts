@@ -6,12 +6,16 @@ import { SigninCmp } from './signin/signin.cmp';
 import { SignupCmp } from './signup/signup.cmp';
 import { CreateTenantCmp } from './create-tenant/create-tenant.cmp';
 import { InvitationAcceptCmp } from './invitation-accept/invitation-accept.cmp';
-import { VirtualMailCheckerCmp } from './virtual-mail-checker/virtual-mail-checker.cmp';
 import { profileCompletionResolver } from './profile-completion-resolver';
 import { tenantGuard } from './tenant.guard';
+import { rootRedirectGuard } from './root-redirect-guard.guard';
 
 export const routes: Routes = [
-  { path: '', redirectTo: 'home', pathMatch: 'full' },
+  { path: '', 
+    pathMatch: 'full',
+    canActivate: [rootRedirectGuard],
+    children: []
+  },
   { path: 'home', component: HomeCmp },
   { path: 'signup', component: SignupCmp },
   { path: 'signin', component: SigninCmp },
@@ -31,6 +35,10 @@ export const routes: Routes = [
       {
         path: 'task-board', 
         loadComponent: () => import('./task-board/task-board.cmp').then(m => m.TaskBoardCmp) 
+      },
+      {
+        path: 'create-new-tenant',
+        loadComponent: () => import('./create-new-tenant/create-new-tenant.cmp').then(m => m.CreateNewTenantCmp),
       },
       { 
         path: 'personal-setting', 
@@ -56,8 +64,8 @@ export const routes: Routes = [
         ]
       },
       { 
-        path: 'setting-tenant', 
-        loadComponent: () => import('./setting-tenant/setting-tenant.cmp').then(m => m.SettingTenantCmp), 
+        path: 'tenant-setting', 
+        loadComponent: () => import('./tenant-setting/tenant-setting.cmp').then(m => m.TenantSettingCmp), 
         canActivate: [adminGuard] 
       },
       { 

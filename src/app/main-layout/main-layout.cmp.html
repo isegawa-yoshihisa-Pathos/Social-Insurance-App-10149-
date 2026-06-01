@@ -4,8 +4,11 @@
             <button mat-mini-fab type="button" (click)="sidenav.toggle()" class="menu-toggle-button">
                 <mat-icon>menu</mat-icon>
             </button>
-            <h3>
-            {{ currentAffiliation()?.displayName || 'ユーザー名未設定' }}
+            <h3 class="sidebar-user-heading">
+            <span class="sidebar-user-name">{{ currentAffiliation()?.displayName || 'ユーザー名未設定' }}</span>
+            @if (tenant.currentEmployeeId()) {
+                <span class="sidebar-employee-id">社員番号：{{ tenant.currentEmployeeId() }}</span>
+            }
             @if (isAdmin()) {
                 <span class="admin-badge">管理者</span>
             } @else {
@@ -52,7 +55,7 @@
                 mat-flat-button 
                 class="menu-button" 
                 type="button" 
-                (click)="navigateToSettingTenant()" 
+                (click)="navigateToTenantSetting()" 
                 [class.selected]="isSelected() === 'tenantSetting'">
                 <span>事業所設定</span>
                 @if (completion().tenant || completion().socialInsuranceSettings) {
@@ -83,6 +86,18 @@
             }
             
             <hr class="menu-divider" />
+            
+            <button 
+                mat-flat-button 
+                class="menu-button" 
+                type="button"
+                (click)="navigateToCreateNewTenant()"
+                [class.selected]="isSelected() === 'createNewTenant'"
+            >新規事業所作成
+            </button>
+            
+            <hr class="menu-divider" />
+            
             <p class="menu-comment">本番環境には存在しません。</p>
             <button 
                 mat-flat-button 

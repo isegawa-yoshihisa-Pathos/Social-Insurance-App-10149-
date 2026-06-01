@@ -1,5 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { DEFAULT_EMPLOYEE_LIST_COLUMNS, EmployeeListColumnKey } from './employees-list/employee-list-columns';
+import { DEFAULT_EMPLOYEE_LIST_COLUMNS, EmployeeListColumnKey, OPTIONAL_EMPLOYEE_LIST_COLUMNS } from './employees-list/employee-list-columns';
 import { Firestore, doc, getDoc, serverTimestamp, setDoc } from '@angular/fire/firestore';
 
 @Injectable({
@@ -7,6 +7,8 @@ import { Firestore, doc, getDoc, serverTimestamp, setDoc } from '@angular/fire/f
 })
 export class EmployeesManagementDataService {
   private readonly firestore = inject(Firestore);
+
+  COLUMN_ORDER = OPTIONAL_EMPLOYEE_LIST_COLUMNS.map(col => col.key);
 
   readonly visibleColumns = signal<EmployeeListColumnKey[]>([
     ...DEFAULT_EMPLOYEE_LIST_COLUMNS,
@@ -21,31 +23,32 @@ export class EmployeesManagementDataService {
     }
     const data = settingsSnap.data() as { visibleColumns: EmployeeListColumnKey[] };
     this.visibleColumns.set(
-      this.nomalizaColumns(data.visibleColumns?.length ? data.visibleColumns : [...DEFAULT_EMPLOYEE_LIST_COLUMNS])
+      this.normalizaColumns(data.visibleColumns?.length ? data.visibleColumns : [...DEFAULT_EMPLOYEE_LIST_COLUMNS])
     );
   }
 
   async saveListSettings(tid: string): Promise<void> {
     const settingsRef = doc(this.firestore, 'tenants', tid, 'settings', 'employeesListSetting');
     await setDoc(settingsRef, {
-      visibleColumns: this.nomalizaColumns(this.visibleColumns()),
+      visibleColumns: this.normalizaColumns(this.visibleColumns()),
       updatedAt: serverTimestamp(),
     });
   }
 
-  nomalizaColumns(cols: EmployeeListColumnKey[]): EmployeeListColumnKey[] {
-    const rest = cols.filter(col => col !== 'displayName');
-    return ['displayName', ...rest];
+  private normalizaColumns(cols: EmployeeListColumnKey[]): EmployeeListColumnKey[] {
+    const deduped = [...new Set(cols)];
+    const ordered = this.COLUMN_ORDER.filter(col => deduped.includes(col));
+    const unknown = deduped.filter(col => !this.COLUMN_ORDER.includes(col));
+    return [...ordered, ...unknown];
   }
 
   toggleOptionalColumn(key: EmployeeListColumnKey, checked: boolean): void {
-    if (key === 'displayName') return;
     const current = this.visibleColumns();
     const keys = current.includes(key);
     if (checked && !keys) {
-      this.visibleColumns.set(this.nomalizaColumns([...current, key]));
+      this.visibleColumns.set(this.normalizaColumns([...current, key]));
     } else if (!checked && keys) {
-      this.visibleColumns.set(this.nomalizaColumns(current.filter(col => col !== key)));
+      this.visibleColumns.set(this.normalizaColumns(current.filter(col => col !== key)));
     }
   }
 

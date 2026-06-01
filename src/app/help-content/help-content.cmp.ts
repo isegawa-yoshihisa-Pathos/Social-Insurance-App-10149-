@@ -29,6 +29,14 @@ const HELP_DATA: Record<string, { title: string, description: string }> = {
     title: '支払基礎日数基準',
     description: '支払基礎日数基準は、支払基礎日数の計算方法を指定します。締め日基準の場合は、締め日を基準にして支払基礎日数を計算します。暦日基準の場合は、暦日を基準にして支払基礎日数を計算します。\n（例）締め日が25日の場合、前月25日～当月24日までの日数が支払基礎日数になります。\n（例）暦日基準の場合、当月1日～当月末日までの日数が支払基礎日数になります。',
   },
+  'employeesImport': {
+    title: '社員情報のインポート',
+    description: '1行目にヘッダーが設定されている必要があります。ヘッダー名は設定画面から指定できます。ヘッダーに社員番号または氏名が含まれている必要があります。2行目以降に記述された値がインポートされます。\n 日付はYYYY-MM-DDまたはYYYY/MM/DDの形式で入力してください。\n 権限はadminまたはmemberで指定してください。\n（例）employeeId,displayName,role\n100140,ゲストH,admin\n100141,ゲストI,member\n100142,ゲストJ,member\n100143,ゲストK,member\n100144,ゲストL,member\n100145,ゲストM,member\n100146,ゲストN,member',
+  },
+  'monthlyImport': {
+    title: '月次データのインポート',
+    description: '1行目にヘッダーが設定されている必要があります。ヘッダー名は設定画面から指定できます。ヘッダーに社員番号または氏名が含まれている必要があります。2行目以降に記述された値がインポートされます。\n 日付はYYYY-MM-DDまたはYYYY/MM/DDの形式で入力してください。\n 権限はadminまたはmemberで指定してください。\n（例）employeeId,displayName,role\n100140,ゲストH,admin\n100141,ゲストI,member\n100142,ゲストJ,member\n100143,ゲストK,member\n100144,ゲストL,member\n100145,ゲストM,member\n100146,ゲストN,member',
+  },
 };
 
 @Component({

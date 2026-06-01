@@ -12,6 +12,7 @@ import { CurrentTenantService } from '../../../current-tenant.service';
 import { RoutesService } from '../../../routes.service';
 import { MonthlyManagementDataService } from '../../monthly-management-data.service';
 import { generateNextBonusType } from '../../monthly-list/bonus-type.util';
+import { MonthlySettingDataService } from '../monthly-setting-data.service';
 
 @Component({
   selector: 'app-monthly-bonus-setting',
@@ -27,11 +28,11 @@ import { generateNextBonusType } from '../../monthly-list/bonus-type.util';
   styleUrl: './monthly-bonus-setting.cmp.css',
 })
 export class MonthlyBonusSettingCmp implements OnInit {
-  private readonly dataService = inject(MonthlyManagementDataService);
+  private readonly monthlyManagementDataService = inject(MonthlyManagementDataService);
   private readonly currentTenantService = inject(CurrentTenantService);
   private readonly routesService = inject(RoutesService);
   private readonly dialog = inject(MatDialog);
-
+  private readonly monthlySettingDataService = inject(MonthlySettingDataService);
   loading = false;
   saveBusy = false;
   validationError: string | null = null;
@@ -46,8 +47,8 @@ export class MonthlyBonusSettingCmp implements OnInit {
 
     this.loading = true;
     try {
-      await this.dataService.loadBonusSettings(tid);
-      this.types = this.dataService.bonusTypeDefinitions().map((item) => ({ ...item }));
+      await this.monthlyManagementDataService.loadBonusSettings(tid);
+      this.types = this.monthlyManagementDataService.bonusTypeDefinitions().map((item) => ({ ...item }));
     } catch (e) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: mapFirebaseError(e) },
@@ -82,9 +83,10 @@ export class MonthlyBonusSettingCmp implements OnInit {
     this.saveBusy = true;
     this.validationError = null;
     try {
-      this.dataService.setBonusTypeDefinitions(this.types);
-      await this.dataService.saveBonusSettings(tid);
-      this.types = this.dataService.bonusTypeDefinitions().map((item) => ({ ...item }));
+      this.monthlyManagementDataService.setBonusTypeDefinitions(this.types);
+      await this.monthlyManagementDataService.saveBonusSettings(tid);
+      this.monthlySettingDataService.syncVisibleColumnsForBonusTypes();
+      this.types = this.monthlyManagementDataService.bonusTypeDefinitions().map((item) => ({ ...item }));
     } catch (e) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: mapFirebaseError(e) },

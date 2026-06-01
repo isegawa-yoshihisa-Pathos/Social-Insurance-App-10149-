@@ -7,8 +7,12 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { RoutesService } from '../../routes.service';
 import { CurrentTenantService } from '../../current-tenant.service';
+import { AuthService } from '../../auth.service';
 import { EmployeesManagementDataService } from '../employees-management-data.service';
 import {
   EmployeeListColumnKey,
@@ -23,10 +27,14 @@ import {
 import { BulkEditableColumn, BulkEditValue } from './employees-bulk-edit.types';
 import { EmployeesListBulkEditService } from './employees-list-bulk-edit.service';
 import { toEmployeeListRow } from './employee-list-row.mapper';
+import { EmployeesListImportService } from './employees-list-import.service';
+import { ErrorDialogCmp, mapFirebaseError } from '../../error-dialog/error-dialog.cmp';
+import { SuccessDialogCmp } from '../../success-dialog/success-dialog.cmp';
+import { HelpContentCmp } from '../../help-content/help-content.cmp';
 
 @Component({
   selector: 'app-employees-list',
-  imports: [MatTableModule, MatSortModule, FormsModule, MatSelectModule, MatInputModule, MatCheckboxModule],
+  imports: [MatTableModule, MatSortModule, FormsModule, MatSelectModule, MatInputModule, MatCheckboxModule, MatIconModule, MatButtonModule, MatTooltipModule, HelpContentCmp],
   templateUrl: './employees-list.cmp.html',
   styleUrl: './employees-list.cmp.css',
 })
@@ -34,9 +42,11 @@ export class EmployeesListCmp {
   private readonly firestore = inject(Firestore);
   private readonly routesService = inject(RoutesService);
   private readonly currentTenantService = inject(CurrentTenantService);
+  private readonly authService = inject(AuthService);
   private readonly dataService = inject(EmployeesManagementDataService);
   private readonly dialog = inject(MatDialog);
   private readonly bulkEditService = inject(EmployeesListBulkEditService);
+  private readonly importService = inject(EmployeesListImportService);
 
   readonly employeeListColumnLabels = EMPLOYEE_LIST_COLUMN_LABELS;
   readonly visibleColumns = computed(() => this.dataService.visibleColumns());
@@ -52,7 +62,7 @@ export class EmployeesListCmp {
   loading = true;
   bulkSaving = false;
 
-  searchTargetColumn: EmployeeListColumnKey = 'displayName';
+  searchTargetColumn: EmployeeListColumnKey = 'employeeId';
   searchQuery: string = '';
 
   selectedEids = new Set<string>();
@@ -187,5 +197,53 @@ export class EmployeesListCmp {
 
   getColumnLabel(column: EmployeeListColumnKey): string {
     return this.employeeListColumnLabels[column];
+  }
+
+  async onCsvSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    const tid = this.currentTenantService.currentTid();
+    if (!tid) {
+      this.dialog.open(ErrorDialogCmp, {
+        data: { message: '事業所が選択されていません。' },
+      });
+      input.value = '';
+      return;
+    }
+    this.bulkSaving = true;
+    try {
+      const scopeEids =
+        this.dataSource.filter
+          ? new Set(this.dataSource.filteredData.map((r) => r.eid))
+          : undefined;
+      const result = await this.importService.importFromCsv(tid, file, {
+        allRows: this.dataSource.data,
+        scopeEids,
+      });
+      await this.loadEmployees(tid);
+      const uid = this.currentTenantService.currentTid() ? this.authService.uid() : null;
+      if (uid) {
+        await this.currentTenantService.reloadCurrentEmployeeId(uid);
+      }
+      this.dialog.open(SuccessDialogCmp, {
+        data: {
+          title: 'CSVインポート結果',
+          message:
+            `更新: ${result.updated}件 / ` +
+            `未一致: ${result.skippedNoMatch}件 / ` +
+            `範囲外: ${result.skippedOutOfScope}件 / ` +
+            `氏名重複: ${result.skippedAmbiguous}件 / ` +
+            `空欄のみ: ${result.skippedEmpty}件`,
+        },
+      });
+    } catch (error) {
+      this.dialog.open(ErrorDialogCmp, {
+        data: { message: mapFirebaseError(error) },
+      });
+    } finally {
+      this.bulkSaving = false;
+      input.value = '';
+    }
   }
 }

@@ -59,10 +59,15 @@
 }
 
 .user-name-text {
-    max-width: 120px;
+    max-width: 200px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.user-employee-id {
+    font-size: 0.85em;
+    opacity: 0.9;
 }
 
 .notification-button {

@@ -1,4 +1,13 @@
 <form #employeeEmployEditForm="ngForm" class="input-container">
+
+  <div class="field-container">
+    <label class="label-name">社員番号：</label>
+    <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+      <mat-label>社員番号</mat-label>
+      <input matInput type="text" [(ngModel)]="employForm.employeeId" name="employeeId" />
+    </mat-form-field>
+  </div>
+  
   <div class="field-container">
     <label class="label-name">役職：</label>
     <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
@@ -36,8 +45,8 @@
       <mat-select [(ngModel)]="employForm.employmentType" name="employmentType">
         <mat-option value="">未設定</mat-option>
         <mat-option value="full-time">正社員</mat-option>
-        <mat-option value="part-time">パート</mat-option>
-        <mat-option value="temporary">契約・派遣</mat-option>
+        <mat-option value="short-time-worker">短時間就労者</mat-option>
+        <mat-option value="short-time-labor">短時間労働者</mat-option>
       </mat-select>
     </mat-form-field>
   </div>

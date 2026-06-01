@@ -3,10 +3,11 @@ import { formatJapaneseDate, toFirestoreTimestamp, toFormDate } from './date-uti
 
 export function createEmptyEmployForm(): EmployeeEmployFormData {
   return {
+    employeeId: '',
     position: '',
     department: '',
     payType: '',
-    employmentType: '',
+    employmentType: 'full-time',
     status: 'active',
     joinedAt: null,
     leaveAt: null,
@@ -33,10 +34,11 @@ export function employeeEmployInfoToForm(
 ): EmployeeEmployFormData {
   const form: EmployeeEmployFormData = {
     ...createEmptyEmployForm(),
+    employeeId: info?.employeeId ?? '',
     position: info?.position ?? '',
     department: info?.department ?? '',
     payType: info?.payType ?? '',
-    employmentType: info?.employmentType ?? '',
+    employmentType: info?.employmentType ?? 'full-time',
     status: info?.status ?? 'active',
     healthInsuranceRecordNumber: info?.healthInsuranceRecordNumber ?? '',
     pensionInsuranceRecordNumber: info?.pensionInsuranceRecordNumber ?? '',
@@ -59,6 +61,7 @@ export function employFormToSavePayload(
   form: EmployeeEmployFormData,
 ): { employeeEmployInfo: EmployeeEmployInfo } {
   const employeeEmployInfo: EmployeeEmployInfo = {
+    employeeId: form.employeeId,
     position: form.position,
     department: form.department,
     payType: form.payType,

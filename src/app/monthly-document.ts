@@ -13,6 +13,7 @@ export interface MonthlyDocument {
 
 export interface MonthlyFormData {
     displayName: string;
+    employeeId: string;
     totalPay: number;
     basicSalary: number;
     overtimePay: number | null;

@@ -21,13 +21,17 @@
     </a>
 </nav>
 <mat-tab-nav-panel #tabPanel>
-    <div class="setting-page">
-        @if (dataService.loading) {
-            <div class="loading-container">
-                <mat-spinner diameter="40"></mat-spinner>
-            </div>
-        } @else {
-            <router-outlet></router-outlet>
-        }
+    <div class="personal-setting">
+        <div class="personal-setting-panel">
+            @if (dataService.loading) {
+                <div class="loading-container">
+                    <mat-spinner diameter="40"></mat-spinner>
+                </div>
+            } @else {
+                <div class="setting-page">
+                    <router-outlet></router-outlet>
+                </div>
+            }
+        </div>
     </div>
 </mat-tab-nav-panel>

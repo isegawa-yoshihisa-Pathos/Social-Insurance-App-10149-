@@ -1,0 +1,233 @@
+<div class="create-new-tenant-content">
+    <label class="subtitle">事業所初期登録</label>
+    <div class="input-container">
+        <div class="field-container">
+            <label class="label-name">事業所名：</label>
+            <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                <mat-label>事業所名</mat-label>
+                <input 
+                    matInput 
+                    type="text" 
+                    placeholder="（例）株式会社　縄文商事" 
+                    [(ngModel)]="form.tenantName"
+                    #tenantNameRef="ngModel"
+                    name="tenantName"
+                    required
+                />
+                @if(tenantNameRef.invalid && (tenantNameRef.touched || tenantNameRef.dirty)){
+                    @if(tenantNameRef.errors?.['required']){
+                        <p class="error-message">事業所名は必須です</p>
+                    }
+                }
+            </mat-form-field>
+        </div>
+        <div class="field-container">
+            <label class="label-name">事業所名(フリガナ)：</label>
+            <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                <mat-label>事業所名(フリガナ)</mat-label>
+                <input 
+                    matInput 
+                    type="text" 
+                    placeholder="（例）カブシキガイシャ　ジョウモンショウジ" 
+                    [(ngModel)]="form.tenantNameKana"
+                    #tenantNameKanaRef="ngModel"
+                    name="tenantNameKana"
+                    required
+                    pattern="^[ァ-ンー\s]+$"
+                />
+                @if(tenantNameKanaRef.invalid && (tenantNameKanaRef.touched || tenantNameKanaRef.dirty)){
+                    @if(tenantNameKanaRef.errors?.['required']){
+                        <p class="error-message">事業所名(フリガナ)は必須です</p>
+                    }
+                    @if(tenantNameKanaRef.errors?.['pattern']){
+                        <p class="error-message">事業所名(フリガナ)を正しく入力してください</p>
+                    }
+                }
+            </mat-form-field>
+        </div>
+        <div class="field-container">
+            <label class="label-name">郵便番号：</label>
+            <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                <mat-label>郵便番号</mat-label>
+                <input 
+                    matInput 
+                    type="text" 
+                    placeholder="（例）100-0001" 
+                    #zipcodeRef="ngModel"
+                    [(ngModel)]="displayZipcode"
+                    maxlength="8"
+                    name="zipcode"
+                    required
+                />
+                @if(zipcodeRef.invalid && (zipcodeRef.touched || zipcodeRef.dirty)){
+                    @if(zipcodeRef.errors?.['required']){
+                        <p class="error-message">郵便番号は必須です</p>
+                    }
+                }
+            </mat-form-field>
+            <button matButton="outlined" class="autofill-button" (click)="getAddress(form.zipcode)">
+                <span>住所自動入力</span>
+            </button>
+        </div>
+        <div class="field-container">
+            <label class="label-name">住所：</label>
+            <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                <input 
+                    matInput 
+                    type="text" 
+                    placeholder="（例）東京都千代田区千代田" 
+                    #address1Ref="ngModel"
+                    [(ngModel)]="form.address.address1"
+                    name="address1"
+                    required
+                />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                <input 
+                    matInput 
+                    type="text" 
+                    placeholder="（例）1-1-1" 
+                    #address2Ref="ngModel"
+                    [(ngModel)]="form.address.address2"
+                    name="address2"
+                    required
+                />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                <input 
+                    matInput 
+                    type="text" 
+                    placeholder="（例）縄文ハイツ101号室" 
+                    [(ngModel)]="form.address.address3"
+                    name="address3"
+                />
+            </mat-form-field>
+        </div>
+        <div class="field-container">
+            <label class="label-name">事業主(氏名)：</label>
+            <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                <mat-label>姓(last name)</mat-label>
+                <input 
+                    matInput 
+                    type="text" 
+                    placeholder="（例）山田" 
+                    [(ngModel)]="form.ownerName.ownerLastName"
+                    #ownerLastNameRef="ngModel"
+                    name="ownerLastName" 
+                    required
+                    pattern="^[a-zA-Zぁ-んァ-ン一-龥\sー]+$"
+                />
+                @if(ownerLastNameRef.invalid && (ownerLastNameRef.touched || ownerLastNameRef.dirty)){
+                    @if(ownerLastNameRef.errors?.['required']){
+                        <p class="error-message">姓(last name)は必須です</p>
+                    }
+                }
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                <mat-label>名(first name)</mat-label>
+                <input 
+                    matInput 
+                    type="text" 
+                    placeholder="（例）太郎" 
+                    [(ngModel)]="form.ownerName.ownerFirstName"
+                    #ownerFirstNameRef="ngModel"
+                    name="ownerFirstName" 
+                    required
+                    pattern="^[a-zA-Zぁ-んァ-ン一-龥\sー]+$"
+                />
+                @if(ownerFirstNameRef.invalid && (ownerFirstNameRef.touched || ownerFirstNameRef.dirty)){
+                    @if(ownerFirstNameRef.errors?.['required']){
+                        <p class="error-message">名(first name)は必須です</p>
+                    }
+                }
+            </mat-form-field>
+        </div>
+        <div class="field-container">
+            <label class="label-name">事業主(フリガナ)：</label>
+            <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                <mat-label>姓(last name)</mat-label>
+                <input 
+                    matInput 
+                    type="text" 
+                    placeholder="（例）ヤマダ" 
+                    [(ngModel)]="form.ownerName.ownerLastNameKana"
+                    #ownerLastNameKanaRef="ngModel"
+                    name="ownerLastNameKana" 
+                    required
+                    pattern="^[ァ-ンー\s]+$"
+                />
+                @if(ownerLastNameKanaRef.invalid && (ownerLastNameKanaRef.touched || ownerLastNameKanaRef.dirty)){
+                    @if(ownerLastNameKanaRef.errors?.['required']){
+                        <p class="error-message">姓(last name)フリガナは必須です</p>
+                    }
+                    @if(ownerLastNameKanaRef.errors?.['pattern']){
+                        <p class="error-message">姓(last name)フリガナを正しく入力してください</p>
+                    }
+                }
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                <mat-label>名(first name)</mat-label>
+                <input 
+                    matInput 
+                    type="text" 
+                    placeholder="（例）タロウ" 
+                    [(ngModel)]="form.ownerName.ownerFirstNameKana"
+                    #ownerFirstNameKanaRef="ngModel"
+                    name="ownerFirstNameKana" 
+                    required
+                    pattern="^[ァ-ンー\s]+$"
+                />
+                @if(ownerFirstNameKanaRef.invalid && (ownerFirstNameKanaRef.touched || ownerFirstNameKanaRef.dirty)){
+                    @if(ownerFirstNameKanaRef.errors?.['required']){
+                        <p class="error-message">名(first name)フリガナは必須です</p>
+                    }
+                    @if(ownerFirstNameKanaRef.errors?.['pattern']){
+                        <p class="error-message">名(first name)フリガナを正しく入力してください</p>
+                    }
+                }
+            </mat-form-field>
+        </div>
+        <div class="field-container">
+            <label class="label-name">電話番号：</label>
+            <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                <mat-label>電話番号</mat-label>
+                <input 
+                    matInput 
+                    type="tel" 
+                    placeholder="（例）03-1234-5678" 
+                    [(ngModel)]="form.phoneNumberRaw"
+                    #phoneNumberRef="ngModel"
+                    name="phoneNumberRaw"
+                    required
+                    pattern="^(?:\d{2,5}-\d{1,4}-\d{4}|\d{3}-\d{4}-\d{4})$"
+                />
+                @if(phoneNumberRef.invalid && (phoneNumberRef.touched || phoneNumberRef.dirty)){
+                    @if(phoneNumberRef.errors?.['required']){
+                        <p class="error-message">電話番号は必須です</p>
+                    }
+                    @if(phoneNumberRef.errors?.['pattern']){
+                        <p class="error-message">電話番号を正しく入力してください</p>
+                    }
+                }
+            </mat-form-field>
+            <div class="comment-text">※ハイフン(-)を含めて入力してください</div>
+        </div>
+    </div>
+    <div class="button-container">
+        <button 
+            mat-flat-button 
+            color="primary" 
+            class="create-tenant-button" 
+            [class.busy]="submitBusy"
+            type='button'
+            [disabled]="tenantNameRef.invalid || tenantNameKanaRef.invalid || zipcodeRef.invalid || address1Ref.invalid || address2Ref.invalid || ownerLastNameRef.invalid || ownerFirstNameRef.invalid || ownerLastNameKanaRef.invalid || ownerFirstNameKanaRef.invalid || phoneNumberRef.invalid || submitBusy"
+            (click)="createTenant()"
+        >
+            @if(submitBusy) {
+                <mat-spinner diameter="24" strokeWidth="3"></mat-spinner>
+            } @else {
+                登録
+            }
+        </button>
+    </div>
+</div>

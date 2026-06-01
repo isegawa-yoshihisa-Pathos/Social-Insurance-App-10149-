@@ -9,6 +9,7 @@ import { BulkEditableColumn, BulkEditValue } from '../monthly-bulk-edit.types';
 export interface BulkColumnEditDialogData {
   column: BulkEditableColumn;
   displayName?: string;
+  employeeId?: string;
   label: string;
   selectedCount: number;
   initialValue: BulkEditValue;

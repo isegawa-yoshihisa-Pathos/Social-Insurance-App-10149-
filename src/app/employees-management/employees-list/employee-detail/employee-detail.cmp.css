@@ -1,3 +1,21 @@
 :host {
   display: block;
 }
+
+.employee-detail-header {
+  padding: 16px 0 8px;
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 8px;
+}
+
+.employee-name {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.employee-id {
+  margin: 4px 0 0;
+  font-size: 0.875rem;
+  color: #666;
+}

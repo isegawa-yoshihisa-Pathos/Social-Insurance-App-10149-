@@ -29,16 +29,18 @@
         </button>
       </div>
       <div class="action-buttons">
+        <app-help-content key="monthlyImport"></app-help-content>
         <input
           #csvFileInput
           type="file"
           accept=".csv,text/csv"
           hidden
-          (change)="importFromCSV($event)">
+          (change)="onCsvSelected($event)">
         <button 
           mat-icon-button 
           type="button"
-          class="import-csv-button" 
+          class="import-csv-button"
+          [disabled]="bulkSaving"
           (click)="csvFileInput.click()"
           matTooltip="CSVファイルからインポート">
           <mat-icon>download</mat-icon>
@@ -58,7 +60,6 @@
           }
         </mat-select>
       </mat-form-field>
-
       <mat-form-field appearance="outline" class="search-query-field">
         <mat-label>検索ワード</mat-label>
         <input
@@ -72,8 +73,16 @@
 
     @if (loading) {
       <p class="loading-message">月次データを読み込んでいます...</p>
-    } @else if (dataSource.data.length === 0) {
+    } @else if (!monthlyRecordExists()) {
       <p class="empty-message">{{ yyyyMm() }} の月次データはありません。</p>
+      <button
+        mat-flat-button
+        [disabled]="initializing"
+        (click)="initializeMonthlyRecords()">
+        月次データを作成
+      </button>
+    } @else if (isFilterActive() && !hasFilteredResults()) {
+      <p class="empty-message">検索結果がありません。</p>
     } @else {
       <div class="table-scroll-container">
         <table mat-table [dataSource]="dataSource" matSort class="monthly-table">

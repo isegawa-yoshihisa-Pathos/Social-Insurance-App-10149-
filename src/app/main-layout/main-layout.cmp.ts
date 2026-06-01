@@ -38,10 +38,11 @@ export class MainLayoutCmp {
     { initialValue: this.urlToSection(this.router.url) },
   );
 
-  private urlToSection(url: string): 'myPage' | 'personalSetting' | 'taskBoard' | 'tenantSetting' | 'employeesManagement' | 'invitationsManagement' | 'monthlyManagement' | 'virtualMailChecker' {
+  private urlToSection(url: string): 'myPage' | 'personalSetting' | 'taskBoard' | 'tenantSetting' | 'createNewTenant' | 'employeesManagement' | 'invitationsManagement' | 'monthlyManagement' | 'virtualMailChecker' {
     if (url.startsWith('/personal-setting')) return 'personalSetting';
     if (url.startsWith('/task-board')) return 'taskBoard';
-    if (url.startsWith('/setting-tenant')) return 'tenantSetting';
+    if (url.startsWith('/tenant-setting')) return 'tenantSetting';
+    if (url.startsWith('/create-new-tenant')) return 'createNewTenant';
     if (url.startsWith('/employees-management')) return 'employeesManagement';
     if (url.startsWith('/invitations-management')) return 'invitationsManagement';
     if (url.startsWith('/monthly-management')) return 'monthlyManagement';
@@ -73,8 +74,12 @@ export class MainLayoutCmp {
     this.routesService.redirectToPersonalSetting();
   }
 
-  navigateToSettingTenant(): void {
-    this.routesService.redirectToSettingTenant();
+  navigateToTenantSetting(): void {
+    this.routesService.redirectToTenantSetting();
+  }
+
+  navigateToCreateNewTenant(): void {
+    this.routesService.redirectToCreateNewTenant();
   }
 
   navigateToEmployeesManagement(): void {

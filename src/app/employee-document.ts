@@ -11,10 +11,11 @@ export interface EmployeeDocument {
 }
 
 export interface EmployeeEmployInfo {
+  employeeId: string;
   position: string;
   department: string;
   payType: 'monthly' | 'weekly' | 'daily' | 'hourly' | '';
-  employmentType: 'full-time' | 'part-time' | 'temporary' | '';
+  employmentType: 'full-time' | 'short-time-worker' | 'short-time-labor';
   status: 'active' | 'leave' | 'resigned';
   joinedAt: Timestamp | null;
   leaveAt: Timestamp | null;
@@ -27,10 +28,11 @@ export interface EmployeeEmployInfo {
 }
 
 export interface EmployeeEmployFormData {
+  employeeId: string;
   position: string;
   department: string;
   payType: 'monthly' | 'weekly' | 'daily' | 'hourly' | '';
-  employmentType: 'full-time' | 'part-time' | 'temporary' | '';
+  employmentType: 'full-time' | 'short-time-worker' | 'short-time-labor';
   status: 'active' | 'leave' | 'resigned';
   joinedAt: Date | null;
   leaveAt: Date | null;

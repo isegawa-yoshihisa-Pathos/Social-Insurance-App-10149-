@@ -8,7 +8,8 @@
  */
 
 import {setGlobalOptions} from "firebase-functions";
-export { registerAdminAndTenant } from './registerAdminAndTenant';
+export { registerAdminAndTenant } from './register-admin-tenant';
+export { registerTenantForExistingUser } from './register-tenant-existing-user';
 export { startInvitationMailBatch } from './invitation-mail-batch';
 export { deliverInvitationMailTask } from './invitation-mail-task';
 export { saveInvitationTemplate } from './invitation-functions';

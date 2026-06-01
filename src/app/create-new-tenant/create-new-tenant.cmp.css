@@ -1,0 +1,152 @@
+:host {
+  display: block;
+
+  --label-width: 220px;
+  --field-width: 240px;
+  --field-gap: 10px;
+  --form-width: calc(
+    var(--label-width) + 3 * var(--field-width) + 3 * var(--field-gap)
+  );
+}
+
+.create-new-tenant-content {
+  width: 100%;
+  padding: 20px;
+  background-color: white;
+  box-sizing: border-box;
+  box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.subtitle {
+  display: block;
+  color: black;
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.input-container {
+  display: grid;
+  grid-template-columns:
+    minmax(0, var(--label-width))
+    repeat(3, minmax(0, var(--field-width)));
+  column-gap: var(--field-gap);
+  row-gap: 12px;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.field-container {
+  display: contents;
+}
+
+.label-name {
+  grid-column: 1;
+  color: black;
+  font-size: 15px;
+  font-weight: bold;
+  text-align: right;
+  align-self: center;
+  padding-right: 4px;
+  box-sizing: border-box;
+}
+
+.field {
+  width: 100%;
+  min-width: 0;
+}
+
+.autofill-button {
+  width: fit-content;
+  min-width: max-content;
+  justify-self: start;
+  height: 36px;
+}
+
+.comment-text {
+  font-size: 12px;
+  color: #666;
+  align-self: center;
+  grid-column: 3 / -1;
+}
+
+.error-message {
+  color: var(--mat-form-field-outlined-error-label-text-color);
+  font-size: 12px;
+  margin: 0;
+}
+
+.separator {
+  grid-column: 1 / -1;
+  width: 100%;
+  margin: 10px 0;
+  border: none;
+  border-top: 1px solid #ccc;
+}
+
+.button-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 60px;
+}
+
+.create-tenant-button,
+.back-button {
+  width: 240px;
+  font-size: 16px;
+  font-weight: bold;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.create-tenant-button.busy {
+  cursor: wait;
+  pointer-events: none;
+}
+
+@media (max-width: 1100px) {
+  :host {
+    --label-width: 100%;
+    --field-width: 100%;
+  }
+
+  .create-tenant {
+    padding: 40px 16px;
+  }
+
+  .pane {
+    width: 100%;
+    padding: 20px;
+  }
+
+  .input-container {
+    grid-template-columns: 1fr;
+  }
+
+  .field-container {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .label-name {
+    grid-column: auto;
+    text-align: left;
+    padding-right: 0;
+  }
+
+  .comment-text {
+    grid-column: auto;
+  }
+
+  .autofill-button {
+    justify-self: auto;
+    align-self: flex-start;
+  }
+}

@@ -7,6 +7,7 @@ import {
   updateDoc,
 } from '@angular/fire/firestore';
 import { CurrentTenantService } from '../../../current-tenant.service';
+import { AuthService } from '../../../auth.service';
 import {
   EmployeeFormData,
   createEmptyEmployeeForm,
@@ -25,6 +26,7 @@ import {
 export class EmployeeDetailDataService {
   private readonly firestore = inject(Firestore);
   private readonly tenant = inject(CurrentTenantService);
+  private readonly authService = inject(AuthService);
 
   eid = '';
   loading = false;
@@ -79,5 +81,14 @@ export class EmployeeDetailDataService {
       ...employFormToSavePayload(this.employForm),
       updatedAt: serverTimestamp(),
     });
+
+    const uid = this.authService.uid();
+    if (uid) {
+      const accountSnap = await getDoc(doc(this.firestore, 'accounts', uid));
+      const ownEid = accountSnap.data()?.['affiliations']?.[tid] as string | undefined;
+      if (ownEid === this.eid) {
+        await this.tenant.reloadCurrentEmployeeId(uid);
+      }
+    }
   }
 }

@@ -57,7 +57,12 @@
                 }
             </mat-menu>
             <button mat-button class="user-name" [matMenuTriggerFor]="accountMenu">
-                <span class="user-name-text">{{ currentAffiliation()?.displayName || 'ユーザー名未設定' }}</span>
+                <span class="user-name-text">
+                    {{ currentAffiliation()?.displayName || 'ユーザー名未設定' }}
+                    @if (currentTenantService.currentEmployeeId()) {
+                        <span class="user-employee-id">（{{ currentTenantService.currentEmployeeId() }}）</span>
+                    }
+                </span>
                 <mat-icon>arrow_drop_down</mat-icon>
             </button>
             <mat-menu #accountMenu="matMenu" class="account-menu">

@@ -1,20 +1,24 @@
 import { EmployeeEmployInfo } from "../../employee-document";
 
 export type EmployeeListColumnKey = 
+    | 'employeeId'
     | 'displayName' 
     | 'role' 
     | keyof EmployeeEmployInfo;
 
 export const DEFAULT_EMPLOYEE_LIST_COLUMNS: EmployeeListColumnKey[] = [
+    'employeeId',
     'displayName',
     'role',
     'status',
 ];
 
 export const OPTIONAL_EMPLOYEE_LIST_COLUMNS: {
-    key: Exclude<EmployeeListColumnKey, 'displayName'>;
+    key: EmployeeListColumnKey;
     label: string;
 }[] = [
+    { key: 'displayName', label: '氏名' },
+    { key: 'employeeId', label: '社員番号' },
     { key: 'role', label: '権限' },
     { key: 'position', label: '役職' },
     { key: 'department', label: '部署' },
@@ -32,6 +36,7 @@ export const OPTIONAL_EMPLOYEE_LIST_COLUMNS: {
 ];
 
 export const EMPLOYEE_LIST_COLUMN_LABELS: Record<EmployeeListColumnKey, string> = {
+    employeeId: '社員番号',
     displayName: '氏名',
     role: '権限',
     position: '役職',
@@ -51,6 +56,7 @@ export const EMPLOYEE_LIST_COLUMN_LABELS: Record<EmployeeListColumnKey, string> 
 
 export interface EmployeeListRow {
     eid: string;
+    employeeId: string;
     displayName: string;
     role: 'admin' | 'member';
     position: string;

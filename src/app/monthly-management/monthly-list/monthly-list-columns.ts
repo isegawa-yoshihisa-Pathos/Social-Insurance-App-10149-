@@ -13,6 +13,7 @@ export type MonthlyListColumnKey = MonthlyFormColumnKey | BonusColumnKey | strin
 
 export const BASE_MONTHLY_LIST_COLUMN_KEYS = [
   'displayName',
+  'employeeId',
   'totalPay',
   'basicSalary',
   'overtimePay',
@@ -26,11 +27,13 @@ export type BaseMonthlyListColumnKey = (typeof BASE_MONTHLY_LIST_COLUMN_KEYS)[nu
 
 export const DEFAULT_MONTHLY_LIST_COLUMNS: MonthlyListColumnKey[] = [
   'displayName',
+  'employeeId',
   'totalPay',
 ];
 
 const STATIC_COLUMN_LABELS: Record<BaseMonthlyListColumnKey, string> = {
   displayName: '氏名',
+  employeeId: '社員番号',
   totalPay: '総支給額',
   basicSalary: '基本給与',
   overtimePay: '残業手当',
@@ -52,13 +55,15 @@ export function getAllMonthlyListColumnKeys(
 
 export function getOptionalMonthlyListColumns(
   definitions: BonusTypeDefinition[],
-): { key: Exclude<MonthlyListColumnKey, 'displayName'>; label: string }[] {
+): { key: MonthlyListColumnKey; label: string }[] {
   const bonusColumns = definitions.map((def) => ({
-    key: bonusColumnKey(def.type) as Exclude<MonthlyListColumnKey, 'displayName'>,
+    key: bonusColumnKey(def.type) as MonthlyListColumnKey,
     label: def.label,
   }));
 
   return [
+    { key: 'displayName', label: '氏名' },
+    { key: 'employeeId', label: '社員番号' },
     { key: 'totalPay', label: '総支給額' },
     { key: 'basicSalary', label: '基本給与' },
     { key: 'overtimePay', label: '残業手当' },
@@ -84,6 +89,7 @@ export function getMonthlyListColumnLabel(
 
 export interface MonthlyListRow {
   eid: string;
+  employeeId: string;
   displayName: string;
   totalPay: number;
   basicSalary: number;

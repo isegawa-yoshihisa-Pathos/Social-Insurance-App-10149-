@@ -3,6 +3,7 @@ import { BonusTypeDefinition, MonthlyFormData } from '../../monthly-document';
 export type StaticMonthlyImportFieldKey = keyof Pick<
   MonthlyFormData,
   | 'displayName'
+  | 'employeeId'
   | 'totalPay'
   | 'basicSalary'
   | 'overtimePay'
@@ -24,8 +25,14 @@ export interface MonthlyImportColumnDef {
 
 export const STATIC_MONTHLY_IMPORT_COLUMNS: MonthlyImportColumnDef[] = [
   {
+    key: 'employeeId',
+    label: '社員番号（照合用）',
+    defaultHeader: 'employeeId',
+    kind: 'string',
+  },
+  {
     key: 'displayName',
-    label: '氏名',
+    label: '氏名（照合用）',
     defaultHeader: 'displayName',
     required: true,
     kind: 'string',

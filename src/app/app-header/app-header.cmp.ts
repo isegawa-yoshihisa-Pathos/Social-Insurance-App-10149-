@@ -10,6 +10,7 @@ import { AuthService } from '../auth.service';
 import { CurrentTenantService } from '../current-tenant.service';
 import { ProfileCompletionService } from '../profile-completion.service';
 import { PersonalSettingDataService } from '../personal-setting/personal-setting-data.service';
+import { TenantSettingDataService } from '../tenant-setting/tenant-setting-data.service';
 import { EmployeeDetailDataService } from '../employees-management/employees-list/employee-detail/employee-detail-data.service';
 import { InvitationDataService } from '../invitations-management/invitation-data.service';
 import { EmployeesManagementDataService } from '../employees-management/employees-management-data.service';
@@ -35,6 +36,7 @@ export class AppHeaderCmp {
   readonly currentTenantService = inject(CurrentTenantService);
   readonly profileCompletionService = inject(ProfileCompletionService);
   readonly personalSettingDataService = inject(PersonalSettingDataService);
+  readonly tenantSettingDataService = inject(TenantSettingDataService);
   readonly employeeDetailDataService = inject(EmployeeDetailDataService);
   readonly invitationDataService = inject(InvitationDataService);
   readonly currentAffiliation = this.currentTenantService.currentAffiliation;
@@ -63,6 +65,7 @@ export class AppHeaderCmp {
     }
     await this.currentTenantService.setTenant(user.uid, tid);
     await this.personalSettingDataService.reloadForTenantChange();
+    await this.tenantSettingDataService.reloadForTenantChange();
     this.invitationDataService.reset();
     this.tenantNotificationService.unsubscribe();
     this.routesService.redirectToMainPage();
@@ -73,6 +76,7 @@ export class AppHeaderCmp {
     this.currentTenantService.signOut();
     this.profileCompletionService.signOut();
     this.personalSettingDataService.signOut();
+    this.tenantSettingDataService.signOut();
     this.employeeDetailDataService.signOut();
     this.invitationDataService.reset();
     this.tenantNotificationService.unsubscribe();

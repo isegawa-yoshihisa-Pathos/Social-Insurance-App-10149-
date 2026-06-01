@@ -8,7 +8,13 @@
 
 <div mat-dialog-content>
   @if (data.selectedCount === 1) {
-    <p>{{ data.displayName }}の値を編集します。</p>
+    <p>
+      {{ data.displayName }}
+      @if (data.employeeId) {
+        <span class="employee-id">（{{ data.employeeId }}）</span>
+      }
+      の値を編集します。
+    </p>
   } @else {
     <p>{{ data.selectedCount }}名に同じ値を反映します。</p>
   }

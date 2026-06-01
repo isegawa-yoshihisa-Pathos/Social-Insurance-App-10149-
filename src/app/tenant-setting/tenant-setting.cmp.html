@@ -1,0 +1,116 @@
+<mat-tab-group class="setting-tabs" animationDuration="0ms">
+  <mat-tab>
+    <ng-template matTabLabel>
+      <span>基本設定</span>
+      @if (dataService.hasTenantMissingFields) {
+        <span class="required-badge"></span>
+      }
+    </ng-template>
+    <div class="tenant-setting">
+      <div class="tenant-setting-panel">
+        @if (dataService.loading) {
+          <div class="loading-container">
+            <mat-spinner diameter="40"></mat-spinner>
+          </div>
+        } @else {
+          <div class="setting-page">
+            <app-tenant-basic-setting />
+            <div class="actions">
+              <button
+                mat-raised-button
+                color="primary"
+                type="button"
+                class="save-button"
+                [class.busy]="submitBusy"
+                [disabled]="submitBusy"
+                (click)="save()"
+              >
+                @if (submitBusy) {
+                  <mat-spinner diameter="20"></mat-spinner>
+                } @else {
+                  保存
+                }
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </mat-tab>
+  <mat-tab>
+    <ng-template matTabLabel>
+      <span>社会保険設定</span>
+      @if (dataService.hasSocialInsuranceSettingsMissingFields) {
+        <span class="required-badge"></span>
+      }
+    </ng-template>
+    <div class="tenant-setting">
+      <div class="tenant-setting-panel">
+        @if (dataService.loading) {
+          <div class="loading-container">
+            <mat-spinner diameter="40"></mat-spinner>
+          </div>
+        } @else {
+          <div class="setting-page">
+            <app-tenant-insurance-setting />
+            <div class="actions">
+              <button
+                mat-raised-button
+                color="primary"
+                type="button"
+                class="save-button"
+                [class.busy]="submitBusy"
+                [disabled]="submitBusy"
+                (click)="save()"
+              >
+                @if (submitBusy) {
+                  <mat-spinner diameter="20"></mat-spinner>
+                } @else {
+                  保存
+                }
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </mat-tab>
+  <mat-tab>
+    <ng-template matTabLabel>
+      <span>保険料率設定</span>
+      @if (dataService.hasSocialInsuranceSettingsMissingFields) {
+        <span class="required-badge"></span>
+      }
+    </ng-template>
+    <div class="tenant-setting">
+      <div class="tenant-setting-panel">
+        @if (dataService.loading) {
+          <div class="loading-container">
+            <mat-spinner diameter="40"></mat-spinner>
+          </div>
+        } @else {
+          <div class="setting-page">
+            <app-tenant-insurance-rate-setting />
+            <div class="actions">
+              <button
+                mat-raised-button
+                color="primary"
+                type="button"
+                class="save-button"
+                [class.busy]="submitBusy"
+                [disabled]="submitBusy"
+                (click)="save()"
+              >
+                @if (submitBusy) {
+                  <mat-spinner diameter="20"></mat-spinner>
+                } @else {
+                  保存
+                }
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </mat-tab>
+</mat-tab-group>

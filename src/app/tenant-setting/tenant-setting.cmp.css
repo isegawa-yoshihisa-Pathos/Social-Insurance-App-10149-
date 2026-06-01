@@ -1,7 +1,5 @@
 :host {
   display: block;
-  max-width: 100%;
-  overflow-x: hidden;
 
   --label-width: 240px;
   --field-width: 240px;
@@ -9,6 +7,29 @@
   --form-width: calc(
     var(--label-width) + 3 * var(--field-width) + 3 * var(--field-gap)
   );
+}
+
+.setting-tabs {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+:host ::ng-deep .mat-mdc-tab-body-content {
+  overflow-x: hidden;
+}
+
+.tenant-setting {
+  padding: 20px;
+}
+
+.tenant-setting-panel {
+  width: 100%;
+  padding: 20px;
+  background-color: white;
+  box-sizing: border-box;
+  box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
 }
 
 .setting-page {
@@ -19,8 +40,10 @@
   overflow-x: hidden;
 }
 
-.setting-tabs {
-  width: 100%;
+.loading-container {
+  display: grid;
+  min-height: 240px;
+  place-items: center;
 }
 
 .input-container {

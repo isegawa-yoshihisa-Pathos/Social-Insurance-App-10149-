@@ -1,14 +1,23 @@
 import { EnvironmentInjector, inject, Injectable, runInInjectionContext, signal } from '@angular/core';
-import { doc, Firestore, getDoc } from '@angular/fire/firestore';
+import { doc, Firestore, getDoc, serverTimestamp, setDoc } from '@angular/fire/firestore';
 import { BonusTypeDefinition } from '../../monthly-document';
 import {
   buildDefaultImportHeaders,
   MonthlyImportFieldKey,
   StaticMonthlyImportFieldKey,
 } from './monthly-import-columns';
+import {
+  DEFAULT_MONTHLY_LIST_COLUMNS,
+  getAllMonthlyListColumnKeys,
+  MonthlyListColumnKey,
+} from '../monthly-list/monthly-list-columns';
+import { bonusColumnKey, bonusTypeFromColumnKey } from '../monthly-list/bonus-display.util';
+import { MonthlyManagementDataService } from '../monthly-management-data.service';
 
 export interface MonthlySettingDocument {
   importHeaders?: Partial<Record<string, string>>;
+  visibleColumns?: MonthlyListColumnKey[];
+
   /** @deprecated importHeaders へ移行 */
   basicSalaryHeader?: string;
   overtimePayHeader?: string;
@@ -41,9 +50,15 @@ const LEGACY_HEADER_KEYS: {
 export class MonthlySettingDataService {
   private readonly firestore = inject(Firestore);
   private readonly injector = inject(EnvironmentInjector);
+  private readonly monthlyManagementDataService = inject(MonthlyManagementDataService);
 
   readonly importHeaders = signal<Record<string, string>>({});
+  readonly visibleColumns = signal<MonthlyListColumnKey[]>([
+    ...DEFAULT_MONTHLY_LIST_COLUMNS,
+  ]);
   readonly settingsLoading = signal(false);
+
+  private listSettingsLoadedTid: string | null = null;
 
   async loadSettings(
     tid: string,
@@ -59,16 +74,60 @@ export class MonthlySettingDataService {
     }
   }
 
-  syncHeadersForBonusTypes(bonusDefinitions: BonusTypeDefinition[]): void {
-    this.importHeaders.set(mergeImportHeaders(this.importHeaders(), bonusDefinitions));
+  async loadListSettings(tid: string): Promise<void> {
+    if (this.listSettingsLoadedTid === tid) {
+      return;
+    }
+
+    await this.monthlyManagementDataService.loadBonusSettings(tid);
+    const bonusDefinitions = this.monthlyManagementDataService.bonusTypeDefinitions();
+
+    const settingsRef = doc(this.firestore, 'tenants', tid, 'settings', 'monthlyListSetting');
+    const settingsSnap = await getDoc(settingsRef);
+
+    if (!settingsSnap.exists()) {
+      this.setVisibleColumns([...DEFAULT_MONTHLY_LIST_COLUMNS], bonusDefinitions);
+      this.listSettingsLoadedTid = tid;
+      return;
+    }
+
+    const data = settingsSnap.data() as { visibleColumns?: MonthlyListColumnKey[] };
+    this.setVisibleColumns(
+      data.visibleColumns?.length ? data.visibleColumns : [...DEFAULT_MONTHLY_LIST_COLUMNS],
+      bonusDefinitions,
+    );
+    this.listSettingsLoadedTid = tid;
   }
 
-  getHeader(
-    key: MonthlyImportFieldKey,
-    bonusDefinitions: BonusTypeDefinition[] = [],
-  ): string {
-    const defaults = buildDefaultImportHeaders(bonusDefinitions);
-    return this.importHeaders()[key] ?? defaults[key] ?? key;
+  async saveListSettings(tid: string): Promise<void> {
+    const settingsRef = doc(this.firestore, 'tenants', tid, 'settings', 'monthlyListSetting');
+    const bonusDefinitions = this.monthlyManagementDataService.bonusTypeDefinitions();
+
+    await setDoc(settingsRef, {
+      visibleColumns: this.normalizeColumns(this.visibleColumns(), bonusDefinitions),
+      updatedAt: serverTimestamp(),
+    });
+    this.listSettingsLoadedTid = tid;
+  }
+
+  syncVisibleColumnsForBonusTypes(): void {
+    const bonusDefinitions = this.monthlyManagementDataService.bonusTypeDefinitions();
+    this.setVisibleColumns(this.visibleColumns(), bonusDefinitions);
+  }
+
+  toggleOptionalColumn(key: MonthlyListColumnKey, checked: boolean): void {
+    const current = this.visibleColumns();
+    const exists = current.includes(key);
+
+    if (checked && !exists) {
+      this.setVisibleColumns([...current, key]);
+    } else if (!checked && exists) {
+      this.setVisibleColumns(current.filter((col) => col !== key));
+    }
+  }
+
+  isColumnVisible(key: MonthlyListColumnKey): boolean {
+    return this.visibleColumns().includes(key);
   }
 
   setHeader(key: MonthlyImportFieldKey, header: string): void {
@@ -77,9 +136,60 @@ export class MonthlySettingDataService {
 
   reset(): void {
     this.importHeaders.set({});
+    this.visibleColumns.set([...DEFAULT_MONTHLY_LIST_COLUMNS]);
+    this.listSettingsLoadedTid = null;
   }
 
-  async loadMonthlyDocument(tid: string): Promise<MonthlySettingDocument | null> {
+  private setVisibleColumns(
+    cols: MonthlyListColumnKey[],
+    bonusDefinitions: BonusTypeDefinition[] = this.monthlyManagementDataService.bonusTypeDefinitions(),
+  ): void {
+    const normalized = this.normalizeColumns(cols, bonusDefinitions);
+    const current = this.visibleColumns();
+
+    if (
+      current.length === normalized.length &&
+      current.every((col, index) => col === normalized[index])
+    ) {
+      return;
+    }
+
+    this.visibleColumns.set(normalized);
+  }
+
+  private normalizeColumns(
+    cols: MonthlyListColumnKey[],
+    bonusDefinitions: BonusTypeDefinition[],
+  ): MonthlyListColumnKey[] {
+    const canonicalOrder = getAllMonthlyListColumnKeys(bonusDefinitions);
+    const valid = new Set<string>(canonicalOrder);
+    const selected = new Set<MonthlyListColumnKey>();
+
+    for (const col of cols) {
+      const resolved = this.resolveColumnKey(col, valid);
+      if (resolved) {
+        selected.add(resolved);
+      }
+    }
+
+    return canonicalOrder.filter((col) => selected.has(col));
+  }
+
+  private resolveColumnKey(
+    col: MonthlyListColumnKey,
+    valid: Set<string>,
+  ): MonthlyListColumnKey | null {
+    if (valid.has(col)) return col;
+
+    const bonusType = bonusTypeFromColumnKey(col);
+    if (bonusType && valid.has(bonusColumnKey(bonusType))) {
+      return bonusColumnKey(bonusType);
+    }
+
+    return null;
+  }
+
+  private async loadMonthlyDocument(tid: string): Promise<MonthlySettingDocument | null> {
     return runInInjectionContext(this.injector, async () => {
       const ref = doc(this.firestore, 'tenants', tid, 'settings', 'monthlySetting');
       const snap = await getDoc(ref);
@@ -97,11 +207,13 @@ export function mergeImportHeaders(
 ): Record<string, string> {
   const defaults = buildDefaultImportHeaders(bonusDefinitions);
   const merged: Record<string, string> = { ...defaults };
+
   for (const [key, value] of Object.entries(saved)) {
     if (value?.trim()) {
       merged[key] = value.trim();
     }
   }
+
   return merged;
 }
 

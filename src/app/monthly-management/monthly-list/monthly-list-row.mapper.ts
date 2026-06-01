@@ -19,6 +19,7 @@ export function toMonthlyListRow(
 
   return {
     eid,
+    employeeId: '',
     displayName: data.displayName ?? '',
     totalPay: payroll?.totalPay ?? 0,
     basicSalary: payroll?.basicSalary ?? 0,
@@ -63,8 +64,8 @@ export function formatMonthlyListCellValue(
     return amount === 0 ? '' : Format(amount);
   }
 
-  if (column === 'displayName') {
-    return row.displayName;
+  if (column === 'displayName' || column === 'employeeId') {
+    return String(row[column] ?? '');
   }
 
   const value = row[column as keyof MonthlyListRow];

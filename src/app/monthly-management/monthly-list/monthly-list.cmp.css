@@ -19,18 +19,22 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
 }
 
 .month-picker-container {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 16px;
 }
 
 .date-picker {
   width: 100px;
+}
+
+.action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .search-container {

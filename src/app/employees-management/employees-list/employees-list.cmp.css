@@ -2,6 +2,21 @@
   display: block;
 }
 
+.employees-list-container {
+  padding: 16px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
 .table-scroll-container {
   width: 100%;
   overflow-x: auto;

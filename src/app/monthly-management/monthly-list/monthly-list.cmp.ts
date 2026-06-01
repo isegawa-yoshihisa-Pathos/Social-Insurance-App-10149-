@@ -27,8 +27,12 @@ import {
   toMonthlyListRow,
 } from './monthly-list-row.mapper';
 import { YEAR_OPTIONS, MONTH_OPTIONS } from '../../datePicker';
-import { ErrorDialogCmp } from '../../error-dialog/error-dialog.cmp';
+import { ErrorDialogCmp, mapFirebaseError } from '../../error-dialog/error-dialog.cmp';
+import { SuccessDialogCmp } from '../../success-dialog/success-dialog.cmp';
+import { MonthlySettingDataService } from '../monthly-setting/monthly-setting-data.service';
+import { MonthlyListImportService } from './monthly-list-import.service';
 import { MonthlyListDataService } from './monthly-list-data.service';
+import { HelpContentCmp } from '../../help-content/help-content.cmp';
 
 @Component({
   selector: 'app-monthly-list',
@@ -43,6 +47,7 @@ import { MonthlyListDataService } from './monthly-list-data.service';
     MatTooltipModule,
     MatIconModule,
     MatButtonModule,
+    HelpContentCmp,
   ],
   templateUrl: './monthly-list.cmp.html',
   styleUrl: './monthly-list.cmp.css',
@@ -51,12 +56,14 @@ export class MonthlyListCmp {
   private readonly firestore = inject(Firestore);
   private readonly routesService = inject(RoutesService);
   private readonly currentTenantService = inject(CurrentTenantService);
-  private readonly dataService = inject(MonthlyManagementDataService);
-  private readonly monthlyListDataService = inject(MonthlyListDataService);
+  private readonly monthlyManagementDataService = inject(MonthlyManagementDataService);
+  private readonly monthlySettingDataService = inject(MonthlySettingDataService);
   private readonly dialog = inject(MatDialog);
   private readonly bulkEditService = inject(MonthlyListBulkEditService);
+  private readonly importService = inject(MonthlyListImportService);
+  private readonly listDataService = inject(MonthlyListDataService);
 
-  readonly visibleColumns = computed(() => this.dataService.visibleColumns());
+  readonly visibleColumns = computed(() => this.monthlySettingDataService.visibleColumns());
   readonly tableColumns = computed(() => ['selected', ...this.visibleColumns()]);
 
   readonly yearOptions = YEAR_OPTIONS;
@@ -70,11 +77,18 @@ export class MonthlyListCmp {
 
   dataSource = new MatTableDataSource<MonthlyListRow>([]);
   loading = true;
+  bulkSaving = false;
   private loadToken = 0;
   private settingsLoadedTid: string | null = null;
 
-  searchTargetColumn: MonthlyListColumnKey = 'displayName';
+  searchTargetColumn: MonthlyListColumnKey = 'employeeId';
   searchQuery = '';
+
+  readonly hasMonthlyRecords = computed(() => this.dataSource.data.length > 0);
+  readonly isFilterActive = computed(() => !!this.searchQuery.trim());
+  readonly hasFilteredResults = computed(() => this.dataSource.filteredData.length > 0);
+  readonly monthlyRecordExists = signal<boolean>(false);
+  initializing = false;
 
   selectedEids = new Set<string>();
 
@@ -142,9 +156,11 @@ export class MonthlyListCmp {
 
   private async loadForPeriod(tid: string, ym: string, token: number): Promise<void> {
     this.loading = true;
+    this.searchQuery = '';
+    this.dataSource.filter = '';
     try {
       if (this.settingsLoadedTid !== tid) {
-        await this.dataService.loadListSettings(tid);
+        await this.monthlySettingDataService.loadListSettings(tid);
         if (token !== this.loadToken) return;
         this.settingsLoadedTid = tid;
       }
@@ -169,20 +185,49 @@ export class MonthlyListCmp {
       yyyyMm,
       'employees',
     );
-    const monthly = await getDocs(monthlyRef);
+    const [monthly, employeeLookup] = await Promise.all([
+      getDocs(monthlyRef),
+      this.listDataService.loadEmployeeLookup(tid),
+    ]);
     if (token !== undefined && token !== this.loadToken) return;
 
-    const data = monthly.docs.map((snap) =>
-      toMonthlyListRow(
+    const data = monthly.docs.map((snap) => {
+      const row = toMonthlyListRow(
         snap.id,
         snap.data() as Partial<MonthlyDocument>,
-        this.dataService.bonusTypeDefinitions(),
-      ),
-    );
+        this.monthlyManagementDataService.bonusTypeDefinitions(),
+      );
+      return this.listDataService.mergeEmployeeMeta(row, employeeLookup);
+    });
+    this.monthlyRecordExists.set(data.length > 0);
     this.dataSource.data = data;
     const alive = new Set(data.map((r) => r.eid));
     this.selectedEids = new Set([...this.selectedEids].filter((eid) => alive.has(eid)));
   }
+
+  async initializeMonthlyRecords(): Promise<void> {
+    const tid = this.currentTenantService.currentTid();
+    const ym = this.yyyyMm();
+    if (!tid || !ym || this.monthlyRecordExists()) return;
+    this.initializing = true;
+    try {
+      const created = await this.listDataService.initializeMonthlyRecords(tid, ym);
+      await this.loadMonthlyRecords(tid, ym);
+      this.dialog.open(SuccessDialogCmp, {
+        data: {
+          title: '月次データ作成',
+          message: `${created}件の月次レコードを作成しました。`,
+        },
+      });
+    } catch (error) {
+      this.dialog.open(ErrorDialogCmp, {
+        data: { message: mapFirebaseError(error) },
+      });
+    } finally {
+      this.initializing = false;
+    }
+  }
+  
 
   search(): void {
     this.dataSource.filter = JSON.stringify({
@@ -224,10 +269,11 @@ export class MonthlyListCmp {
   }
 
   onCellClick(row: MonthlyListRow, col: MonthlyListColumnKey): void {
-    if (col === 'displayName' || col === 'bonus' || !isEditableColumn(col)) {
-      if (col === 'displayName') {
-        this.routesService.redirectToEmployeeEmployDetail(row.eid);
-      }
+    if (col === 'displayName' || col === 'employeeId') {
+      this.routesService.redirectToEmployeeEmployDetail(row.eid);
+      return;
+    }
+    if (col === 'bonus' || !isEditableColumn(col)) {
       return;
     }
 
@@ -260,6 +306,10 @@ export class MonthlyListCmp {
     initialValue: BulkEditValue,
     targetEids: string[],
   ): void {
+    const targetRow = targetEids.length === 1
+      ? this.dataSource.data.find((r) => r.eid === targetEids[0])
+      : undefined;
+
     const dialogRef = this.dialog.open<
       BulkColumnEditDialogCmp,
       BulkColumnEditDialogData,
@@ -268,8 +318,9 @@ export class MonthlyListCmp {
       width: '420px',
       data: {
         column,
-        displayName: targetEids.length === 1 ? this.dataSource.data.find((r) => r.eid === targetEids[0])?.displayName : undefined,
-        label: getMonthlyListColumnLabel(column, this.dataService.bonusTypeDefinitions()),
+        displayName: targetRow?.displayName,
+        employeeId: targetRow?.employeeId,
+        label: getMonthlyListColumnLabel(column, this.monthlyManagementDataService.bonusTypeDefinitions()),
         selectedCount: targetEids.length,
         initialValue,
       },
@@ -309,14 +360,57 @@ export class MonthlyListCmp {
   }
 
   getColumnLabel(column: MonthlyListColumnKey): string {
-    return getMonthlyListColumnLabel(column, this.dataService.bonusTypeDefinitions());
+    return getMonthlyListColumnLabel(column, this.monthlyManagementDataService.bonusTypeDefinitions());
   }
 
-  importFromCSV(event: Event): void {
+  async onCsvSelected(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
-    if (!file) {
+    if (!file) return;
+
+    const tid = this.currentTenantService.currentTid();
+    const ym = this.yyyyMm();
+    if (!tid || !ym) {
+      this.dialog.open(ErrorDialogCmp, {
+        data: { message: '事業所または対象月が選択されていません。' },
+      });
+      input.value = '';
       return;
+    }
+
+    this.bulkSaving = true;
+    try {
+      const scopeEids =
+        this.dataSource.filter
+          ? new Set(this.dataSource.filteredData.map((r) => r.eid))
+          : undefined;
+
+      const result = await this.importService.importFromCsv(tid, file, {
+        yyyyMm: ym,
+        allRows: this.dataSource.data,
+        scopeEids,
+      });
+
+      await this.loadMonthlyRecords(tid, ym);
+
+      this.dialog.open(SuccessDialogCmp, {
+        data: {
+          title: 'CSVインポート結果',
+          message:
+            `更新: ${result.updated}件 / ` +
+            `未一致: ${result.skippedNoMatch}件 / ` +
+            `範囲外: ${result.skippedOutOfScope}件 / ` +
+            `氏名重複: ${result.skippedAmbiguous}件 / ` +
+            `空欄のみ: ${result.skippedEmpty}件`,
+        },
+      });
+    } catch (error) {
+      this.dialog.open(ErrorDialogCmp, {
+        data: { message: mapFirebaseError(error) },
+      });
+    } finally {
+      this.bulkSaving = false;
+      input.value = '';
     }
   }
 }

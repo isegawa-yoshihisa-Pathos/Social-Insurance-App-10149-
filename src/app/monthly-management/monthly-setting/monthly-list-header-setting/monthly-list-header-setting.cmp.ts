@@ -7,6 +7,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { ErrorDialogCmp, mapFirebaseError } from '../../../error-dialog/error-dialog.cmp';
 import { CurrentTenantService } from '../../../current-tenant.service';
 import { RoutesService } from '../../../routes.service';
+import { MonthlySettingDataService } from '../monthly-setting-data.service';
 import { MonthlyManagementDataService } from '../../monthly-management-data.service';
 import {
   getOptionalMonthlyListColumns,
@@ -20,13 +21,14 @@ import {
   styleUrl: './monthly-list-header-setting.cmp.css',
 })
 export class MonthlyListHeaderSettingCmp implements OnInit {
-  readonly dataService = inject(MonthlyManagementDataService);
+  private readonly monthlyManagementDataService = inject(MonthlyManagementDataService);
+  private readonly monthlySettingDataService = inject(MonthlySettingDataService);
   private readonly currentTenantService = inject(CurrentTenantService);
   private readonly routesService = inject(RoutesService);
   private readonly dialog = inject(MatDialog);
 
   readonly optionalColumns = computed(() =>
-    getOptionalMonthlyListColumns(this.dataService.bonusTypeDefinitions()),
+    getOptionalMonthlyListColumns(this.monthlyManagementDataService.bonusTypeDefinitions()),
   );
 
   loading = false;
@@ -40,7 +42,7 @@ export class MonthlyListHeaderSettingCmp implements OnInit {
     }
     this.loading = true;
     try {
-      await this.dataService.loadListSettings(tid);
+      await this.monthlySettingDataService.loadListSettings(tid);
     } catch (e) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: mapFirebaseError(e) },
@@ -51,11 +53,11 @@ export class MonthlyListHeaderSettingCmp implements OnInit {
   }
 
   isChecked(key: MonthlyListColumnKey): boolean {
-    return this.dataService.isColumnVisible(key);
+    return this.monthlySettingDataService.isColumnVisible(key);
   }
 
   onOptionalChange(key: MonthlyListColumnKey, checked: boolean): void {
-    this.dataService.toggleOptionalColumn(key, checked);
+    this.monthlySettingDataService.toggleOptionalColumn(key, checked);
   }
 
   isAllSelected(): boolean {
@@ -71,7 +73,7 @@ export class MonthlyListHeaderSettingCmp implements OnInit {
     if (!tid) return;
     this.saveBusy = true;
     try {
-      await this.dataService.saveListSettings(tid);
+      await this.monthlySettingDataService.saveListSettings(tid);
     } catch (e) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: mapFirebaseError(e) },

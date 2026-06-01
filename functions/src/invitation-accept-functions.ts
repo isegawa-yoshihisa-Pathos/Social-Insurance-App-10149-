@@ -134,8 +134,6 @@ export const acceptInvitation = onCall<AcceptInvitationInput>(
       }
     }
 
-    // createUser 後にエラーで return すると Auth にゴーストユーザーが残るため、
-    // ここから先のエラーは create モード時に必ずユーザーを削除する。
     try {
       const accountRef = db.collection('accounts').doc(uid);
       const affiliationRef = db.collection('affiliations').doc(`${uid}_${invitation.tid}`);
@@ -167,6 +165,8 @@ export const acceptInvitation = onCall<AcceptInvitationInput>(
 
       const now = admin.firestore.FieldValue.serverTimestamp();
       const batch = db.batch();
+      
+      const eid = employeeRef.id;
 
       batch.set(
         accountRef,
@@ -204,6 +204,7 @@ export const acceptInvitation = onCall<AcceptInvitationInput>(
           dependentsInfo: [],
         },
         employeeEmployInfo: {
+          employeeId: '',
           position: '',
           department: '',
           payType: '',
@@ -226,6 +227,7 @@ export const acceptInvitation = onCall<AcceptInvitationInput>(
         {
           uid,
           tid: invitation.tid,
+          eid,
           displayName,
           tenantName,
           role,

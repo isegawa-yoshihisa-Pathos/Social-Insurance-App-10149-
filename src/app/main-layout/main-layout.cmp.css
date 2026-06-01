@@ -11,7 +11,7 @@
 
 .main-content {
   padding: 16px;
-  min-height: 100vh;
+  min-height: 120vh;
   height: auto;
   overflow: visible;
   box-sizing: border-box;
@@ -51,6 +51,24 @@
   color: rgb(54, 199, 139);
 }
 
+.sidebar-user-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 8px 0 16px;
+}
+
+.sidebar-user-name {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.sidebar-employee-id {
+  font-size: 0.8125rem;
+  color: #666;
+  font-weight: normal;
+}
+
 .menu-comment {
   font-size: 12px;
   color: rgb(139, 139, 139);
@@ -70,6 +88,7 @@
 
 .admin-badge {
   font-size: 12px;
+  width: fit-content;
   color: white;
   background-color: rgb(139, 139, 139);
   padding: 4px 8px;
@@ -78,6 +97,7 @@
 
 .member-badge {
   font-size: 12px;
+  width: fit-content;
   color: white;
   background-color: rgb(54, 199, 139);
   padding: 4px 8px;

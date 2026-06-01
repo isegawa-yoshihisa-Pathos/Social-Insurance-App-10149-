@@ -16,10 +16,6 @@
         }
     </mat-checkbox>
 
-    <div class="checkbox-row disabled">
-      <mat-checkbox [checked]="true" [disabled]="true">氏名（必須）</mat-checkbox>
-    </div>
-
     @for (col of optionalColumns(); track col.key) {
       <div class="checkbox-row">
         <mat-checkbox

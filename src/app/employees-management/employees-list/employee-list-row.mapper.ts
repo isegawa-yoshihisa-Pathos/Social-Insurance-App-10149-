@@ -20,6 +20,7 @@ export function toEmployeeListRow(
 
   return {
     eid,
+    employeeId: employ?.employeeId ?? '',
     displayName: personal?.displayName ?? '',
     role: data.role ?? 'member',
     position: employ?.position ?? '',

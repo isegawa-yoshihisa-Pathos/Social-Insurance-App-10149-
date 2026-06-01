@@ -9,6 +9,8 @@ export class FunctionsService {
 
   private registerFn = httpsCallable(this.functions, 'registerAdminAndTenant');
 
+  private registerTenantForExistingUserFn = httpsCallable(this.functions, 'registerTenantForExistingUser');
+
   private saveInvitationTemplateFn = httpsCallable(this.functions, 'saveInvitationTemplate');
 
   private startInvitationMailBatchFn = httpsCallable(this.functions, 'startInvitationMailBatch');
@@ -19,6 +21,10 @@ export class FunctionsService {
 
   async registerAdminAndTenant(payload: any) {
     return await this.registerFn(payload);
+  }
+
+  async registerTenantForExistingUser(payload: any) {
+    return await this.registerTenantForExistingUserFn(payload);
   }
 
   async saveInvitationTemplate(payload: {

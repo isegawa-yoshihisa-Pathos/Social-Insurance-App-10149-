@@ -25,6 +25,10 @@ export class RoutesService {
     void this.router.navigate(['/create-tenant']);
   }
 
+  redirectToCreateNewTenant(): void {
+    void this.router.navigate(['/create-new-tenant']);
+  }
+
   redirectToMainPage(): void {
     void this.router.navigate(['/main-page']);
   }
@@ -33,8 +37,8 @@ export class RoutesService {
     void this.router.navigate(['/task-board']);
   }
 
-  redirectToSettingTenant(): void {
-    void this.router.navigate(['/setting-tenant']);
+  redirectToTenantSetting(): void {
+    void this.router.navigate(['/tenant-setting']);
   }
 
   redirectToEmployeesManagement(): void {
