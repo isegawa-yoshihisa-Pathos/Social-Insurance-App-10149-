@@ -5,7 +5,6 @@ import {
   type MonthPaymentBaseInput,
 } from './payment-base-days';
 
-/** 月次から報酬月額・支払基礎日数を組み立てる入力 */
 export interface MonthlyRemunerationSource {
   yyyyMm: string;
   hasMonthlyRecord: boolean;

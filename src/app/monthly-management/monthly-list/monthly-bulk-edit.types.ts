@@ -1,5 +1,6 @@
 import { BonusAmountMap } from '../../monthly-document';
 import { MonthlyListColumnKey } from './monthly-list-columns';
+import { isPremiumColumn } from '../monthly-premium/monthly-premium-columns';
 
 export type BulkEditableColumn = Exclude<MonthlyListColumnKey, 'displayName' | 'employeeId' | 'bonus'>;
 
@@ -11,5 +12,8 @@ export interface BulkEditTarget {
 }
 
 export function isEditableColumn(column: MonthlyListColumnKey): column is BulkEditableColumn {
-  return column !== 'displayName' && column !== 'employeeId' && column !== 'bonus';
+  return !isPremiumColumn(column) 
+    && column !== 'displayName' 
+    && column !== 'employeeId' 
+    && column !== 'bonus';
 }

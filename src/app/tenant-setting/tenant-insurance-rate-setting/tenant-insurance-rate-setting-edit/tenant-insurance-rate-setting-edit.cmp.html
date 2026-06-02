@@ -1,0 +1,113 @@
+<div class="insurance-rate-edit-container">
+    <h2>新しい保険料率の追加</h2>
+  
+    <section class="form-section">
+      <h3>基本設定</h3>
+      <div class="input-row">
+        <mat-form-field appearance="outline">
+          <mat-label>適用開始日</mat-label>
+          <input matInput type="date" [(ngModel)]="effectiveFrom" required />
+        </mat-form-field>
+  
+        <mat-form-field appearance="outline" class="flex-main">
+          <mat-label>料率設定ラベル</mat-label>
+          <input matInput type="text" [(ngModel)]="label" placeholder="例: 2026年3月改定料率" required />
+        </mat-form-field>
+      </div>
+    </section>
+  
+    @if (tenantSetting.form.socialInsuranceSettings.healthInsuranceType === 'association') {
+      <section class="form-section">
+        <h3>対象都道府県（協会けんぽ）</h3>
+        <div class="input-row align-center">
+          <mat-form-field appearance="outline">
+            <mat-label>都道府県</mat-label>
+            <mat-select [ngModel]="dataService.editForm().prefectureCode" (selectionChange)="onPrefectureChange($event.value)">
+              @for (pref of prefectures; track pref.prefectureCode) {
+                <mat-option [value]="pref.prefectureCode">{{ pref.prefectureName }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </section>
+    }
+  
+    <section class="form-section">
+      <h3>保険料率設定</h3>
+      <div class="input-grid-three">
+        <mat-form-field appearance="outline">
+          <mat-label>健康保険料率</mat-label>
+          <input matInput type="number" step="0.001" min="0" [(ngModel)]="healthRate" required />
+          <span matSuffix>%</span>
+        </mat-form-field>
+  
+        <mat-form-field appearance="outline">
+          <mat-label>介護保険料率</mat-label>
+          <input matInput type="number" step="0.001" min="0" [(ngModel)]="careRate" required />
+          <span matSuffix>%</span>
+        </mat-form-field>
+  
+        <mat-form-field appearance="outline">
+          <mat-label>厚生年金保険料率</mat-label>
+          <input matInput type="number" step="0.001" min="0" [(ngModel)]="pensionRate" required />
+          <span matSuffix>%</span>
+        </mat-form-field>
+      </div>
+    </section>
+  
+    <section class="form-section">
+      <h3>労働者負担割合</h3>
+      <div class="input-grid-three">
+        <mat-form-field appearance="outline">
+          <mat-label>健康保険</mat-label>
+          <input matInput type="number" min="0" max="100" [(ngModel)]="healthShare" required />
+          <span matSuffix>%</span>
+        </mat-form-field>
+  
+        <mat-form-field appearance="outline">
+          <mat-label>介護保険</mat-label>
+          <input matInput type="number" min="0" max="100" [(ngModel)]="careShare" required />
+          <span matSuffix>%</span>
+        </mat-form-field>
+  
+        <mat-form-field appearance="outline">
+          <mat-label>厚生年金保険</mat-label>
+          <input matInput type="number" min="0" max="100" [(ngModel)]="pensionShare" required />
+          <span matSuffix>%</span>
+        </mat-form-field>
+      </div>
+      <p class="helper-text">※原則は労使折半（50%）です。</p>
+    </section>
+  
+    <section class="form-section">
+      <h3>端数処理</h3>
+      <div class="rounding-box-wrapper">
+        <div class="input-grid-three">
+          <mat-form-field appearance="outline">
+            <mat-label>健康保険</mat-label>
+            <input matInput type="number" min="0" max="99" [(ngModel)]="healthRounding" required />
+            <span matSuffix>銭</span>
+          </mat-form-field>
+  
+          <mat-form-field appearance="outline">
+            <mat-label>介護保険</mat-label>
+            <input matInput type="number" min="0" max="99" [(ngModel)]="careRounding" required />
+            <span matSuffix>銭</span>
+          </mat-form-field>
+  
+          <mat-form-field appearance="outline">
+            <mat-label>厚生年金保険</mat-label>
+            <input matInput type="number" min="0" max="99" [(ngModel)]="pensionRounding" required />
+            <span matSuffix>銭</span>
+          </mat-form-field>
+        </div>
+      </div>
+    </section>
+  
+    <div class="action-buttons">
+      <button mat-button type="button" (click)="canceled.emit()">キャンセル</button>
+      <button mat-raised-button color="primary" [disabled]="dataService.submitBusy() || !isValid()" (click)="save()">
+        料率を追加（履歴に保存）
+      </button>
+    </div>
+  </div>

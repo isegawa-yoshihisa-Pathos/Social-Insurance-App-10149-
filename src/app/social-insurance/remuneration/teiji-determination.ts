@@ -1,4 +1,4 @@
-import type { RemunerationGradeTableSet } from './grade-table';
+import { CURRENT_GRADE_TABLE, type RemunerationGradeTableSet } from './grade-table';
 import { calculateGradesFromMonths, type GradesFromMonthsOutcome } from './remuneration-average';
 import type { EmploymentType, MonthPaymentBaseInput } from './payment-base-days';
 
@@ -13,5 +13,8 @@ export function determineTeiji(
   months: readonly MonthPaymentBaseInput[],
   gradeTable?: RemunerationGradeTableSet,
 ): TeijiDeterminationOutcome {
+  if (!gradeTable) {
+    gradeTable = CURRENT_GRADE_TABLE;
+  }
   return calculateGradesFromMonths(employmentType, months, gradeTable);
 }

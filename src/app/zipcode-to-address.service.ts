@@ -16,4 +16,15 @@ export class ZipcodeToAddressService {
     }
     throw new Error('住所が見つかりませんでした');
   }
+
+  async getPrefecture(zipcode: string): Promise<string> {
+    const response = await fetch(
+      `https://zipcloud.ibsnet.co.jp/api/search?zipcode=${zipcode}`,
+    );
+    const data = await response.json();
+    if (data.results) {
+      return data.results[0].address1;
+    }
+    throw new Error('都道府県が見つかりませんでした');
+  }
 }

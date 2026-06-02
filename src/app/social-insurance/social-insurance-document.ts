@@ -1,22 +1,55 @@
 import { Timestamp } from '@angular/fire/firestore';
-import type { RoundingRule } from '../social-insurance/premium/rounding';
 import type { InsuranceRatesInput } from '../social-insurance/premium/premium-calculator';
 
+export interface EmployeeRateByInsurance {
+  healthInsurance: number;
+  careInsurance: number;
+  pensionInsurance: number;
+}
+
+export interface RoundingByInsurance {
+  healthInsurance: number;
+  careInsurance: number;
+  pensionInsurance: number;
+}
+
+export const DEFAULT_ROUNDING_BY: RoundingByInsurance = {
+  healthInsurance: 50,
+  careInsurance: 50,
+  pensionInsurance: 50,
+};
+
+export function normalizeEmployeeRate(
+  value: EmployeeRateByInsurance | undefined,
+): EmployeeRateByInsurance {
+  return {
+    healthInsurance: value?.healthInsurance ?? 0,
+    careInsurance: value?.careInsurance ?? 0,
+    pensionInsurance: value?.pensionInsurance ?? 0,
+  };
+}
+
+export function normalizeRoundingBy(
+  value: RoundingByInsurance | undefined,
+): RoundingByInsurance {
+  if (value == null) return {...DEFAULT_ROUNDING_BY};
+  return {
+    healthInsurance: value.healthInsurance,
+    careInsurance: value.careInsurance,
+    pensionInsurance: value.pensionInsurance,
+  };
+}
+
 export interface InsuranceRateDocument {
-  /** 適用開始日（この日を含む）例: "2026-04-01" */
   effectiveFrom: string;
-
-  /** 画面用メモ（任意）例: "令和8年度 東京都" */
   label?: string;
-
+  rateSource: InsuranceRateSource;
+  prefectureCode?: string;
   healthInsuranceRate: number;
   careInsuranceRate: number;
   pensionInsuranceRate: number;
-
-  employerShare: number;
-
-  roundingRule: RoundingRule;
-
+  employeeRate: EmployeeRateByInsurance;
+  roundingBy: RoundingByInsurance;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -32,8 +65,8 @@ export interface ResolvedInsuranceRate {
   label?: string;
 
   rates: InsuranceRatesInput;
-  employerShare: number;
-  roundingRule: RoundingRule;
+  employeeRate: EmployeeRateByInsurance;
+  roundingBy: RoundingByInsurance;
 }
 
 export function toResolvedInsuranceRate(
@@ -49,8 +82,8 @@ export function toResolvedInsuranceRate(
       careInsuranceRate: doc.careInsuranceRate,
       pensionInsuranceRate: doc.pensionInsuranceRate,
     },
-    employerShare: doc.employerShare,
-    roundingRule: doc.roundingRule,
+    employeeRate: doc.employeeRate,
+    roundingBy: doc.roundingBy,
   };
 }
 
@@ -58,22 +91,17 @@ export type InsuranceRateSource =
   | 'association_table'
   | 'combination_import'
   | 'combination_manual'
-  | 'manual';
+  | 'manual'
 
-export interface InsuranceRateDocument {
+export type StandardRemunerationSource = 'initial' | 'teiji' | 'zuiji' | 'manual';
+
+export interface StandardRemunerationDocument {
+  healthGrade: number;
+  pensionGrade: number;
+  standardRemuneration: { health: number; pension: number };
+  source: StandardRemunerationSource;
   effectiveFrom: string;
-  label?: string;
-
-  rateSource: InsuranceRateSource;
-
-  prefectureCode?: string;
-
-  healthInsuranceRate: number;
-  careInsuranceRate: number;
-  pensionInsuranceRate: number;
-  employerShare: number;
-  roundingRule: RoundingRule;
-
+  remuneration?: number;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

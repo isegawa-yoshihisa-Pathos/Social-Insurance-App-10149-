@@ -1,9 +1,5 @@
 export {
-    applyRoundingRule,
     premiumFromStandardRemuneration,
-    roundStatutoryHalfYen,
-    splitPremiumEmployerEmployee,
-    type RoundingRule,
     type SplitPremiumResult,
 } from './rounding';
   

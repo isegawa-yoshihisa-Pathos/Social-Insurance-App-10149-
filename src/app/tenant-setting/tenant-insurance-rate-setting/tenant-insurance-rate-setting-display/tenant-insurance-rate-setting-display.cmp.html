@@ -1,0 +1,111 @@
+<div class="insurance-rate-display-container">
+  
+    <section class="current-rate-section">
+      <h3>現在有効な保険料率</h3>
+      
+      @if (currentRate(); as rate) {
+        <div class="current-rate-card">
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">適用開始日</span>
+              <span class="info-value">{{ rate.doc.effectiveFrom }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">ラベル</span>
+              <span class="info-value">{{ rate.doc.label || '（未設定）' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">取得元</span>
+              <span class="info-value">{{ getRateSourceLabel(rate.doc.rateSource) }}</span>
+            </div>
+          </div>
+  
+          <table class="rate-detail-table">
+            <thead>
+              <tr>
+                <th>保険種別</th>
+                <th>保険料率</th>
+                <th>労働者負担</th>
+                <th>端数処理</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>健康保険</td>
+                <td>{{ formatRatePercent(rate.doc.healthInsuranceRate) }}</td>
+                <td>{{ formatRatePercent(rate.doc.employeeRate.healthInsurance) }}</td>
+                <td>{{ rate.doc.roundingBy.healthInsurance }} 銭</td>
+              </tr>
+              <tr>
+                <td>介護保険</td>
+                <td>{{ formatRatePercent(rate.doc.careInsuranceRate) }}</td>
+                <td>{{ formatRatePercent(rate.doc.employeeRate.careInsurance) }}</td>
+                <td>{{ rate.doc.roundingBy.careInsurance }} 銭</td>
+              </tr>
+              <tr>
+                <td>厚生年金保険</td>
+                <td>{{ formatRatePercent(rate.doc.pensionInsuranceRate) }}</td>
+                <td>{{ formatRatePercent(rate.doc.employeeRate.pensionInsurance) }}</td>
+                <td>{{ rate.doc.roundingBy.pensionInsurance }} 銭</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="no-data-alert">
+          <p>登録された料率がありません。下のボタンから追加してください。</p>
+        </div>
+      }
+    </section>
+  
+    <div class="action-bar">
+      <button mat-raised-button color="primary" (click)="addRate.emit()">
+        新しい料率を追加
+      </button>
+    </div>
+  
+    <section class="history-section">
+      <h3>料率設定履歴</h3>
+      
+      @if (dataService.rates().length > 0) {
+        <table mat-table [dataSource]="dataService.rates()" class="mat-elevation-z1 history-table">
+          
+          <ng-container matColumnDef="effectiveFrom">
+            <th mat-header-cell *matHeaderCellDef>適用開始日</th>
+            <td mat-cell *matCellDef="let row">{{ row.doc.effectiveFrom }}</td>
+          </ng-container>
+  
+          <ng-container matColumnDef="label">
+            <th mat-header-cell *matHeaderCellDef>ラベル</th>
+            <td mat-cell *matCellDef="let row">{{ row.doc.label || '—' }}</td>
+          </ng-container>
+  
+          <ng-container matColumnDef="rates">
+            <th mat-header-cell *matHeaderCellDef>健保 / 介保 / 厚年</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="rate-tag健">健:</span>{{ formatRatePercent(row.doc.healthInsuranceRate) }} / 
+              <span class="rate-tag介">介:</span>{{ formatRatePercent(row.doc.careInsuranceRate) }} / 
+              <span class="rate-tag厚">厚:</span>{{ formatRatePercent(row.doc.pensionInsuranceRate) }}
+            </td>
+          </ng-container>
+  
+          <ng-container matColumnDef="rounding">
+            <th mat-header-cell *matHeaderCellDef>端数処理</th>
+            <td mat-cell *matCellDef="let row">
+              健{{ row.doc.roundingBy?.healthInsurance ?? 50 }}/介{{ row.doc.roundingBy?.careInsurance ?? 50 }}/厚{{ row.doc.roundingBy?.pensionInsurance ?? 50 }}
+            </td>
+          </ng-container>
+  
+          <ng-container matColumnDef="rateSource">
+            <th mat-header-cell *matHeaderCellDef>取得元</th>
+            <td mat-cell *matCellDef="let row">{{ getRateSourceLabel(row.doc.rateSource) }}</td>
+          </ng-container>
+  
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        </table>
+      } @else {
+        <p class="empty-history-text">履歴データはありません。</p>
+      }
+    </section>
+  </div>

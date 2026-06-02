@@ -19,13 +19,7 @@ import { MonthlyDocument } from '../../monthly-document';
 import { BulkColumnEditDialogCmp, BulkColumnEditDialogData } from './bulk-column-edit-dialog/bulk-column-edit-dialog.cmp';
 import { BulkEditableColumn, BulkEditValue, isEditableColumn } from './monthly-bulk-edit.types';
 import { MonthlyListBulkEditService } from './monthly-list-bulk-edit.service';
-import {
-  formatMonthlyListCellValue,
-  getMonthlyListEditValue,
-  monthlyListSearchText,
-  monthlyListSortValue,
-  toMonthlyListRow,
-} from './monthly-list-row.mapper';
+import { formatMonthlyListCellValue, getMonthlyListEditValue, monthlyListSearchText, monthlyListSortValue, toMonthlyListRow } from './monthly-list-row.mapper';
 import { YEAR_OPTIONS, MONTH_OPTIONS } from '../../datePicker';
 import { ErrorDialogCmp, mapFirebaseError } from '../../error-dialog/error-dialog.cmp';
 import { SuccessDialogCmp } from '../../success-dialog/success-dialog.cmp';
@@ -33,6 +27,7 @@ import { MonthlySettingDataService } from '../monthly-setting/monthly-setting-da
 import { MonthlyListImportService } from './monthly-list-import.service';
 import { MonthlyListDataService } from './monthly-list-data.service';
 import { HelpContentCmp } from '../../help-content/help-content.cmp';
+import { MonthlyPremiumRecalculateFacade } from '../monthly-premium/monthly-premium-recalculate.facade';
 
 @Component({
   selector: 'app-monthly-list',
@@ -58,6 +53,7 @@ export class MonthlyListCmp {
   private readonly currentTenantService = inject(CurrentTenantService);
   private readonly monthlyManagementDataService = inject(MonthlyManagementDataService);
   private readonly monthlySettingDataService = inject(MonthlySettingDataService);
+  private readonly premiumRecalculateFacade = inject(MonthlyPremiumRecalculateFacade);
   private readonly dialog = inject(MatDialog);
   private readonly bulkEditService = inject(MonthlyListBulkEditService);
   private readonly importService = inject(MonthlyListImportService);
@@ -89,6 +85,8 @@ export class MonthlyListCmp {
   readonly hasFilteredResults = computed(() => this.dataSource.filteredData.length > 0);
   readonly monthlyRecordExists = signal<boolean>(false);
   initializing = false;
+
+  premiumRecalculating = false;
 
   selectedEids = new Set<string>();
 
@@ -411,6 +409,20 @@ export class MonthlyListCmp {
     } finally {
       this.bulkSaving = false;
       input.value = '';
+    }
+  }
+
+  async recalculatePremiums(): Promise<void> {
+    const tid = this.currentTenantService.currentTid();
+    const ym = this.yyyyMm();
+    if (!tid || !ym || !this.monthlyRecordExists()) return;
+    this.premiumRecalculating = true;
+    try {
+      await this.premiumRecalculateFacade.recalculateMonth(tid, ym, () =>
+        this.loadMonthlyRecords(tid, ym),
+      );
+    } finally {
+      this.premiumRecalculating = false;
     }
   }
 }

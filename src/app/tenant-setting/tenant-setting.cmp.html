@@ -84,32 +84,9 @@
     </ng-template>
     <div class="tenant-setting">
       <div class="tenant-setting-panel">
-        @if (dataService.loading) {
-          <div class="loading-container">
-            <mat-spinner diameter="40"></mat-spinner>
-          </div>
-        } @else {
-          <div class="setting-page">
-            <app-tenant-insurance-rate-setting />
-            <div class="actions">
-              <button
-                mat-raised-button
-                color="primary"
-                type="button"
-                class="save-button"
-                [class.busy]="submitBusy"
-                [disabled]="submitBusy"
-                (click)="save()"
-              >
-                @if (submitBusy) {
-                  <mat-spinner diameter="20"></mat-spinner>
-                } @else {
-                  保存
-                }
-              </button>
-            </div>
-          </div>
-        }
+        <div class="setting-page">
+          <app-tenant-insurance-rate-setting />
+        </div>
       </div>
     </div>
   </mat-tab>

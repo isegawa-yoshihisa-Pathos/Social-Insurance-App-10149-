@@ -1,4 +1,5 @@
 import { Timestamp } from "@angular/fire/firestore";
+import { StandardRemunerationSource } from "./social-insurance/social-insurance-document";
 
 export interface MonthlyDocument {
     uid: string;
@@ -6,9 +7,32 @@ export interface MonthlyDocument {
 
     payrollData: PayrollData;
     bonusData?: BonusData;
-    // premiumData: PremiumData;
+    premiumData?: PremiumData;
+    calculationSnapshot?: CalculationSnapshot;
 
     updatedAt: Timestamp;
+}
+
+export interface CalculationSnapshot {
+    rateId: string;
+    effectiveFrom: string;
+    rates: { health: number; care: number; pension: number };
+    employeeRate: {
+        health: number;
+        care: number;
+        pension: number;
+    }
+    roundingBy: {
+        health: number;
+        care: number;
+        pension: number;
+    };
+    healthGrade: number;
+    pensionGrade: number;
+    standardRemuneration: { health: number; pension: number };
+    remuneration?: number;
+    source: StandardRemunerationSource;
+    calculatedAt: Timestamp;
 }
 
 export interface MonthlyFormData {
@@ -21,12 +45,6 @@ export interface MonthlyFormData {
     otherAllowance: number | null;
     retroactivePay: number | null;
     bonus: BonusAmountMap;
-    // healthInsurance_employer: number;
-    // healthInsurance_employee: number;
-    // careInsurance_employer: number | null;
-    // careInsurance_employee: number | null;
-    // pensionInsurance_employer: number;
-    // pensionInsurance_employee: number;
 }
 
 export interface PayrollData {

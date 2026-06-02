@@ -1,25 +1,28 @@
 import type { EmployeeRateByInsurance, InsuranceRateSavePayload, RoundingByInsurance } from '../../social-insurance-document';
+import { resolveCombinationRates, findCombinationRegistry } from './lookup';
+import type { CombinationRegistryEntry } from './types';
 import { normalizeRoundingBy } from '../../social-insurance-document';
-import { resolveAssociationRates } from './lookup';
-import type { AssociationRateTableSet, PrefectureCode } from './types';
 import { roundRate } from '../../premium/rounding';
 
-export function buildAssociationInsuranceRatePayload(
-  prefectureCode: PrefectureCode,
-  table: AssociationRateTableSet,
+export function buildCombinationInsuranceRatePayload(
+  registries: readonly CombinationRegistryEntry[],
+  combinationName: string,
+  targetDate: string,
   options?: {
     employeeRate?: EmployeeRateByInsurance;
     roundingBy?: RoundingByInsurance;
   },
 ): InsuranceRateSavePayload | null {
-  const resolved = resolveAssociationRates(table, prefectureCode);
+  const registry = findCombinationRegistry(registries, combinationName);
+  if (!registry) return null;
+
+  const resolved = resolveCombinationRates(registry, targetDate);
   if (!resolved) return null;
 
   return {
     effectiveFrom: resolved.effectiveFrom,
-    label: `${resolved.label} ${resolved.prefectureName}`,
-    rateSource: 'association_table',
-    prefectureCode: resolved.prefectureCode,
+    label: `${resolved.label} ${resolved.combinationName}`,
+    rateSource: 'combination_import',
     healthInsuranceRate: resolved.healthInsuranceRate,
     careInsuranceRate: resolved.careInsuranceRate,
     pensionInsuranceRate: resolved.pensionInsuranceRate,

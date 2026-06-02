@@ -48,6 +48,14 @@
         <button mat-icon-button matTooltip="CSVエクスポート">
           <mat-icon>upload</mat-icon>
         </button>
+        <button
+          mat-icon-button
+          type="button"
+          [disabled]="bulkSaving || premiumRecalculating || !monthlyRecordExists()"
+          (click)="recalculatePremiums()"
+          matTooltip="保険料を再計算">
+          <mat-icon>calculate</mat-icon>
+        </button>
       </div>
     </div>
 
@@ -77,9 +85,10 @@
       <p class="empty-message">{{ yyyyMm() }} の月次データはありません。</p>
       <button
         mat-flat-button
+        color="primary"
         [disabled]="initializing"
         (click)="initializeMonthlyRecords()">
-        月次データを作成
+        今月の月次データを作成する
       </button>
     } @else if (isFilterActive() && !hasFilteredResults()) {
       <p class="empty-message">検索結果がありません。</p>

@@ -1,1 +1,5 @@
-<p>tenant-insurance-rate-setting works!</p>
+@if (mode === 'display') {
+    <app-tenant-insurance-rate-setting-display (addRate)="openEdit()" />
+} @else {
+    <app-tenant-insurance-rate-setting-edit (saved)="closeEdit()" (canceled)="closeEdit()" />
+}

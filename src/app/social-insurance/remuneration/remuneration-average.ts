@@ -5,6 +5,7 @@ import {
 import type { RemunerationGradeTableSet, ResolvedStandardRemuneration } from './grade-table';
 import {
     selectMonthsForRemunerationAverageSelection,
+    selectMonthsForZuijiAverage,
     type EmploymentType,
     type MonthPaymentBaseInput,
     type RemunerationAverageSelectionOutcome,
@@ -27,30 +28,34 @@ export type GradesFromMonthsOutcome =
         selection: RemunerationAverageSelectionResult;
     };
 
-/** 3ヶ月分 → 支払基礎日数で対象月を選び → 平均報酬 → 等級 */
+function gradesFromSelection(
+    selection: RemunerationAverageSelectionOutcome,
+    gradeTable: RemunerationGradeTableSet,
+): GradesFromMonthsOutcome {
+    if (selection.kind === 'continue_previous') {
+        return { kind: 'continue_previous', selection };
+    }
+    const grades = resolveGradesFromRemuneration(gradeTable, selection.result.averageRemuneration);
+    if (!grades) {
+        return { kind: 'invalid', reason: 'grade_not_found', selection: selection.result };
+    }
+    return { kind: 'calculated', average: selection.result, grades };
+}
+
 export function calculateGradesFromMonths(
     employmentType: EmploymentType,
     months: readonly MonthPaymentBaseInput[],
-    gradeTable: RemunerationGradeTableSet = CURRENT_GRADE_TABLE,
+    gradeTable: RemunerationGradeTableSet,
 ): GradesFromMonthsOutcome {
     const selection = selectMonthsForRemunerationAverageSelection(employmentType, months);
+    return gradesFromSelection(selection, gradeTable);
+}
 
-    if (selection.kind === 'continue_previous') {
-    return { kind: 'continue_previous', selection };
-    }
-
-    const grades = resolveGradesFromRemuneration(gradeTable, selection.result.averageRemuneration);
-    if (!grades) {
-    return {
-        kind: 'invalid',
-        reason: 'grade_not_found',
-        selection: selection.result,
-    };
-    }
-
-    return {
-    kind: 'calculated',
-    average: selection.result,
-    grades,
-    };
+export function calculateGradesForZuiji(
+    employmentType: EmploymentType,
+    months: readonly MonthPaymentBaseInput[],
+    gradeTable: RemunerationGradeTableSet,
+): GradesFromMonthsOutcome {
+    const selection = selectMonthsForZuijiAverage(employmentType, months);
+    return gradesFromSelection(selection, gradeTable);
 }

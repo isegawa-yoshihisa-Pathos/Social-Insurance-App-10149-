@@ -7,6 +7,8 @@ import { extractBonusAmounts } from './bonus-data.util';
 import { BulkEditValue } from './monthly-bulk-edit.types';
 import { MonthlyListColumnKey, MonthlyListRow } from './monthly-list-columns';
 import { Format } from '../../format-number-jp';
+import { isPremiumColumn } from '../monthly-premium/monthly-premium-columns';
+import { applyPremiumFieldsToRow, formatPremiumCellValue, premiumSortValue, premiumSearchText } from '../monthly-premium/monthly-premium-row.mapper';
 
 export function toMonthlyListRow(
   eid: string,
@@ -18,19 +20,21 @@ export function toMonthlyListRow(
   const bonusParts = buildBonusDisplayParts(bonus, bonusTypeDefinitions);
 
   return {
-    eid,
-    employeeId: '',
-    displayName: data.displayName ?? '',
-    totalPay: payroll?.totalPay ?? 0,
-    basicSalary: payroll?.basicSalary ?? 0,
-    overtimePay: payroll?.overtimePay ?? null,
-    commuterAllowance: payroll?.commuterAllowance ?? null,
-    otherAllowance: payroll?.otherAllowance ?? null,
-    retroactivePay: payroll?.retroactivePay ?? null,
-    bonus,
-    bonusDisplay: bonusParts.display,
-    bonusTooltip: bonusParts.tooltip,
-    bonusTotal: bonusParts.total,
+    ...applyPremiumFieldsToRow({
+      eid,
+      employeeId: '',
+      displayName: data.displayName ?? '',
+      totalPay: payroll?.totalPay ?? 0,
+      basicSalary: payroll?.basicSalary ?? 0,
+      overtimePay: payroll?.overtimePay ?? null,
+      commuterAllowance: payroll?.commuterAllowance ?? null,
+      otherAllowance: payroll?.otherAllowance ?? null,
+      retroactivePay: payroll?.retroactivePay ?? null,
+      bonus,
+      bonusDisplay: bonusParts.display,
+      bonusTooltip: bonusParts.tooltip,
+      bonusTotal: bonusParts.total,
+    } as MonthlyListRow, data),
   };
 }
 
@@ -54,6 +58,10 @@ export function formatMonthlyListCellValue(
   row: MonthlyListRow,
   column: MonthlyListColumnKey,
 ): string {
+  if (isPremiumColumn(column)) {
+    return formatPremiumCellValue(row, column);
+  }
+
   if (column === 'bonus') {
     return row.bonusTotal === 0 ? '' : Format(row.bonusTotal);
   }
@@ -77,6 +85,10 @@ export function monthlyListSortValue(
   row: MonthlyListRow,
   column: MonthlyListColumnKey,
 ): string | number {
+  if (isPremiumColumn(column)) {
+    return premiumSortValue(row, column);
+  }
+
   if (column === 'bonus') {
     return row.bonusTotal;
   }
@@ -97,6 +109,10 @@ export function monthlyListSearchText(
   row: MonthlyListRow,
   column: MonthlyListColumnKey,
 ): string {
+  if (isPremiumColumn(column)) {
+    return premiumSearchText(row, column);
+  }
+
   if (column === 'bonus') {
     return row.bonusDisplay;
   }

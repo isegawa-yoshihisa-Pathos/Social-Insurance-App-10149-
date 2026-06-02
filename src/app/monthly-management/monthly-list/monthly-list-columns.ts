@@ -4,6 +4,7 @@ import {
   MonthlyFormData,
 } from '../../monthly-document';
 import { bonusColumnKey, bonusTypeFromColumnKey } from './bonus-display.util';
+import { isPremiumColumn, getPremiumColumnLabel, getOptionalPremiumColumns, PREMIUM_MONTHLY_LIST_COLUMN_KEYS } from '../monthly-premium/monthly-premium-columns';
 
 export type MonthlyFormColumnKey = keyof MonthlyFormData;
 
@@ -50,6 +51,7 @@ export function getAllMonthlyListColumnKeys(
   return [
     ...BASE_MONTHLY_LIST_COLUMN_KEYS,
     ...definitions.map((def) => bonusColumnKey(def.type)),
+    ...PREMIUM_MONTHLY_LIST_COLUMN_KEYS,
   ];
 }
 
@@ -72,6 +74,7 @@ export function getOptionalMonthlyListColumns(
     { key: 'retroactivePay', label: '遡及清算' },
     { key: 'bonus', label: '賞与（合計）' },
     ...bonusColumns,
+    ...getOptionalPremiumColumns(),
   ];
 }
 
@@ -82,6 +85,10 @@ export function getMonthlyListColumnLabel(
   const bonusType = bonusTypeFromColumnKey(column);
   if (bonusType) {
     return definitions.find((def) => def.type === bonusType)?.label ?? column;
+  }
+
+  if (isPremiumColumn(column)) {
+    return getPremiumColumnLabel(column);
   }
 
   return STATIC_COLUMN_LABELS[column as BaseMonthlyListColumnKey];
@@ -101,4 +108,12 @@ export interface MonthlyListRow {
   bonusDisplay: string;
   bonusTooltip: string;
   bonusTotal: number;
+  standardRemunerationHealth: number | null;
+  standardRemunerationPension: number | null;
+  healthInsuranceEmployee: number | null;
+  healthInsuranceEmployer: number | null;
+  careInsuranceEmployee: number | null;
+  careInsuranceEmployer: number | null;
+  pensionInsuranceEmployee: number | null;
+  pensionInsuranceEmployer: number | null;
 }

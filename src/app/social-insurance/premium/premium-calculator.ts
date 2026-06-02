@@ -1,9 +1,10 @@
 import type { PremiumData } from '../../monthly-document';
 import {
   premiumFromStandardRemuneration,
-  type RoundingRule,
   type SplitPremiumResult,
 } from './rounding';
+import { EmployeeRateByInsurance, normalizeEmployeeRate, normalizeRoundingBy, RoundingByInsurance } from '../social-insurance-document';
+import { parseYyyyMm } from '../social-insurance-data.util';
 
 export interface InsuranceRatesInput {
   healthInsuranceRate: number;
@@ -19,21 +20,10 @@ export interface PremiumCalculationInput {
     pension: number;
   };
   rates: InsuranceRatesInput;
-  /** 事業主負担割合（折半なら 0.5） */
-  employerShare?: number;
-  roundingRule?: RoundingRule;
+  employeeRate?: EmployeeRateByInsurance;
+  roundingBy?: RoundingByInsurance;
 }
 
-function parseYyyyMm(yyyyMm: string): { year: number; month: number } {
-  const year = Number(yyyyMm.slice(0, 4));
-  const month = Number(yyyyMm.slice(4, 6));
-  if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) {
-    throw new Error(`Invalid yyyyMm: ${yyyyMm}`);
-  }
-  return { year, month };
-}
-
-/** 当月末時点の満年齢 */
 export function ageAtEndOfMonth(birthDate: Date, year: number, month: number): number {
   const lastDay = new Date(year, month, 0);
   let age = lastDay.getFullYear() - birthDate.getFullYear();
@@ -45,7 +35,6 @@ export function ageAtEndOfMonth(birthDate: Date, year: number, month: number): n
   return age;
 }
 
-/** 介護保険第2号被保険者（満40歳以上65歳未満） */
 export function isCareInsuranceTarget(
   birthDate: Date | null,
   yyyyMm: string,
@@ -64,24 +53,27 @@ function toPremiumPart(
   return { employer: split.employer, employee: split.employee };
 }
 
-/**
- * 標準報酬月額（健保・厚年）と料率から月次 premiumData を算出。
- * 協会けんぽの特定被保険者徴収などは第1フェーズでは未対応。
- */
 export function calculateMonthlyPremium(input: PremiumCalculationInput): PremiumData {
-  const { employerShare, roundingRule, rates, standardRemuneration, yyyyMm, birthDate } = input;
-  const options = { employerShare, roundingRule };
+  const { rates, standardRemuneration, yyyyMm, birthDate } = input;
+  const rate = normalizeEmployeeRate(input.employeeRate);
+  const rounding = normalizeRoundingBy(input.roundingBy);
 
   const health = premiumFromStandardRemuneration(
     standardRemuneration.health,
     rates.healthInsuranceRate,
-    options,
+    { 
+      employeeRate: rate.healthInsurance,
+      roundingBy: rounding.healthInsurance,
+    },
   );
 
   const pension = premiumFromStandardRemuneration(
     standardRemuneration.pension,
     rates.pensionInsuranceRate,
-    options,
+    { 
+      employeeRate: rate.pensionInsurance,
+      roundingBy: rounding.pensionInsurance,
+    },
   );
 
   let care: PremiumData['careInsurance'] = {
@@ -93,7 +85,10 @@ export function calculateMonthlyPremium(input: PremiumCalculationInput): Premium
     const careSplit = premiumFromStandardRemuneration(
       standardRemuneration.health,
       rates.careInsuranceRate,
-      options,
+      { 
+        employeeRate: rate.careInsurance,
+        roundingBy: rounding.careInsurance,
+      },
     );
     care = toPremiumPart(careSplit);
   }

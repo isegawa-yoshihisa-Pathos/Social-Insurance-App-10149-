@@ -19,11 +19,8 @@ export interface MonthPaymentBaseInput {
 }
 
 export interface RemunerationAverageSelectionResult {
-  /** 平均に使った月 */
   usedMonths: MonthPaymentBaseInput[];
-  /** 採用した段階 */
   tier: PaymentBaseDaysTier;
-  /** 平均報酬月額（端数は teiji-determination 側で等級表へ） */
   averageRemuneration: number;
 }
 
@@ -73,8 +70,29 @@ export function isMonthEligibleForAverage(
 }
 
 /**
- * 定時決定用: 対象月リストから算定に使う月と平均報酬を決める。
- * months は通常 4・5・6 月。remuneration は固定的賃金等で事前計算済み。
+ * 随時改定用: 3ヶ月すべてが primary 段階（一般・短時間就労者: 17日以上、短時間労働者: 11日以上）を満たす場合のみ平均。
+ */
+export function selectMonthsForZuijiAverage(
+  category: EmploymentType,
+  months: readonly MonthPaymentBaseInput[],
+): RemunerationAverageSelectionOutcome {
+  if (months.length !== 3) {
+    return { kind: 'continue_previous', reason: 'all_months_below_secondary' };
+  }
+  const allPrimary = months.every(
+    (m) => classifyPaymentBaseDaysTier(category, m.paymentBaseDays) === 'primary',
+  );
+  if (!allPrimary) {
+    return { kind: 'continue_previous', reason: 'all_months_below_secondary' };
+  }
+  return {
+    kind: 'calculated',
+    result: buildAverage(months, 'primary'),
+  };
+}
+
+/**
+ * 定時決定用: 条件を満たす月が1ヶ月でもあればその月（複数ならそれら）で平均。months は通常 4・5・6 月。
  */
 export function selectMonthsForRemunerationAverageSelection(
   category: EmploymentType,
@@ -111,7 +129,6 @@ export function selectMonthsForRemunerationAverageSelection(
     return { kind: 'continue_previous', reason: 'all_months_below_secondary' };
   }
 
-  // 一般・その他: 17日以上の月が無ければ算定不可（呼び出し側で従前継続）
   return { kind: 'continue_previous', reason: 'all_months_below_secondary' };
 }
 

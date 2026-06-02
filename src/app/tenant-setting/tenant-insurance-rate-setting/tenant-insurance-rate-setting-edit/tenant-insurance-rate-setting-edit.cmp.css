@@ -1,0 +1,76 @@
+:host {
+  display: block;
+}
+.insurance-rate-edit-container {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-section h3 {
+  font-size: 0.95rem;
+  font-weight: bold;
+  margin-top: 0;
+  margin-bottom: 16px;
+  color: #2d3748;
+}
+
+.input-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.align-center {
+  align-items: center;
+}
+
+.flex-main {
+  flex: 1;
+  min-width: 260px;
+}
+
+.input-grid-three {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.rounding-box-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.checkbox-row {
+  margin-top: -4px;
+}
+
+.helper-text {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-top: 6px;
+  margin-bottom: 0;
+}
+
+.comment-text {
+  font-size: 0.8rem;
+  color: #d97706;
+  margin-top: 8px;
+  margin-bottom: 0;
+  font-weight: 500;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+mat-form-field {
+  width: 100%;
+}

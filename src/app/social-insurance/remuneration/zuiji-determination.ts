@@ -1,11 +1,10 @@
 import { CURRENT_GRADE_TABLE, gradeDifference } from './grade-table';
 import type { RemunerationGradeTableSet, ResolvedStandardRemuneration } from './grade-table';
 import {
-  calculateGradesFromMonths,
+  calculateGradesForZuiji,
   type GradesFromMonthsOutcome,
 } from './remuneration-average';
 import type { EmploymentType, MonthPaymentBaseInput } from './payment-base-days';
-import type { RemunerationAverageSelectionResult } from './payment-base-days';
 
 export interface PreviousGrades {
   healthGrade: number;
@@ -118,7 +117,7 @@ export function determineStandardZuiji(
   }
 
   const gradeTable = options?.gradeTable ?? CURRENT_GRADE_TABLE;
-  const base = calculateGradesFromMonths(employmentType, months, gradeTable);
+  const base = calculateGradesForZuiji(employmentType, months, gradeTable);
 
   if (base.kind === 'continue_previous') {
     return {

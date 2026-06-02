@@ -1,0 +1,345 @@
+import { Injectable, inject } from '@angular/core';
+import { Firestore, doc, getDoc, serverTimestamp, updateDoc } from '@angular/fire/firestore';
+import { toFormDate } from '../date-utils';
+import { CalculationSnapshot, MonthlyDocument, PremiumData } from '../monthly-document';
+import { EmployeeDocument } from '../employee-document';
+import { calculateMonthlyPremium } from './premium/premium-calculator';
+import { determineInitial } from './remuneration/initial-determination';
+import { determineTeiji } from './remuneration/teiji-determination';
+import { determineStandardZuiji } from './remuneration/zuiji-determination';
+import { toMonthPaymentBaseInput, type MonthlyRemunerationSource } from './remuneration/remuneration-month-input';
+import { StandardRemunerationSavePayload, StandardRemunerationDataService } from './standard-remuneration-data.service';
+import { InsuranceRateDataService } from './insurance-rate-data.service';
+import { StandardRemunerationDocument, StandardRemunerationSource, RoundingByInsurance } from './social-insurance-document';
+import { addMonths, daysInMonth, parseYyyyMm } from './social-insurance-data.util';
+import type { ResolvedStandardRemuneration } from './remuneration/grade-table';
+import type { PreviousGrades } from './remuneration/zuiji-determination';
+
+
+export interface CalculationEmployeeMonthResult {
+    premiumData: PremiumData;
+    calculationSnapshot: Omit<CalculationSnapshot, 'calculatedAt'>;
+    standardRemuneration: StandardRemunerationSavePayload;
+}
+
+export interface CalculationContext {
+    employee: EmployeeDocument;
+    monthly: MonthlyDocument;
+    employmentType: 'full-time' | 'short-time-worker' | 'short-time-labor';
+    birthDate: Date | null;
+}
+
+@Injectable({ providedIn: 'root' })
+export class SocialInsuranceCalculationService {
+    private readonly firestore = inject(Firestore);
+    private readonly standardRemunerationDataService = inject(StandardRemunerationDataService);
+    private readonly insuranceRateDataService = inject(InsuranceRateDataService);
+
+    async calculateAndPersist(
+        tid: string,
+        eid: string,
+        yyyyMm: string,
+    ): Promise<CalculationEmployeeMonthResult> {
+        const ctx = await this.loadContext(tid, eid, yyyyMm);
+        const standardRemuneration = await this.resolveStandardRemuneration(tid, eid, yyyyMm, ctx);
+        await this.standardRemunerationDataService.save(tid, eid, yyyyMm, standardRemuneration);
+
+        const rate = await this.insuranceRateDataService.resolveRateForMonth(tid, yyyyMm);
+        if (!rate) {
+            throw new Error('保険料率が見つかりません');
+        }
+        
+        const premiumData = calculateMonthlyPremium({
+            yyyyMm,
+            birthDate: ctx.birthDate,
+            standardRemuneration: standardRemuneration.standardRemuneration,
+            rates: rate.rates,
+            employeeRate: rate.employeeRate,
+            roundingBy: rate.roundingBy,
+        });
+
+        const calculationSnapshot: Omit<CalculationSnapshot, 'calculatedAt'> = {
+            rateId: rate.rateId,
+            effectiveFrom: rate.effectiveFrom,
+            rates: {
+                health: rate.rates.healthInsuranceRate,
+                care: rate.rates.careInsuranceRate,
+                pension: rate.rates.pensionInsuranceRate,
+            },
+            employeeRate: {
+                health: rate.employeeRate.healthInsurance,
+                care: rate.employeeRate.careInsurance,
+                pension: rate.employeeRate.pensionInsurance,
+            },
+            roundingBy: {
+                health: rate.roundingBy.healthInsurance,
+                care: rate.roundingBy.careInsurance,
+                pension: rate.roundingBy.pensionInsurance,
+            },
+            healthGrade: standardRemuneration.healthGrade,
+            pensionGrade: standardRemuneration.pensionGrade,
+            standardRemuneration: standardRemuneration.standardRemuneration,
+            remuneration: standardRemuneration.remuneration,
+            source: standardRemuneration.source,
+        };
+
+        const monthlyRef = doc(
+            this.firestore,
+            'tenants',
+            tid,
+            'monthly-records',
+            yyyyMm,
+            'employees',
+            eid,
+        );
+
+        await updateDoc(monthlyRef, {
+            premiumData,
+            calculationSnapshot: {
+                ...calculationSnapshot,
+                calculatedAt: serverTimestamp(),
+            },
+            updatedAt: serverTimestamp(),
+        });
+        return { premiumData, calculationSnapshot, standardRemuneration };
+    }
+
+    private async resolveStandardRemuneration(
+        tid: string,
+        eid: string,
+        yyyyMm: string,
+        ctx: CalculationContext,
+    ): Promise<StandardRemunerationSavePayload> {
+        const existing = await this.standardRemunerationDataService.get(
+            tid,
+            eid,
+            yyyyMm,
+        );
+        if (existing?.source === 'manual') {
+            return this.toSavePayload(existing);
+        }
+        const zuiji = await this.tryZuiji(tid, eid, yyyyMm, ctx);
+        if (zuiji) return zuiji;
+
+        const teiji = await this.tryTeiji(tid, eid, yyyyMm, ctx);
+        if (teiji) return teiji;
+
+        const initial = await this.tryInitial(tid, eid, yyyyMm, ctx);
+        if (initial) return initial;
+
+        const carried = await this.carryForwardPrevious(tid, eid, yyyyMm, ctx);
+        if (carried) return carried;
+        throw new Error(
+          `${yyyyMm} の標準報酬を決定できません。月次給与または過去の標準報酬履歴を確認してください。`,
+        );
+      }
+
+    private async tryZuiji(
+        tid: string,
+        eid: string,
+        yyyyMm: string,
+        ctx: CalculationContext,
+    ): Promise<StandardRemunerationSavePayload | null> {
+        const monthKeys = [
+            addMonths(yyyyMm, -2),
+            addMonths(yyyyMm, -1),
+            yyyyMm,
+        ];
+        const sources = await this.loadMonthSources(tid, eid, monthKeys);
+        if (sources.length !== 3) return null;
+
+        const windowStart = addMonths(yyyyMm, -2);
+        const previous = await this.getPreviousGrades(tid, eid, windowStart);
+        if (!previous) return null;
+
+        const outcome = determineStandardZuiji(
+            ctx.employmentType,
+            sources.map((s) => toMonthPaymentBaseInput(s)),
+            previous,
+        );
+        if (outcome.kind !== 'applicable') return null;
+
+        return this.gradesToPayload('zuiji', yyyyMm, outcome.grades);
+    }
+
+    private async tryTeiji(
+        tid: string,
+        eid: string,
+        yyyyMm: string,
+        ctx: CalculationContext,
+    ): Promise<StandardRemunerationSavePayload | null> {
+        const { year } = parseYyyyMm(yyyyMm);
+        const monthKeys = [
+            `${year}-04`,
+            `${year}-05`,
+            `${year}-06`,
+        ];
+        const sources = await this.loadMonthSources(tid, eid, monthKeys);
+        if (sources.length === 0) return null;
+
+        const outcome = determineTeiji(
+            ctx.employmentType,
+            sources.map((s) => toMonthPaymentBaseInput(s)),
+        );
+        if (outcome.kind !== 'calculated') return null;
+
+        return this.gradesToPayload('teiji', yyyyMm, outcome.grades);
+    }
+
+    private async tryInitial(
+        tid: string,
+        eid: string,
+        yyyyMm: string,
+        ctx: CalculationContext,
+    ): Promise<StandardRemunerationSavePayload | null> {
+        const history = await this.standardRemunerationDataService.listForEmployee(
+            tid,
+            eid,
+        );
+        const hasPrior = history.some((item) => item.yyyyMm < yyyyMm);
+        if (hasPrior) return null;
+
+        const outcome = determineInitial(ctx.monthly.payrollData);
+        if (outcome.kind !== 'calculated') return null;
+
+        return this.gradesToPayload('initial', yyyyMm, outcome.grades);
+    }
+
+    private async carryForwardPrevious(
+        tid: string,
+        eid: string,
+        yyyyMm: string,
+        ctx: CalculationContext,
+    ): Promise<StandardRemunerationSavePayload | null> {
+        const history = await this.standardRemunerationDataService.listForEmployee(
+            tid,
+            eid,
+        );
+        const prior = history.find((item) => item.yyyyMm < yyyyMm);
+        if (!prior) {
+            const outcome = determineInitial(ctx.monthly.payrollData);
+            if (outcome.kind !== 'calculated') return null;
+            return this.gradesToPayload('initial', yyyyMm, outcome.grades);
+        }
+        return {
+            healthGrade: prior.doc.healthGrade,
+            pensionGrade: prior.doc.pensionGrade,
+            standardRemuneration: prior.doc.standardRemuneration,
+            source: prior.doc.source,
+            effectiveFrom: `${yyyyMm}-01`,
+            remuneration: prior.doc.remuneration,
+        };
+    }
+
+    private gradesToPayload(
+        source: StandardRemunerationSource,
+        yyyyMm: string,
+        grades: ResolvedStandardRemuneration,
+    ): StandardRemunerationSavePayload {
+        return {
+            healthGrade: grades.health.grade,
+            pensionGrade: grades.pension.grade,
+            standardRemuneration: {
+                health: grades.health.standardRemuneration,
+                pension: grades.pension.standardRemuneration,
+            },
+            source,
+            effectiveFrom: `${yyyyMm}-01`,
+            remuneration: grades.remuneration,
+        };
+    }
+
+    private toSavePayload(
+        doc: StandardRemunerationDocument,
+    ): StandardRemunerationSavePayload {
+        return {
+            healthGrade: doc.healthGrade,
+            pensionGrade: doc.pensionGrade,
+            standardRemuneration: doc.standardRemuneration,
+            source: doc.source,
+            effectiveFrom: doc.effectiveFrom,
+            remuneration: doc.remuneration,
+        };
+    }
+
+    private async getPreviousGrades(
+        tid: string,
+        eid: string,
+        beforeYyyyMm: string,
+    ): Promise<PreviousGrades | null> {
+        const history = await this.standardRemunerationDataService.listForEmployee(
+            tid,
+            eid,
+        );
+        const prior = history.find((item) => item.yyyyMm < beforeYyyyMm);
+        if (!prior) return null;
+        return {
+            healthGrade: prior.doc.healthGrade,
+            pensionGrade: prior.doc.pensionGrade,
+        };
+    }
+
+    private async loadMonthSources(
+        tid: string,
+        eid: string,
+        monthKeys: readonly string[],
+    ): Promise<MonthlyRemunerationSource[]> {
+        const sources: MonthlyRemunerationSource[] = [];
+        for (const ym of monthKeys) {
+            const monthly = await this.loadMonthlyDocument(tid, eid, ym);
+            if (!monthly?.payrollData) continue;
+            sources.push({
+                yyyyMm: ym,
+                hasMonthlyRecord: true,
+                daysInMonth: daysInMonth(ym),
+                payroll: monthly.payrollData,
+            });
+        }
+        return sources;
+    }
+
+    private async loadContext(
+        tid: string,
+        eid: string,
+        yyyyMm: string,
+    ): Promise<CalculationContext> {
+        const [employeeSnap, monthly] = await Promise.all([
+            getDoc(doc(this.firestore, 'tenants', tid, 'employees', eid)),
+            this.loadMonthlyDocument(tid, eid, yyyyMm),
+        ]);
+        if (!employeeSnap.exists()) {
+            throw new Error('従業員が見つかりません。');
+        }
+        if (!monthly?.payrollData) {
+            throw new Error(`${yyyyMm} の月次給与データがありません。`);
+        }
+        const employee = employeeSnap.data() as EmployeeDocument;
+        const employmentType = employee.employeeEmployInfo?.employmentType ?? 'full-time';
+        return {
+            employee,
+            monthly,
+            employmentType,
+            birthDate: toFormDate(employee.employeePersonalInfo?.birthDate),
+        };
+    }
+
+    private async loadMonthlyDocument(
+        tid: string,
+        eid: string,
+        yyyyMm: string,
+    ): Promise<MonthlyDocument | null> {
+        const snap = await getDoc(
+            doc(
+                this.firestore,
+                'tenants',
+                tid,
+                'monthly-records',
+                yyyyMm,
+                'employees',
+                eid,
+            ),
+        );
+        if (!snap.exists()) return null;
+        return snap.data() as MonthlyDocument;
+    }
+}
