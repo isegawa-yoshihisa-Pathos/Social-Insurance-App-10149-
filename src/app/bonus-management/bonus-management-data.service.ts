@@ -3,13 +3,13 @@ import { Firestore, doc, getDoc, serverTimestamp, setDoc } from '@angular/fire/f
 import {
   BonusTypeDefinition,
   DEFAULT_BONUS_TYPE_DEFINITIONS,
-} from '../monthly-document';
-import { normalizeBonusTypeDefinitions as normalizeBonusTypes } from './monthly-list/bonus-type.util';
+} from '../bonus-document';
+import { normalizeBonusTypeDefinitions as normalizeBonusTypes } from './bonus-list/bonus-type.util';
 
 @Injectable({
   providedIn: 'root',
 })
-export class MonthlyManagementDataService {
+export class BonusManagementDataService {
   private readonly firestore = inject(Firestore);
 
   readonly bonusTypeDefinitions = signal<BonusTypeDefinition[]>([

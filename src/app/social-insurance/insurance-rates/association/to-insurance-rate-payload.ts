@@ -1,5 +1,5 @@
-import type { EmployeeRateByInsurance, InsuranceRateSavePayload, RoundingByInsurance } from '../../social-insurance-document';
-import { normalizeRoundingBy } from '../../social-insurance-document';
+import type { EmployeeRateByInsurance, InsuranceRateSavePayload, RoundingByInsurance } from '../../monthly/social-insurance-document';
+import { normalizeRoundingBy } from '../../monthly/social-insurance-document';
 import { resolveAssociationRates } from './lookup';
 import type { AssociationRateTableSet, PrefectureCode } from './types';
 import { roundRate } from '../../premium/rounding';

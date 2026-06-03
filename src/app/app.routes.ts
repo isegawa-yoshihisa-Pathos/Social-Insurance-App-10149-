@@ -144,6 +144,22 @@ export const routes: Routes = [
         ],
       },
       {
+        path: 'bonus-management',
+        loadComponent: () => import('./bonus-management/bonus-management.cmp').then(m => m.BonusManagementCmp),
+        canActivate: [adminGuard],
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            loadComponent: () => import('./bonus-management/bonus-list/bonus-list.cmp').then(m => m.BonusListCmp),
+          },
+          {
+            path: 'setting',
+            loadComponent: () => import('./bonus-management/bonus-setting/bonus-setting.cmp').then(m => m.BonusSettingCmp),
+          },
+        ],
+      },
+      {
         path: 'virtual-mail-checker',
         loadComponent: () => import('./virtual-mail-checker/virtual-mail-checker.cmp').then(m => m.VirtualMailCheckerCmp),
       },

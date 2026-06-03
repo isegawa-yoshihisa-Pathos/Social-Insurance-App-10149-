@@ -85,6 +85,10 @@ export class RoutesService {
     void this.router.navigate(['/monthly-management']);
   }
 
+  redirectToBonusManagement(): void {
+    void this.router.navigate(['/bonus-management']);
+  }
+
   redirectToVirtualMailChecker(): void {
     void this.router.navigate(['/virtual-mail-checker']);
   }

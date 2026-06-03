@@ -8,10 +8,27 @@
   font-size: 0.9rem;
 }
 
-.type-row {
+.import-setting-content {
+  display: block;
+}
+
+.section-title {
+  margin: 0 0 8px;
+  font-size: 1.1rem;
+}
+
+.header-label {
+  font-weight: 600;
+}
+
+.header-setting {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.current-header {
+  display: block;
   margin-bottom: 8px;
 }
 
@@ -20,12 +37,3 @@
   color: #c62828;
 }
 
-.actions {
-  margin-top: 16px;
-}
-
-.loading-row {
-  display: flex;
-  justify-content: center;
-  padding: 24px 0;
-}

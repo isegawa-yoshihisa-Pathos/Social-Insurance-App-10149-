@@ -1,4 +1,4 @@
-import type { InsuranceRateSource } from '../../social-insurance/social-insurance-document';
+import type { InsuranceRateSource } from '../../social-insurance/monthly/social-insurance-document';
 
 export function determineRateSource(input: {
     healthInsuranceType: 'association' | 'combination';

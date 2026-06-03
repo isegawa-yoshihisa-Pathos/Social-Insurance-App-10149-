@@ -13,11 +13,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { RoutesService } from '../../routes.service';
 import { CurrentTenantService } from '../../current-tenant.service';
-import { MonthlyManagementDataService } from '../monthly-management-data.service';
 import { MonthlyListColumnKey, MonthlyListRow, getMonthlyListColumnLabel } from './monthly-list-columns';
 import { MonthlyDocument } from '../../monthly-document';
 import { BulkColumnEditDialogCmp, BulkColumnEditDialogData } from './bulk-column-edit-dialog/bulk-column-edit-dialog.cmp';
-import { BulkEditableColumn, BulkEditValue, isEditableColumn } from './monthly-bulk-edit.types';
+import { BulkEditableColumn, BulkEditValue } from './monthly-bulk-edit.types';
 import { MonthlyListBulkEditService } from './monthly-list-bulk-edit.service';
 import { formatMonthlyListCellValue, getMonthlyListEditValue, monthlyListSearchText, monthlyListSortValue, toMonthlyListRow } from './monthly-list-row.mapper';
 import { YEAR_OPTIONS, MONTH_OPTIONS } from '../../datePicker';
@@ -51,7 +50,6 @@ export class MonthlyListCmp {
   private readonly firestore = inject(Firestore);
   private readonly routesService = inject(RoutesService);
   private readonly currentTenantService = inject(CurrentTenantService);
-  private readonly monthlyManagementDataService = inject(MonthlyManagementDataService);
   private readonly monthlySettingDataService = inject(MonthlySettingDataService);
   private readonly premiumRecalculateFacade = inject(MonthlyPremiumRecalculateFacade);
   private readonly dialog = inject(MatDialog);
@@ -192,8 +190,7 @@ export class MonthlyListCmp {
     const data = monthly.docs.map((snap) => {
       const row = toMonthlyListRow(
         snap.id,
-        snap.data() as Partial<MonthlyDocument>,
-        this.monthlyManagementDataService.bonusTypeDefinitions(),
+        snap.data() as Partial<MonthlyDocument>,  
       );
       return this.listDataService.mergeEmployeeMeta(row, employeeLookup);
     });
@@ -271,9 +268,6 @@ export class MonthlyListCmp {
       this.routesService.redirectToEmployeeEmployDetail(row.eid);
       return;
     }
-    if (col === 'bonus' || !isEditableColumn(col)) {
-      return;
-    }
 
     const targetEids = this.resolveTargetEids(row.eid);
     this.openBulkEditDialog(col, getMonthlyListEditValue(row, col), targetEids);
@@ -281,14 +275,6 @@ export class MonthlyListCmp {
 
   formatCellValue(row: MonthlyListRow, col: MonthlyListColumnKey): string {
     return formatMonthlyListCellValue(row, col);
-  }
-
-  bonusTooltip(row: MonthlyListRow): string {
-    return row.bonusTooltip;
-  }
-
-  isBonusSummaryColumn(col: MonthlyListColumnKey): boolean {
-    return col === 'bonus';
   }
 
   private resolveTargetEids(eid: string): string[] {
@@ -318,7 +304,7 @@ export class MonthlyListCmp {
         column,
         displayName: targetRow?.displayName,
         employeeId: targetRow?.employeeId,
-        label: getMonthlyListColumnLabel(column, this.monthlyManagementDataService.bonusTypeDefinitions()),
+        label: getMonthlyListColumnLabel(column),
         selectedCount: targetEids.length,
         initialValue,
       },
@@ -340,8 +326,7 @@ export class MonthlyListCmp {
     if (!tid || !ym || targetEids.length === 0) return;
 
     const targets = targetEids.map((eid) => {
-      const row = this.dataSource.data.find((r) => r.eid === eid);
-      return { eid, bonus: row?.bonus ?? {} };
+      return { eid };
     });
 
     try {
@@ -358,7 +343,7 @@ export class MonthlyListCmp {
   }
 
   getColumnLabel(column: MonthlyListColumnKey): string {
-    return getMonthlyListColumnLabel(column, this.monthlyManagementDataService.bonusTypeDefinitions());
+    return getMonthlyListColumnLabel(column);
   }
 
   async onCsvSelected(event: Event): Promise<void> {

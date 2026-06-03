@@ -8,7 +8,6 @@ import { ErrorDialogCmp, mapFirebaseError } from '../../../error-dialog/error-di
 import { CurrentTenantService } from '../../../current-tenant.service';
 import { RoutesService } from '../../../routes.service';
 import { MonthlySettingDataService } from '../monthly-setting-data.service';
-import { MonthlyManagementDataService } from '../../monthly-management-data.service';
 import {
   getOptionalMonthlyListColumns,
   MonthlyListColumnKey,
@@ -21,14 +20,13 @@ import {
   styleUrl: './monthly-list-header-setting.cmp.css',
 })
 export class MonthlyListHeaderSettingCmp implements OnInit {
-  private readonly monthlyManagementDataService = inject(MonthlyManagementDataService);
   private readonly monthlySettingDataService = inject(MonthlySettingDataService);
   private readonly currentTenantService = inject(CurrentTenantService);
   private readonly routesService = inject(RoutesService);
   private readonly dialog = inject(MatDialog);
 
   readonly optionalColumns = computed(() =>
-    getOptionalMonthlyListColumns(this.monthlyManagementDataService.bonusTypeDefinitions()),
+    getOptionalMonthlyListColumns(),
   );
 
   loading = false;

@@ -1,0 +1,19 @@
+<nav mat-tab-nav-bar [tabPanel]="tabPanel" animationDuration="0ms">
+    <a
+        mat-tab-link
+        [routerLink]="['/bonus-management']"
+        [active]="!isSettingActive"
+    >賞与管理</a>
+    <a
+        mat-tab-link
+        [routerLink]="['/bonus-management', 'setting']"
+        [active]="isSettingActive"
+    >設定</a>
+</nav>
+<mat-tab-nav-panel #tabPanel>
+    <div class="bonus-management">
+        <div class="bonus-list-container">
+            <router-outlet></router-outlet>
+        </div>
+    </div>
+</mat-tab-nav-panel>

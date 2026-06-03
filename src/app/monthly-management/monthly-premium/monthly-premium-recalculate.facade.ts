@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { MonthlyPremiumBatchService } from '../../social-insurance/monthly-premium-batch.service';
+import { MonthlyPremiumBatchService } from '../../social-insurance/monthly/monthly-premium-batch.service';
 import { ErrorDialogCmp, mapFirebaseError } from '../../error-dialog/error-dialog.cmp';
 import { SuccessDialogCmp } from '../../success-dialog/success-dialog.cmp';
 
@@ -18,7 +18,7 @@ export class MonthlyPremiumRecalculateFacade {
         errors.length > 0 ? `\n失敗: ${errors.length}件\n${errors.slice(0, 5).join('\n')}` : '';
 
       this.dialog.open(SuccessDialogCmp, {
-        data: { title: '保険料再計算', message: `再計算: ${processed}件${errorLines}` },
+        data: { title: '保険料計算', message: `計算: ${processed}件${errorLines}` },
       });
     } catch (error) {
       this.dialog.open(ErrorDialogCmp, {

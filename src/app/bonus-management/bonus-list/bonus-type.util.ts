@@ -1,4 +1,4 @@
-import { BonusTypeDefinition } from '../../monthly-document';
+import { BonusTypeDefinition } from '../../bonus-document';
 
 export function generateNextBonusType(existingTypes: Iterable<string>): string {
   let max = 0;

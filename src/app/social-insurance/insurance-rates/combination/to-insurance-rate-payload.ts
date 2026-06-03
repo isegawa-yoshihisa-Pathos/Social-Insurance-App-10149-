@@ -1,7 +1,7 @@
-import type { EmployeeRateByInsurance, InsuranceRateSavePayload, RoundingByInsurance } from '../../social-insurance-document';
+import type { EmployeeRateByInsurance, InsuranceRateSavePayload, RoundingByInsurance } from '../../monthly/social-insurance-document';
 import { resolveCombinationRates, findCombinationRegistry } from './lookup';
 import type { CombinationRegistryEntry } from './types';
-import { normalizeRoundingBy } from '../../social-insurance-document';
+import { normalizeRoundingBy } from '../../monthly/social-insurance-document';
 import { roundRate } from '../../premium/rounding';
 
 export function buildCombinationInsuranceRatePayload(

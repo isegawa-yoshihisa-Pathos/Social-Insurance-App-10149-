@@ -1,9 +1,4 @@
-import { BonusTypeDefinition, MonthlyDocument } from '../../monthly-document';
-import {
-  buildBonusDisplayParts,
-  bonusTypeFromColumnKey,
-} from './bonus-display.util';
-import { extractBonusAmounts } from './bonus-data.util';
+import { MonthlyDocument } from '../../monthly-document';
 import { BulkEditValue } from './monthly-bulk-edit.types';
 import { MonthlyListColumnKey, MonthlyListRow } from './monthly-list-columns';
 import { Format } from '../../format-number-jp';
@@ -13,11 +8,8 @@ import { applyPremiumFieldsToRow, formatPremiumCellValue, premiumSortValue, prem
 export function toMonthlyListRow(
   eid: string,
   data: Partial<MonthlyDocument>,
-  bonusTypeDefinitions: BonusTypeDefinition[],
 ): MonthlyListRow {
   const payroll = data.payrollData;
-  const bonus = data.bonusData ? extractBonusAmounts(data.bonusData) : {};
-  const bonusParts = buildBonusDisplayParts(bonus, bonusTypeDefinitions);
 
   return {
     ...applyPremiumFieldsToRow({
@@ -30,10 +22,6 @@ export function toMonthlyListRow(
       commuterAllowance: payroll?.commuterAllowance ?? null,
       otherAllowance: payroll?.otherAllowance ?? null,
       retroactivePay: payroll?.retroactivePay ?? null,
-      bonus,
-      bonusDisplay: bonusParts.display,
-      bonusTooltip: bonusParts.tooltip,
-      bonusTotal: bonusParts.total,
     } as MonthlyListRow, data),
   };
 }
@@ -42,11 +30,6 @@ export function getMonthlyListEditValue(
   row: MonthlyListRow,
   column: MonthlyListColumnKey,
 ): BulkEditValue {
-  const bonusType = bonusTypeFromColumnKey(column);
-  if (bonusType) {
-    const amount = row.bonus[bonusType] ?? 0;
-    return amount === 0 ? null : amount;
-  }
 
   const value = row[column as keyof MonthlyListRow];
   if (value == null || value === '') return null;
@@ -60,16 +43,6 @@ export function formatMonthlyListCellValue(
 ): string {
   if (isPremiumColumn(column)) {
     return formatPremiumCellValue(row, column);
-  }
-
-  if (column === 'bonus') {
-    return row.bonusTotal === 0 ? '' : Format(row.bonusTotal);
-  }
-
-  const bonusType = bonusTypeFromColumnKey(column);
-  if (bonusType) {
-    const amount = row.bonus[bonusType] ?? 0;
-    return amount === 0 ? '' : Format(amount);
   }
 
   if (column === 'displayName' || column === 'employeeId') {
@@ -89,15 +62,6 @@ export function monthlyListSortValue(
     return premiumSortValue(row, column);
   }
 
-  if (column === 'bonus') {
-    return row.bonusTotal;
-  }
-
-  const bonusType = bonusTypeFromColumnKey(column);
-  if (bonusType) {
-    return row.bonus[bonusType] ?? 0;
-  }
-
   const value = row[column as keyof MonthlyListRow];
   if (typeof value === 'number') return value;
 
@@ -113,14 +77,6 @@ export function monthlyListSearchText(
     return premiumSearchText(row, column);
   }
 
-  if (column === 'bonus') {
-    return row.bonusDisplay;
-  }
-  const bonusType = bonusTypeFromColumnKey(column);
-  if (bonusType) {
-    const amount = row.bonus[bonusType] ?? 0;
-    return amount === 0 ? '' : formatMonthlyListCellValue(row, column);
-  }
   const value = row[column as keyof MonthlyListRow];
   return value == null ? '' : String(value);
 }

@@ -1,19 +1,19 @@
 import { Injectable, inject } from '@angular/core';
 import { Firestore, doc, getDoc, serverTimestamp, updateDoc } from '@angular/fire/firestore';
-import { toFormDate } from '../date-utils';
-import { CalculationSnapshot, MonthlyDocument, PremiumData } from '../monthly-document';
-import { EmployeeDocument } from '../employee-document';
-import { calculateMonthlyPremium } from './premium/premium-calculator';
-import { determineInitial } from './remuneration/initial-determination';
-import { determineTeiji } from './remuneration/teiji-determination';
-import { determineStandardZuiji } from './remuneration/zuiji-determination';
-import { toMonthPaymentBaseInput, type MonthlyRemunerationSource } from './remuneration/remuneration-month-input';
+import { toFormDate } from '../../date-utils';
+import { CalculationSnapshot, MonthlyDocument, PremiumData } from '../../monthly-document';
+import { EmployeeDocument } from '../../employee-document';
+import { calculateMonthlyPremium } from '../premium/premium-calculator';
+import { determineInitial } from '../remuneration/initial-determination';
+import { determineTeiji } from '../remuneration/teiji-determination';
+import { determineStandardZuiji } from '../remuneration/zuiji-determination';
+import { toMonthPaymentBaseInput, type MonthlyRemunerationSource } from '../remuneration/remuneration-month-input';
 import { StandardRemunerationSavePayload, StandardRemunerationDataService } from './standard-remuneration-data.service';
 import { InsuranceRateDataService } from './insurance-rate-data.service';
-import { StandardRemunerationDocument, StandardRemunerationSource, RoundingByInsurance } from './social-insurance-document';
+import { StandardRemunerationDocument, StandardRemunerationSource } from './social-insurance-document';
 import { addMonths, daysInMonth, parseYyyyMm } from './social-insurance-data.util';
-import type { ResolvedStandardRemuneration } from './remuneration/grade-table';
-import type { PreviousGrades } from './remuneration/zuiji-determination';
+import type { ResolvedStandardRemuneration } from '../remuneration/grade-table';
+import type { PreviousGrades } from '../remuneration/zuiji-determination';
 
 
 export interface CalculationEmployeeMonthResult {
@@ -93,7 +93,21 @@ export class SocialInsuranceCalculationService {
             eid,
         );
 
+        const payRollData = ctx.monthly.payrollData;
+        const totalPay = payRollData.basicSalary 
+            + (payRollData.overtimePay ?? 0)
+            + (payRollData.commuterAllowance ?? 0)
+            + (payRollData.otherAllowance ?? 0)
+            + (payRollData.retroactivePay ?? 0)
+            - premiumData.healthInsurance.employee 
+            - (premiumData.careInsurance?.employee ?? 0)
+            - premiumData.pensionInsurance.employee;
+
         await updateDoc(monthlyRef, {
+            payrollData: {
+                ...payRollData,
+                totalPay,
+            },
             premiumData,
             calculationSnapshot: {
                 ...calculationSnapshot,

@@ -1,4 +1,4 @@
-import { BonusTypeDefinition, MonthlyFormData } from '../../monthly-document';
+import { MonthlyFormData } from '../../monthly-document';
 
 export type StaticMonthlyImportFieldKey = keyof Pick<
   MonthlyFormData,
@@ -12,7 +12,7 @@ export type StaticMonthlyImportFieldKey = keyof Pick<
   | 'retroactivePay'
 >;
 
-/** 給与・氏名列、または賞与 type（例: bonus-1） */
+/** 給与・氏名列 */
 export type MonthlyImportFieldKey = StaticMonthlyImportFieldKey | (string & {});
 
 export interface MonthlyImportColumnDef {
@@ -75,36 +75,14 @@ export const STATIC_MONTHLY_IMPORT_COLUMNS: MonthlyImportColumnDef[] = [
   },
 ];
 
-export function defaultBonusImportHeader(bonusType: string): string {
-  const match = /^bonus-(\d+)$/.exec(bonusType);
-  if (match) {
-    return `bonus-type-${match[1]}`;
-  }
-  return bonusType;
-}
-
-export function buildBonusImportColumns(
-  definitions: BonusTypeDefinition[],
-): MonthlyImportColumnDef[] {
-  return definitions.map((def) => ({
-    key: def.type,
-    label: def.label,
-    defaultHeader: defaultBonusImportHeader(def.type),
-    kind: 'number' as const,
-  }));
-}
-
 export function buildMonthlyImportColumnDefs(
-  definitions: BonusTypeDefinition[],
 ): MonthlyImportColumnDef[] {
-  return [...STATIC_MONTHLY_IMPORT_COLUMNS, ...buildBonusImportColumns(definitions)];
+  return [...STATIC_MONTHLY_IMPORT_COLUMNS];
 }
 
-export function buildDefaultImportHeaders(
-  definitions: BonusTypeDefinition[],
-): Record<string, string> {
+export function buildDefaultImportHeaders(): Record<string, string> {
   const headers: Record<string, string> = {};
-  for (const col of buildMonthlyImportColumnDefs(definitions)) {
+  for (const col of buildMonthlyImportColumnDefs()) {
     headers[col.key] = col.defaultHeader;
   }
   return headers;

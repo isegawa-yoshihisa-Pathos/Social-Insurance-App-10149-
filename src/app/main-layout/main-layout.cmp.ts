@@ -38,7 +38,7 @@ export class MainLayoutCmp {
     { initialValue: this.urlToSection(this.router.url) },
   );
 
-  private urlToSection(url: string): 'myPage' | 'personalSetting' | 'taskBoard' | 'tenantSetting' | 'createNewTenant' | 'employeesManagement' | 'invitationsManagement' | 'monthlyManagement' | 'virtualMailChecker' {
+  private urlToSection(url: string): 'myPage' | 'personalSetting' | 'taskBoard' | 'tenantSetting' | 'createNewTenant' | 'employeesManagement' | 'invitationsManagement' | 'monthlyManagement' | 'bonusManagement' | 'virtualMailChecker' {
     if (url.startsWith('/personal-setting')) return 'personalSetting';
     if (url.startsWith('/task-board')) return 'taskBoard';
     if (url.startsWith('/tenant-setting')) return 'tenantSetting';
@@ -46,6 +46,7 @@ export class MainLayoutCmp {
     if (url.startsWith('/employees-management')) return 'employeesManagement';
     if (url.startsWith('/invitations-management')) return 'invitationsManagement';
     if (url.startsWith('/monthly-management')) return 'monthlyManagement';
+    if (url.startsWith('/bonus-management')) return 'bonusManagement';
     if (url.startsWith('/virtual-mail-checker')) return 'virtualMailChecker';
     return 'myPage';
   }
@@ -96,6 +97,10 @@ export class MainLayoutCmp {
 
   navigateToMonthlyManagement(): void {
     this.routesService.redirectToMonthlyManagement();
+  }
+
+  navigateToBonusManagement(): void {
+    this.routesService.redirectToBonusManagement();
   }
 
   navigateToVirtualMailChecker(): void {

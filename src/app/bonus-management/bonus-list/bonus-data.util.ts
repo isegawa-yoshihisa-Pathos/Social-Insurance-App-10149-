@@ -1,4 +1,4 @@
-import { BonusAmountMap, BonusData } from '../../monthly-document';
+import { BonusAmountMap, BonusData } from '../../bonus-document';
 
 export const BONUS_DATA_TOTAL_KEY = 'total';
 

@@ -1,5 +1,5 @@
 import { Timestamp } from '@angular/fire/firestore';
-import type { InsuranceRatesInput } from '../social-insurance/premium/premium-calculator';
+import type { InsuranceRatesInput } from '../premium/premium-calculator';
 
 export interface EmployeeRateByInsurance {
   healthInsurance: number;

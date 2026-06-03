@@ -1,4 +1,4 @@
-import { BonusAmountMap, BonusTypeDefinition } from '../../monthly-document';
+import { BonusAmountMap, BonusTypeDefinition } from '../../bonus-document';
 import { Format } from '../../format-number-jp';
 import { sumBonusAmounts } from './bonus-data.util';
 

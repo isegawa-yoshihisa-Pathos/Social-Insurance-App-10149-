@@ -9,7 +9,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ErrorDialogCmp, mapFirebaseError } from '../../../error-dialog/error-dialog.cmp';
 import { CurrentTenantService } from '../../../current-tenant.service';
 import { RoutesService } from '../../../routes.service';
-import { MonthlyManagementDataService } from '../../monthly-management-data.service';
 import {
   buildMonthlyImportColumnDefs,
   MonthlyImportColumnDef,
@@ -31,14 +30,13 @@ import { MonthlySettingDataService } from '../monthly-setting-data.service';
 })
 export class MonthlyImportSettingCmp implements OnInit {
   readonly monthlySettingDataService = inject(MonthlySettingDataService);
-  private readonly monthlyManagementDataService = inject(MonthlyManagementDataService);
   private readonly dialog = inject(MatDialog);
   private readonly currentTenantService = inject(CurrentTenantService);
   private readonly routesService = inject(RoutesService);
   private readonly firestore = inject(Firestore);
 
   readonly importColumns = computed((): MonthlyImportColumnDef[] =>
-    buildMonthlyImportColumnDefs(this.monthlyManagementDataService.bonusTypeDefinitions()),
+    buildMonthlyImportColumnDefs(),
   );
 
   loading = false;
@@ -57,10 +55,8 @@ export class MonthlyImportSettingCmp implements OnInit {
 
     this.loading = true;
     try {
-      await this.monthlyManagementDataService.loadBonusSettings(tid);
       await this.monthlySettingDataService.loadSettings(
         tid,
-        this.monthlyManagementDataService.bonusTypeDefinitions(),
       );
     } catch (error) {
       this.dialog.open(ErrorDialogCmp, {

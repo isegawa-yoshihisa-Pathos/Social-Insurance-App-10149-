@@ -1,16 +1,9 @@
-import {
-  BonusAmountMap,
-  BonusTypeDefinition,
-  MonthlyFormData,
-} from '../../monthly-document';
-import { bonusColumnKey, bonusTypeFromColumnKey } from './bonus-display.util';
-import { isPremiumColumn, getPremiumColumnLabel, getOptionalPremiumColumns, PREMIUM_MONTHLY_LIST_COLUMN_KEYS } from '../monthly-premium/monthly-premium-columns';
+import { MonthlyFormData } from '../../monthly-document';
+import { isPremiumColumn, getPremiumColumnLabel, getOptionalPremiumColumns, PREMIUM_MONTHLY_LIST_COLUMN_KEYS, PremiumMonthlyListColumnKey } from '../monthly-premium/monthly-premium-columns';
 
 export type MonthlyFormColumnKey = keyof MonthlyFormData;
 
-export type BonusColumnKey = `bonus-${number}`;
-
-export type MonthlyListColumnKey = MonthlyFormColumnKey | BonusColumnKey | string;
+export type MonthlyListColumnKey = MonthlyFormColumnKey | PremiumMonthlyListColumnKey;
 
 export const BASE_MONTHLY_LIST_COLUMN_KEYS = [
   'displayName',
@@ -21,7 +14,6 @@ export const BASE_MONTHLY_LIST_COLUMN_KEYS = [
   'commuterAllowance',
   'otherAllowance',
   'retroactivePay',
-  'bonus',
 ] as const;
 
 export type BaseMonthlyListColumnKey = (typeof BASE_MONTHLY_LIST_COLUMN_KEYS)[number];
@@ -41,27 +33,19 @@ const STATIC_COLUMN_LABELS: Record<BaseMonthlyListColumnKey, string> = {
   commuterAllowance: '通勤手当',
   otherAllowance: 'その他手当',
   retroactivePay: '遡及清算',
-  bonus: '賞与（合計）',
 };
 
 export function getAllMonthlyListColumnKeys(
-  definitions: BonusTypeDefinition[],
 ): MonthlyListColumnKey[] {
 
   return [
     ...BASE_MONTHLY_LIST_COLUMN_KEYS,
-    ...definitions.map((def) => bonusColumnKey(def.type)),
     ...PREMIUM_MONTHLY_LIST_COLUMN_KEYS,
   ];
 }
 
 export function getOptionalMonthlyListColumns(
-  definitions: BonusTypeDefinition[],
 ): { key: MonthlyListColumnKey; label: string }[] {
-  const bonusColumns = definitions.map((def) => ({
-    key: bonusColumnKey(def.type) as MonthlyListColumnKey,
-    label: def.label,
-  }));
 
   return [
     { key: 'displayName', label: '氏名' },
@@ -72,20 +56,13 @@ export function getOptionalMonthlyListColumns(
     { key: 'commuterAllowance', label: '通勤手当' },
     { key: 'otherAllowance', label: 'その他手当' },
     { key: 'retroactivePay', label: '遡及清算' },
-    { key: 'bonus', label: '賞与（合計）' },
-    ...bonusColumns,
     ...getOptionalPremiumColumns(),
   ];
 }
 
 export function getMonthlyListColumnLabel(
   column: MonthlyListColumnKey,
-  definitions: BonusTypeDefinition[],
 ): string {
-  const bonusType = bonusTypeFromColumnKey(column);
-  if (bonusType) {
-    return definitions.find((def) => def.type === bonusType)?.label ?? column;
-  }
 
   if (isPremiumColumn(column)) {
     return getPremiumColumnLabel(column);
@@ -104,10 +81,6 @@ export interface MonthlyListRow {
   commuterAllowance: number | null;
   otherAllowance: number | null;
   retroactivePay: number | null;
-  bonus: BonusAmountMap;
-  bonusDisplay: string;
-  bonusTooltip: string;
-  bonusTotal: number;
   standardRemunerationHealth: number | null;
   standardRemunerationPension: number | null;
   healthInsuranceEmployee: number | null;

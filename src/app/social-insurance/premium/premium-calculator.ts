@@ -3,8 +3,8 @@ import {
   premiumFromStandardRemuneration,
   type SplitPremiumResult,
 } from './rounding';
-import { EmployeeRateByInsurance, normalizeEmployeeRate, normalizeRoundingBy, RoundingByInsurance } from '../social-insurance-document';
-import { parseYyyyMm } from '../social-insurance-data.util';
+import { EmployeeRateByInsurance, normalizeEmployeeRate, normalizeRoundingBy, RoundingByInsurance } from '../monthly/social-insurance-document';
+import { parseYyyyMm } from '../monthly/social-insurance-data.util';
 
 export interface InsuranceRatesInput {
   healthInsuranceRate: number;
@@ -51,6 +51,29 @@ function toPremiumPart(
   split: SplitPremiumResult,
 ): { employer: number; employee: number } {
   return { employer: split.employer, employee: split.employee };
+}
+
+export interface BonusPremiumCalculationInput {
+  yyyyMm: string;
+  birthDate: Date | null;
+  standardBonus: {
+    health: number;
+    pension: number;
+  };
+  rates: InsuranceRatesInput;
+  employeeRate?: EmployeeRateByInsurance;
+  roundingBy?: RoundingByInsurance;
+}
+
+export function calculateBonusPremium(input: BonusPremiumCalculationInput): PremiumData {
+  return calculateMonthlyPremium({
+    yyyyMm: input.yyyyMm,
+    birthDate: input.birthDate,
+    standardRemuneration: input.standardBonus,
+    rates: input.rates,
+    employeeRate: input.employeeRate,
+    roundingBy: input.roundingBy,
+  });
 }
 
 export function calculateMonthlyPremium(input: PremiumCalculationInput): PremiumData {

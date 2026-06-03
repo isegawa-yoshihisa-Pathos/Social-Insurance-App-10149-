@@ -10,5 +10,5 @@ import { MatButtonModule } from '@angular/material/button';
   styleUrl: './success-dialog.cmp.css',
 })
 export class SuccessDialogCmp {
-  readonly data = inject<{ message: string }>(MAT_DIALOG_DATA);
+  readonly data = inject<{ title?: string; message: string }>(MAT_DIALOG_DATA);
 }

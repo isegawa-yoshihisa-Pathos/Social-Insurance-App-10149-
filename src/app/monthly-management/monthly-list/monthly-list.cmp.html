@@ -119,10 +119,6 @@
                 mat-cell
                 *matCellDef="let row"
                 (click)="onCellClick(row, col)"
-                [class.bonus-cell]="isBonusSummaryColumn(col)"
-                [matTooltip]="isBonusSummaryColumn(col) ? bonusTooltip(row) : ''"
-                [matTooltipDisabled]="!isBonusSummaryColumn(col) || !bonusTooltip(row)"
-                matTooltipClass="bonus-tooltip"
               >
                 {{ formatCellValue(row, col) }}
               </td>

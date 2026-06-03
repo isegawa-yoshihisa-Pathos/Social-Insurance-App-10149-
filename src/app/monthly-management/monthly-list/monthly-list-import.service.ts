@@ -8,15 +8,12 @@ import {
   serverTimestamp,
   writeBatch,
 } from '@angular/fire/firestore';
-import { BonusAmountMap, BonusTypeDefinition } from '../../monthly-document';
-import { MonthlyManagementDataService } from '../monthly-management-data.service';
 import { MonthlySettingDataService } from '../monthly-setting/monthly-setting-data.service';
 import {
   MonthlyImportColumnDef,
   MonthlyImportFieldKey,
   buildMonthlyImportColumnDefs,
 } from '../monthly-setting/monthly-import-columns';
-import { buildBonusData } from './bonus-data.util';
 import { MonthlyListRow } from './monthly-list-columns';
 import { MonthlyListDataService } from './monthly-list-data.service';
 
@@ -38,7 +35,6 @@ export interface MonthlyCsvImportResult {
 export class MonthlyListImportService {
   private readonly firestore = inject(Firestore);
   private readonly monthlySettingDataService = inject(MonthlySettingDataService);
-  private readonly monthlyManagementDataService = inject(MonthlyManagementDataService);
   private readonly listDataService = inject(MonthlyListDataService);
 
   async importFromCsv(
@@ -46,11 +42,9 @@ export class MonthlyListImportService {
     file: File,
     options: MonthlyCsvImportOptions,
   ): Promise<MonthlyCsvImportResult> {
-    await this.monthlyManagementDataService.loadBonusSettings(tid);
-    const bonusDefinitions = this.monthlyManagementDataService.bonusTypeDefinitions();
-    await this.monthlySettingDataService.loadSettings(tid, bonusDefinitions);
+    await this.monthlySettingDataService.loadSettings(tid);
 
-    const columnDefs = buildMonthlyImportColumnDefs(bonusDefinitions);
+    const columnDefs = buildMonthlyImportColumnDefs();
     const csvText = await file.text();
     const rows = this.parseCsvRows(csvText);
     if (rows.length < 2) {
@@ -114,8 +108,6 @@ export class MonthlyListImportService {
         cols,
         headerIndex,
         columnDefs,
-        bonusDefinitions,
-        existingRow?.bonus ?? {},
       );
       if (!patch) {
         result.skippedEmpty++;
@@ -186,15 +178,9 @@ export class MonthlyListImportService {
     cols: string[],
     idx: Record<string, number>,
     columnDefs: MonthlyImportColumnDef[],
-    bonusDefinitions: BonusTypeDefinition[],
-    existingBonus: BonusAmountMap,
   ): UpdateData<DocumentData> | null {
     const update: Record<string, unknown> = {};
     let hasUpdate = false;
-
-    const bonusTypes = new Set(bonusDefinitions.map((d) => d.type));
-    let bonusAmounts: BonusAmountMap | null = null;
-    let bonusChanged = false;
 
     const setPayrollIfPresent = (key: MonthlyImportFieldKey) => {
       const i = idx[key];
@@ -207,43 +193,12 @@ export class MonthlyListImportService {
       hasUpdate = true;
     };
 
-    const setBonusIfPresent = (bonusType: string) => {
-      const i = idx[bonusType];
-      if (i === undefined || i < 0) return;
-      const raw = (cols[i] ?? '').trim();
-      if (!raw) return;
-      const num = this.parseNumber(raw);
-      if (num === null) return;
-
-      if (!bonusAmounts) {
-        bonusAmounts = { ...existingBonus };
-      }
-      bonusChanged = true;
-      if (num === 0) {
-        delete bonusAmounts[bonusType];
-      } else {
-        bonusAmounts[bonusType] = num;
-      }
-      hasUpdate = true;
-    };
-
     for (const col of columnDefs) {
       if (col.key === 'displayName' || col.key === 'employeeId') {
         continue;
       }
-      if (bonusTypes.has(col.key)) {
-        setBonusIfPresent(col.key);
-      } else if (col.kind === 'number') {
+      if (col.kind === 'number') {
         setPayrollIfPresent(col.key);
-      }
-    }
-
-    if (bonusChanged && bonusAmounts) {
-      const bonusData = buildBonusData(bonusAmounts);
-      if (bonusData === undefined) {
-        update['bonusData'] = deleteField();
-      } else {
-        update['bonusData'] = bonusData;
       }
     }
 

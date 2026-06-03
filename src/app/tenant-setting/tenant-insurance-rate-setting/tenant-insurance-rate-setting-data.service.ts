@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { DEFAULT_ROUNDING_BY } from '../../social-insurance/social-insurance-document';
-import type { EmployeeRateByInsurance, InsuranceRateSavePayload, InsuranceRateSource, RoundingByInsurance } from '../../social-insurance/social-insurance-document';
-import { InsuranceRateDataService, type InsuranceRateListItem } from '../../social-insurance/insurance-rate-data.service';
+import { DEFAULT_ROUNDING_BY } from '../../social-insurance/monthly/social-insurance-document';
+import type { EmployeeRateByInsurance, InsuranceRateSavePayload, InsuranceRateSource, RoundingByInsurance } from '../../social-insurance/monthly/social-insurance-document';
+import { InsuranceRateDataService, type InsuranceRateListItem } from '../../social-insurance/monthly/insurance-rate-data.service';
 import { TenantSettingDataService } from '../tenant-setting-data.service';
 import { buildAssociationInsuranceRatePayload, CURRENT_ASSOCIATION_RATE_TABLE } from '../../social-insurance/insurance-rates/association';
 import { buildCombinationInsuranceRatePayload, COMBINATION_RATE_REGISTRIES } from '../../social-insurance/insurance-rates/combination';

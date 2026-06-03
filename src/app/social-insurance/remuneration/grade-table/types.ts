@@ -6,7 +6,6 @@ export interface RemunerationGradeRow {
     standardRemuneration: number;
   }
   
-/** 法改正ごとに差し替える一式 */
   export interface RemunerationGradeTableSet {
     effectiveFrom: string;
     label: string;
@@ -14,7 +13,6 @@ export interface RemunerationGradeRow {
     pension: readonly RemunerationGradeRow[];
   }
   
-/** 照合結果 */
   export interface GradeLookupResult {
     grade: number;
     standardRemuneration: number;
@@ -22,7 +20,6 @@ export interface RemunerationGradeRow {
     maxRemuneration: number;
   }
   
-/** 報酬月額1回分の照合結果（保険料・履歴保存用） */
   export interface ResolvedStandardRemuneration {
     remuneration: number;
     health: GradeLookupResult;

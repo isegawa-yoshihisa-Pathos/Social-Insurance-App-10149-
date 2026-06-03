@@ -1,0 +1,31 @@
+:host {
+  display: block;
+}
+
+.section-description {
+  margin: 0 0 16px;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.type-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.validation-error {
+  margin: 12px 0 0;
+  color: #c62828;
+}
+
+.actions {
+  margin-top: 16px;
+}
+
+.loading-row {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}

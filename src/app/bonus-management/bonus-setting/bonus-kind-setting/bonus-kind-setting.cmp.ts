@@ -6,16 +6,16 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog } from '@angular/material/dialog';
-import { BonusTypeDefinition } from '../../../monthly-document';
+import { BonusTypeDefinition } from '../../../bonus-document';
 import { ErrorDialogCmp, mapFirebaseError } from '../../../error-dialog/error-dialog.cmp';
 import { CurrentTenantService } from '../../../current-tenant.service';
 import { RoutesService } from '../../../routes.service';
-import { MonthlyManagementDataService } from '../../monthly-management-data.service';
-import { generateNextBonusType } from '../../monthly-list/bonus-type.util';
-import { MonthlySettingDataService } from '../monthly-setting-data.service';
+import { BonusManagementDataService } from '../../bonus-management-data.service';
+import { generateNextBonusType } from '../../bonus-list/bonus-type.util';
+import { BonusSettingDataService } from '../bonus-setting-data.service';
 
 @Component({
-  selector: 'app-monthly-bonus-setting',
+  selector: 'app-bonus-kind-setting',
   imports: [
     FormsModule,
     MatButtonModule,
@@ -24,15 +24,15 @@ import { MonthlySettingDataService } from '../monthly-setting-data.service';
     MatInputModule,
     MatProgressSpinnerModule,
   ],
-  templateUrl: './monthly-bonus-setting.cmp.html',
-  styleUrl: './monthly-bonus-setting.cmp.css',
+  templateUrl: './bonus-kind-setting.cmp.html',
+  styleUrl: './bonus-kind-setting.cmp.css',
 })
-export class MonthlyBonusSettingCmp implements OnInit {
-  private readonly monthlyManagementDataService = inject(MonthlyManagementDataService);
+export class BonusKindSettingCmp implements OnInit {
+  private readonly bonusManagementDataService = inject(BonusManagementDataService);
   private readonly currentTenantService = inject(CurrentTenantService);
   private readonly routesService = inject(RoutesService);
   private readonly dialog = inject(MatDialog);
-  private readonly monthlySettingDataService = inject(MonthlySettingDataService);
+  private readonly bonusSettingDataService = inject(BonusSettingDataService);
   loading = false;
   saveBusy = false;
   validationError: string | null = null;
@@ -47,8 +47,8 @@ export class MonthlyBonusSettingCmp implements OnInit {
 
     this.loading = true;
     try {
-      await this.monthlyManagementDataService.loadBonusSettings(tid);
-      this.types = this.monthlyManagementDataService.bonusTypeDefinitions().map((item) => ({ ...item }));
+      await this.bonusManagementDataService.loadBonusSettings(tid);
+      this.types = this.bonusManagementDataService.bonusTypeDefinitions().map((item) => ({ ...item }));
     } catch (e) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: mapFirebaseError(e) },
@@ -83,10 +83,10 @@ export class MonthlyBonusSettingCmp implements OnInit {
     this.saveBusy = true;
     this.validationError = null;
     try {
-      this.monthlyManagementDataService.setBonusTypeDefinitions(this.types);
-      await this.monthlyManagementDataService.saveBonusSettings(tid);
-      this.monthlySettingDataService.syncVisibleColumnsForBonusTypes();
-      this.types = this.monthlyManagementDataService.bonusTypeDefinitions().map((item) => ({ ...item }));
+      this.bonusManagementDataService.setBonusTypeDefinitions(this.types);
+      await this.bonusManagementDataService.saveBonusSettings(tid);
+      this.bonusSettingDataService.syncVisibleColumnsForBonusTypes();
+      this.types = this.bonusManagementDataService.bonusTypeDefinitions().map((item) => ({ ...item }));
     } catch (e) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: mapFirebaseError(e) },
