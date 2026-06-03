@@ -1,7 +1,8 @@
 import type { CombinationRateTableSet } from '../../types';
 
 export const TJK_RATE_2026_03 = {
-  combinationName: 'tjk',
+  combinationCode: 'tjk',
+  combinationName: '東京情報サービス産業健康保険組合',
   effectiveFrom: '2026-03-01',
   label: '令和8年度',
   healthInsuranceRate: 0.0940,

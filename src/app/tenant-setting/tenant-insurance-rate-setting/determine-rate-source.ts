@@ -2,7 +2,7 @@ import type { InsuranceRateSource } from '../../social-insurance/monthly/social-
 
 export function determineRateSource(input: {
     healthInsuranceType: 'association' | 'combination';
-    combinationName?: string;
+    combinationCode?: string;
     usedMasterAutoFill: boolean;
     valuesMatchMaster: boolean;
 }): InsuranceRateSource {
@@ -12,7 +12,7 @@ export function determineRateSource(input: {
         : 'manual';
     }
     
-    const known = ['kanto-its', 'tjk'].includes(input.combinationName ?? '');
+    const known = ['kanto-its', 'tjk'].includes(input.combinationCode ?? '');
     if (known && input.usedMasterAutoFill && input.valuesMatchMaster) {
     return 'combination_import';
     }

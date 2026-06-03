@@ -14,6 +14,7 @@ import { DEPENDENT_RELATIONSHIP_LABELS, DependentRelationship } from '../../pers
 import { RoutesService } from '../../routes.service';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule, MatDatepickerToggle } from '@angular/material/datepicker';
+import { CurrentTenantService } from '../../current-tenant.service';
 
 @Component({
   selector: 'app-employee-info-edit',
@@ -33,6 +34,7 @@ import { MatDatepickerModule, MatDatepickerToggle } from '@angular/material/date
 })
 export class EmployeeInfoEditCmp {
   readonly dataService = inject(PersonalSettingDataService);
+  readonly currentTenantService = inject(CurrentTenantService);
   private readonly zipcodeToAddressService = inject(ZipcodeToAddressService);
   private readonly dialog = inject(MatDialog);
   private readonly routesService = inject(RoutesService);
@@ -90,7 +92,11 @@ export class EmployeeInfoEditCmp {
   async save(): Promise<void> {
     this.submitBusy = true;
     try {
-      await this.dataService.saveEmployee();
+      if (this.currentTenantService.affiliations().length > 1) {
+        await this.dataService.saveEmployee();
+      } else {
+        await this.dataService.saveEmployeeAndPersonal();
+      }
       this.routesService.redirectToEmployeeSetting();
     } catch (error) {
       this.dialog.open(ErrorDialogCmp, { data: { message: mapFirebaseError(error) } });

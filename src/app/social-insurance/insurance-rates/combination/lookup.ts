@@ -15,6 +15,7 @@ export function resolveCombinationRates(
     )[0];
 
     return {
+    combinationCode: best.combinationCode,
     combinationName: best.combinationName,
     healthInsuranceRate: best.healthInsuranceRate,
     careInsuranceRate: best.careInsuranceRate,
@@ -26,7 +27,7 @@ export function resolveCombinationRates(
 
 export function findCombinationRegistry(
     registries: readonly CombinationRegistryEntry[],
-    name: string,
+    code: string,
 ): CombinationRegistryEntry | null {
-    return registries.find((r) => r.combinationName === name) ?? null;
+    return registries.find((r) => r.combinationCode === code) ?? null;
 }

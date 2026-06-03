@@ -4,9 +4,11 @@
     <section class="form-section">
       <h3>基本設定</h3>
       <div class="input-row">
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="outline" class="date-picker">
           <mat-label>適用開始日</mat-label>
-          <input matInput type="date" [(ngModel)]="effectiveFrom" required />
+          <input matInput [matDatepicker]="picker" [(ngModel)]="effectiveFrom" required />
+          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
         </mat-form-field>
   
         <mat-form-field appearance="outline" class="flex-main">

@@ -7,7 +7,7 @@ export class MonthlyPremiumBatchService {
   private readonly firestore = inject(Firestore);
   private readonly calculationService = inject(SocialInsuranceCalculationService);
 
-  async recalculateMonth(tid: string, yyyyMm: string): Promise<{ processed: number; errors: string[] }> {
+  async calculateMonth(tid: string, yyyyMm: string): Promise<{ processed: number; errors: string[] }> {
     const monthlyRef = collection(
       this.firestore, 'tenants', tid, 'monthly-records', yyyyMm, 'employees',
     );

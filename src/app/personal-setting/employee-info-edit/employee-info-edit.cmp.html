@@ -1,15 +1,17 @@
 <form #employeeInfoEditForm="ngForm" class="input-container">
-    <div class="field-container">
-        <div class="grid-full-width reflect-basic-setting">
-            <button
-                matButton="outlined"
-                type="button"
-                (click)="applyBasicToEmployeeSettings()"
-            >
-                基本設定を反映
-            </button>
+    @if (currentTenantService.affiliations().length > 1) {
+        <div class="field-container">
+            <div class="grid-full-width reflect-basic-setting">
+                <button
+                    matButton="outlined"
+                    type="button"
+                    (click)="applyBasicToEmployeeSettings()"
+                >
+                    基本設定を反映
+                </button>
+            </div>
         </div>
-    </div>
+    }
     <div class="field-container">
         <label class="label-name">
             表示名：

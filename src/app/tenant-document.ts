@@ -3,6 +3,7 @@ import { Timestamp } from '@angular/fire/firestore';
 export interface SocialInsuranceSettings {
   corporateNumber: string,
   healthInsuranceType: 'association' | 'combination',
+  combinationCode?: string,
   combinationName?: string,
   healthInsuranceTenantRecordNumber: string,
   pensionInsuranceTenantNumber: string,

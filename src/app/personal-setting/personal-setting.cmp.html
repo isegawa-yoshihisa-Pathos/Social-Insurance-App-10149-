@@ -1,20 +1,29 @@
 <nav mat-tab-nav-bar [tabPanel]="tabPanel" animationDuration="0ms" class="setting-tabs">
-    <a
-        mat-tab-link
-        [routerLink]="['/personal-setting']"
-        [active]="!isEmployeeActive"
-    >
-        <span>基本設定</span>
-        @if (dataService.hasPersonalMissingFields) {
-            <span class="required-badge"></span>
-        }
-    </a>
+    @if (dataService.multipleAffiliations()) {
+        <a
+            mat-tab-link
+            [routerLink]="['/personal-setting']"
+            [active]="!isEmployeeActive"
+        >
+            <span>基本設定</span>
+            @if (dataService.hasPersonalMissingFields) {
+                <span class="required-badge"></span>
+            }
+        </a>
+    }
     <a
         mat-tab-link
         [routerLink]="['/personal-setting', 'employee']"
         [active]="isEmployeeActive"
     >
-        <span>事業所別設定</span>
+        <span>
+            @if (dataService.multipleAffiliations()) {
+                事業所別設定
+            }
+            @else {
+                基本設定
+            }
+        </span>
         @if (dataService.hasEmployeeMissingFields) {
             <span class="required-badge"></span>
         }

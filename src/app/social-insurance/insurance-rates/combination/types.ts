@@ -1,4 +1,5 @@
 export interface CombinationRateTableSet {
+  combinationCode: string;
   combinationName: string;
   effectiveFrom: string;
   label: string;
@@ -8,11 +9,13 @@ export interface CombinationRateTableSet {
 }
 
 export interface CombinationRegistryEntry {
+  combinationCode: string;
   combinationName: string;
   tables: readonly CombinationRateTableSet[];
 }
 
 export interface ResolvedCombinationRates {
+  combinationCode: string;
   combinationName: string;
   healthInsuranceRate: number;
   careInsuranceRate: number;

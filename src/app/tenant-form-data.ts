@@ -43,6 +43,7 @@ export function createDefaultSocialInsuranceSettings(): SocialInsuranceSettings 
   return {
     corporateNumber: '',
     healthInsuranceType: 'association',
+    combinationCode: '',
     combinationName: '',
     healthInsuranceTenantRecordNumber: '',
     pensionInsuranceTenantNumber: '',
@@ -110,8 +111,16 @@ export function tenantFormToSavePayload(
     phoneNumber: rest.phoneNumber,
     socialInsuranceSettings: {
       ...rest.socialInsuranceSettings,
-      combinationName:
+      combinationCode: 
         rest.socialInsuranceSettings.healthInsuranceType === 'combination'
+          ? rest.socialInsuranceSettings.combinationCode
+          : '',
+      combinationName:
+        rest.socialInsuranceSettings.combinationCode === 'kanto-its'
+          ? '関東ITソフトウェア健康保険組合'
+          : rest.socialInsuranceSettings.combinationCode === 'tjk'
+          ? '東京情報サービス産業健康保険組合'
+          : rest.socialInsuranceSettings.combinationCode === 'other'
           ? rest.socialInsuranceSettings.combinationName
           : '',
     },

@@ -71,6 +71,10 @@ export class AppHeaderCmp {
     this.routesService.redirectToMainPage();
   }
 
+  multipleAffiliations(): boolean {
+    return this.currentTenantService.affiliations().length > 1;
+  }
+
   signOut(): void {
     this.authService.signOut();
     this.currentTenantService.signOut();

@@ -26,7 +26,7 @@ import { MonthlySettingDataService } from '../monthly-setting/monthly-setting-da
 import { MonthlyListImportService } from './monthly-list-import.service';
 import { MonthlyListDataService } from './monthly-list-data.service';
 import { HelpContentCmp } from '../../help-content/help-content.cmp';
-import { MonthlyPremiumRecalculateFacade } from '../monthly-premium/monthly-premium-recalculate.facade';
+import { MonthlyPremiumCalculateFacade } from '../monthly-premium/monthly-premium-calculate.facade';
 
 @Component({
   selector: 'app-monthly-list',
@@ -51,7 +51,7 @@ export class MonthlyListCmp {
   private readonly routesService = inject(RoutesService);
   private readonly currentTenantService = inject(CurrentTenantService);
   private readonly monthlySettingDataService = inject(MonthlySettingDataService);
-  private readonly premiumRecalculateFacade = inject(MonthlyPremiumRecalculateFacade);
+  private readonly premiumCalculateFacade = inject(MonthlyPremiumCalculateFacade);
   private readonly dialog = inject(MatDialog);
   private readonly bulkEditService = inject(MonthlyListBulkEditService);
   private readonly importService = inject(MonthlyListImportService);
@@ -397,13 +397,13 @@ export class MonthlyListCmp {
     }
   }
 
-  async recalculatePremiums(): Promise<void> {
+  async calculatePremiums(): Promise<void> {
     const tid = this.currentTenantService.currentTid();
     const ym = this.yyyyMm();
     if (!tid || !ym || !this.monthlyRecordExists()) return;
     this.premiumRecalculating = true;
     try {
-      await this.premiumRecalculateFacade.recalculateMonth(tid, ym, () =>
+      await this.premiumCalculateFacade.calculateMonth(tid, ym, () =>
         this.loadMonthlyRecords(tid, ym),
       );
     } finally {

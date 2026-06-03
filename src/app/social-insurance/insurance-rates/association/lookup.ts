@@ -1,4 +1,4 @@
-import type { AssociationPrefectureRateRow, AssociationRateTableSet, PrefectureCode } from './types';
+import type { AssociationRateTableSet, PrefectureCode } from './types';
 
 export interface ResolvedAssociationRates {
   prefectureCode: PrefectureCode;

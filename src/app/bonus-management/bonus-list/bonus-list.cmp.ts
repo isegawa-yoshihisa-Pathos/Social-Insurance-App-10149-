@@ -27,7 +27,7 @@ import { BonusSettingDataService } from '../bonus-setting/bonus-setting-data.ser
 import { BonusListImportService } from './bonus-list-import.service';
 import { BonusListDataService } from './bonus-list-data.service';
 import { HelpContentCmp } from '../../help-content/help-content.cmp';
-import { BonusPremiumRecalculateFacade } from '../bonus-premium/bonus-premium-recalculate.facade';
+import { BonusPremiumCalculateFacade } from '../bonus-premium/bonus-premium-calculate.facade';
 
 @Component({
   selector: 'app-bonus-list',
@@ -53,7 +53,7 @@ export class BonusListCmp {
   private readonly currentTenantService = inject(CurrentTenantService);
   private readonly bonusManagementDataService = inject(BonusManagementDataService);
   private readonly bonusSettingDataService = inject(BonusSettingDataService);
-  private readonly premiumRecalculateFacade = inject(BonusPremiumRecalculateFacade);
+  private readonly premiumCalculateFacade = inject(BonusPremiumCalculateFacade);
   private readonly dialog = inject(MatDialog);
   private readonly bulkEditService = inject(BonusListBulkEditService);
   private readonly importService = inject(BonusListImportService);
@@ -412,13 +412,13 @@ export class BonusListCmp {
     }
   }
 
-  async recalculatePremiums(): Promise<void> {
+  async calculatePremiums(): Promise<void> {
     const tid = this.currentTenantService.currentTid();
     const ym = this.yyyyMm();
     if (!tid || !ym || !this.bonusRecordExists()) return;
     this.premiumRecalculating = true;
     try {
-      await this.premiumRecalculateFacade.recalculateMonth(tid, ym, () =>
+      await this.premiumCalculateFacade.calculateMonth(tid, ym, () =>
         this.loadBonusRecords(tid, ym),
       );
     } finally {

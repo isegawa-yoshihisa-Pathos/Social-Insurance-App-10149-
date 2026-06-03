@@ -26,7 +26,6 @@ import { EmployeeDocument } from '../employee-document';
 @Injectable({ providedIn: 'root' })
 export class PersonalSettingDataService {
   private readonly firestore = inject(Firestore);
-  private readonly auth = inject(Auth);
   private readonly tenantService = inject(CurrentTenantService);
   private readonly profileCompletionService = inject(ProfileCompletionService);
   private readonly authService = inject(AuthService);
@@ -36,6 +35,10 @@ export class PersonalSettingDataService {
   tid = '';
   loading = false;
   loaded = false;
+
+  multipleAffiliations(): boolean {
+    return this.tenantService.affiliations().length > 1;
+  }
 
   private reset(): void {
     this.personalForm = createEmptyPersonalForm();
@@ -138,6 +141,39 @@ export class PersonalSettingDataService {
     if (!eid) throw new Error('従業員情報が見つかりません。');
 
     const batch = writeBatch(this.firestore);
+    batch.update(doc(this.firestore, 'tenants', tid, 'employees', eid), {
+      employeePersonalInfo: employeeFormToSavePayload(this.employeeForm),
+      updatedAt: serverTimestamp(),
+    });
+    batch.update(doc(this.firestore, 'affiliations', `${uid}_${tid}`), {
+      displayName: this.employeeForm.displayName,
+      updatedAt: serverTimestamp(),
+    });
+    await batch.commit();
+
+    this.tenantService.updateAffiliationDisplayName(
+      uid, tid, this.employeeForm.displayName,
+    );
+    this.profileCompletionService.updateFromPersonalForms(
+      this.personalForm, this.employeeForm,
+    );
+  }
+
+  async saveEmployeeAndPersonal(): Promise<void> {
+    const uid = this.authService.uid();
+    if (!uid) throw new Error('ユーザーが見つかりません。');
+    const tid = this.tid || (await this.resolveCurrentTid(uid));
+    const accountSnap = await getDoc(doc(this.firestore, 'accounts', uid));
+    if (!accountSnap.exists()) throw new Error('アカウント情報が見つかりません。');
+    const account = accountSnap.data();
+    const eid = account?.['affiliations']?.[tid];
+    if (!eid) throw new Error('従業員情報が見つかりません。');
+
+    const batch = writeBatch(this.firestore);
+    batch.update(doc(this.firestore, 'accounts', uid), {
+      personalInfo: personalFormToSavePayload(this.employeeForm),
+      updatedAt: serverTimestamp(),
+    });
     batch.update(doc(this.firestore, 'tenants', tid, 'employees', eid), {
       employeePersonalInfo: employeeFormToSavePayload(this.employeeForm),
       updatedAt: serverTimestamp(),

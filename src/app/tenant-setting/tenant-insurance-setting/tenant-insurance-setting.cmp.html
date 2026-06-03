@@ -42,13 +42,13 @@
         @if(form.socialInsuranceSettings.healthInsuranceType === 'combination'){
             <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
                 <mat-label>組合名</mat-label>
-                <mat-select [(ngModel)]="form.socialInsuranceSettings.combinationName">
+                <mat-select [(ngModel)]="form.socialInsuranceSettings.combinationCode">
                     <mat-option value="kanto-its">関東ITソフトウェア健康保険組合</mat-option>
                     <mat-option value="tjk">東京情報サービス産業健康保険組合</mat-option>
-                    <mat-option value="">その他</mat-option>
+                    <mat-option value="other">その他</mat-option>
                 </mat-select>
             </mat-form-field>
-            @if(form.socialInsuranceSettings.combinationName === ''){
+            @if(form.socialInsuranceSettings.combinationCode === 'other'){
                 <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
                     <mat-label>組合名</mat-label>
                     <input 

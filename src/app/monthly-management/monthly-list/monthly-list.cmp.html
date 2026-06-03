@@ -51,9 +51,10 @@
         <button
           mat-icon-button
           type="button"
+          class="calculate-premiums-button"
           [disabled]="bulkSaving || premiumRecalculating || !monthlyRecordExists()"
-          (click)="recalculatePremiums()"
-          matTooltip="保険料を再計算">
+          (click)="calculatePremiums()"
+          matTooltip="保険料を計算">
           <mat-icon>calculate</mat-icon>
         </button>
       </div>

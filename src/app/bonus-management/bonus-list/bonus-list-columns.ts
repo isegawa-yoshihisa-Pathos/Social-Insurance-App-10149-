@@ -38,7 +38,7 @@ export const DEFAULT_BONUS_LIST_COLUMNS: BonusListColumnKey[] = [
 const STATIC_COLUMN_LABELS: Record<BaseBonusListColumnKey, string> = {
   displayName: '氏名',
   employeeId: '社員番号',
-  bonus: '賞与（合計）',
+  bonus: '総支給額',
 };
 
 export function getAllBonusListColumnKeys(
@@ -63,7 +63,7 @@ export function getOptionalBonusListColumns(
   return [
     { key: 'displayName', label: '氏名' },
     { key: 'employeeId', label: '社員番号' },
-    { key: 'bonus', label: '賞与（合計）' },
+    { key: 'bonus', label: '総支給額' },
     ...bonusColumns,
     ...getOptionalPremiumColumns(),
   ];

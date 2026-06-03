@@ -7,6 +7,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatDatepickerToggle } from '@angular/material/datepicker';
 import { TenantInsuranceRateSettingDataService, type InsuranceRateEditForm } from '../tenant-insurance-rate-setting-data.service';
 import { TenantSettingDataService } from '../../tenant-setting-data.service';
 import { buildAssociationInsuranceRatePayload, CURRENT_ASSOCIATION_RATE_TABLE } from '../../../social-insurance/insurance-rates/association';
@@ -24,6 +25,7 @@ import { roundPercent, roundRate } from '../../../social-insurance/premium/round
     MatButtonModule,
     MatCheckboxModule,
     MatDatepickerModule,
+    MatDatepickerToggle,
   ],
   templateUrl: './tenant-insurance-rate-setting-edit.cmp.html',
   styleUrl: './tenant-insurance-rate-setting-edit.cmp.css'

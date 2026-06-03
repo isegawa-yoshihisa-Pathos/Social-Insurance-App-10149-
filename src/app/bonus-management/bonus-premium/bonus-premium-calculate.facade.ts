@@ -5,13 +5,13 @@ import { ErrorDialogCmp, mapFirebaseError } from '../../error-dialog/error-dialo
 import { SuccessDialogCmp } from '../../success-dialog/success-dialog.cmp';
 
 @Injectable({ providedIn: 'root' })
-export class BonusPremiumRecalculateFacade {
+export class BonusPremiumCalculateFacade {
   private readonly batchService = inject(BonusPremiumBatchService);
   private readonly dialog = inject(MatDialog);
 
-  async recalculateMonth(tid: string, yyyyMm: string, reload: () => Promise<void>): Promise<void> {
+  async calculateMonth(tid: string, yyyyMm: string, reload: () => Promise<void>): Promise<void> {
     try {
-      const { processed, errors } = await this.batchService.recalculateBonus(tid, yyyyMm);
+      const { processed, errors } = await this.batchService.calculateBonus(tid, yyyyMm);
       await reload();
 
       const errorLines =

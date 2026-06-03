@@ -17,18 +17,23 @@
         </div>
     } @else {
         <div class="button-container">
-            <button mat-button class="tenant-name" [matMenuTriggerFor]="tenantMenu">
-                <span>{{ currentAffiliation()?.tenantName ?? '事業所未選択' }}</span>
-                <mat-icon>arrow_drop_down</mat-icon>
-            </button>
-            <mat-menu #tenantMenu="matMenu">
-                @for (aff of currentTenantService.affiliations(); track aff.tid) {
-                    <button mat-menu-item type="button" (click)="switchTenant(aff.tid)"
-                    [disabled]="aff.tid === currentTenantService.currentTid()">
-                        {{ aff.tenantName }}
-                    </button>
-                }
-            </mat-menu>
+            @if (multipleAffiliations()) {
+                <button mat-button class="tenant-name" [matMenuTriggerFor]="tenantMenu">
+                    <span>{{ currentAffiliation()?.tenantName ?? '事業所未選択' }}</span>
+                    <mat-icon>arrow_drop_down</mat-icon>
+                </button>
+                <mat-menu #tenantMenu="matMenu">
+                    @for (aff of currentTenantService.affiliations(); track aff.tid) {
+                        <button mat-menu-item type="button" (click)="switchTenant(aff.tid)"
+                        [disabled]="aff.tid === currentTenantService.currentTid()">
+                            {{ aff.tenantName }}
+                        </button>
+                    }
+                </mat-menu>
+            }
+            @else {
+                <span class="tenant-name">{{ currentAffiliation()?.tenantName ?? '事業所未選択' }}</span>
+            }
             <button mat-button class="notification-button" [matMenuTriggerFor]="notificationMenu">
                 <mat-icon>notifications</mat-icon>
                 @if (tenantNotificationService.unreadCount() > 0) {

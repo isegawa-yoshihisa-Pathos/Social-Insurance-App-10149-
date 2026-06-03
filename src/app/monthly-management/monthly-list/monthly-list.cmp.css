@@ -37,6 +37,12 @@
   gap: 12px;
 }
 
+.calculate-premiums-button {
+  color: #fff;
+  background-color: #673ab7;
+  border-color: #673ab7;
+}
+
 .search-container {
   display: flex;
   gap: 12px;

@@ -18,6 +18,13 @@ export function toBonusListRow(
   const bonus = data.bonusData ? extractBonusAmounts(data.bonusData) : {};
   const bonusParts = buildBonusDisplayParts(bonus, bonusTypeDefinitions);
 
+  const healthPremium = data.premiumData?.healthInsurance?.employee ?? 0;
+  const carePremium = data.premiumData?.careInsurance?.employee ?? 0;
+  const pensionPremium = data.premiumData?.pensionInsurance?.employee ?? 0;
+  const totalEmployeePremium = healthPremium + carePremium + pensionPremium;
+
+  const netBonusTotal = bonusParts.total - totalEmployeePremium;
+
   return {
     ...applyPremiumFieldsToRow({
       eid,
@@ -26,7 +33,7 @@ export function toBonusListRow(
       bonus,
       bonusDisplay: bonusParts.display,
       bonusTooltip: bonusParts.tooltip,
-      bonusTotal: bonusParts.total,
+      bonusTotal: netBonusTotal,
     } as BonusListRow, data),
   };
 }

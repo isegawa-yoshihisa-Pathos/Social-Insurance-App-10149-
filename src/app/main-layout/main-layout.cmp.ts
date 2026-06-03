@@ -72,7 +72,11 @@ export class MainLayoutCmp {
   }
 
   navigateToPersonalSetting(): void {
-    this.routesService.redirectToPersonalSetting();
+    if (this.tenant.affiliations().length === 1) {
+      this.routesService.redirectToEmployeeSetting();
+    } else {
+      this.routesService.redirectToPersonalSetting();
+    }
   }
 
   navigateToTenantSetting(): void {

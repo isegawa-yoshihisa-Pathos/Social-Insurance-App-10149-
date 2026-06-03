@@ -4,7 +4,7 @@ import type { EmployeeRateByInsurance, InsuranceRateSavePayload, InsuranceRateSo
 import { InsuranceRateDataService, type InsuranceRateListItem } from '../../social-insurance/monthly/insurance-rate-data.service';
 import { TenantSettingDataService } from '../tenant-setting-data.service';
 import { buildAssociationInsuranceRatePayload, CURRENT_ASSOCIATION_RATE_TABLE } from '../../social-insurance/insurance-rates/association';
-import { buildCombinationInsuranceRatePayload, COMBINATION_RATE_REGISTRIES } from '../../social-insurance/insurance-rates/combination';
+import { buildCombinationInsuranceRatePayload, buildOtherCombinationInsuranceRatePayload, COMBINATION_RATE_REGISTRIES } from '../../social-insurance/insurance-rates/combination';
 import { determineRateSource } from './determine-rate-source';
 import { resolvePrefectureCodeFromAddress } from './resolve-prefecture-from-address';
 import { ZipcodeToAddressService } from '../../zipcode-to-address.service';
@@ -82,17 +82,31 @@ export class TenantInsuranceRateSettingDataService {
             }
         }
 
-        if (si.healthInsuranceType === 'combination' && (si.combinationName ?? '').trim()) {
-            const name = (si.combinationName ?? '').trim();
+        if (si.healthInsuranceType === 'combination' && si.combinationCode) {
+            const code = si.combinationCode;
 
-            if (!name || name !== 'kanto-its' && name !== 'tjk') {
+            if (code === '') {
                 this.editForm.set(this.createEmptyForm(today));
                 return;
             }
 
+            if (code === 'other') {
+                const payload = buildOtherCombinationInsuranceRatePayload(
+                    si.combinationName ?? '未設定',
+                    CURRENT_ASSOCIATION_RATE_TABLE,
+                );
+                if (payload) {
+                    this.patchFromPayload(payload, {
+                        usedMasterAutoFill: true,
+                        roundingBy: { ...DEFAULT_ROUNDING_BY },
+                    });
+                    return;
+                }
+            }
+
             const payload = buildCombinationInsuranceRatePayload(
                 COMBINATION_RATE_REGISTRIES,
-                name,
+                code,
                 today,
             );
             if (payload) {
@@ -116,7 +130,7 @@ export class TenantInsuranceRateSettingDataService {
 
         const rateSource = determineRateSource({
             healthInsuranceType: tenant.socialInsuranceSettings.healthInsuranceType,
-            combinationName: tenant.socialInsuranceSettings.combinationName,
+            combinationCode: tenant.socialInsuranceSettings.combinationCode,
             usedMasterAutoFill: form.usedMasterAutoFill,
             valuesMatchMaster: this.valuesMatchMaster(form),
         });

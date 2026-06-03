@@ -7,7 +7,7 @@ export class BonusPremiumBatchService {
   private readonly firestore = inject(Firestore);
   private readonly calculationService = inject(SocialInsuranceCalculationService);
 
-  async recalculateBonus(tid: string, yyyyMm: string): Promise<{ processed: number; errors: string[] }> {
+  async calculateBonus(tid: string, yyyyMm: string): Promise<{ processed: number; errors: string[] }> {
     const bonusRef = collection(
       this.firestore, 'tenants', tid, 'bonus-records', yyyyMm, 'employees',
     );
