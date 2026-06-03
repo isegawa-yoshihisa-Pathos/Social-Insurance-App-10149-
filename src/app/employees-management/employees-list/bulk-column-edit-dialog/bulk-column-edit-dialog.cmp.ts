@@ -18,6 +18,7 @@ export interface BulkColumnEditDialogData {
   label: string;
   selectedCount: number;
   initialValue: unknown;
+  displayName?: string;
 }
 
 @Component({

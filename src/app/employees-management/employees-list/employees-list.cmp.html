@@ -76,7 +76,7 @@
         }
 
         <tr mat-header-row *matHeaderRowDef="tableColumns()"></tr>
-        <tr mat-row *matRowDef="let row; columns: tableColumns();" class="employee-row"></tr>
+        <tr mat-row *matRowDef="let row; columns: tableColumns();" class="employee-row" [class.selected-row]="isSelected(row.eid)"></tr>
       </table>
     </div>
   }

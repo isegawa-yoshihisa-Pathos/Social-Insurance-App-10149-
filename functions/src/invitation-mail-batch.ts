@@ -70,7 +70,7 @@ export const startInvitationMailBatch = onCall<StartBatchInput>(
 
     try {
       await assertTenantAdmin(db, uid, tid);
-      await loadInvitationMailContext(db, tid); // 事前検証
+      await loadInvitationMailContext(db, tid);
     } catch (e) {
       mapCoreErrorToHttpsError(e);
     }

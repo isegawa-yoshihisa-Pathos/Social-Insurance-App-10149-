@@ -85,7 +85,6 @@ export class InvitationsMailCmp implements OnInit{
         '閉じる',
         { duration: 6000 },
       );
-      // 入力クリア（任意）
       this.invitationsData = [{ email: '', name: '', isAdmin: false }];
     } catch (error) {
       this.dialog.open(ErrorDialogCmp, {

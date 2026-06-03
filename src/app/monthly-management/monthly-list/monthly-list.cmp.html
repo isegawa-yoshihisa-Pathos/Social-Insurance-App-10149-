@@ -53,6 +53,7 @@
           type="button"
           class="calculate-premiums-button"
           [disabled]="bulkSaving || premiumRecalculating || !monthlyRecordExists()"
+          [class.disabled]="bulkSaving || premiumRecalculating || !monthlyRecordExists()"
           (click)="calculatePremiums()"
           matTooltip="保険料を計算">
           <mat-icon>calculate</mat-icon>

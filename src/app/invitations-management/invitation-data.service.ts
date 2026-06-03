@@ -1,5 +1,5 @@
 import { EnvironmentInjector, inject, Injectable, runInInjectionContext, signal } from '@angular/core';
-import { doc, Firestore, getDoc, Timestamp, collection, query, orderBy, onSnapshot, Unsubscribe } from '@angular/fire/firestore';
+import { doc, Firestore, getDoc, Timestamp, collection, query, orderBy, onSnapshot, Unsubscribe, getDocs, where, writeBatch } from '@angular/fire/firestore';
 
 export interface InvitationData {
   email: string;
@@ -82,16 +82,20 @@ export class InvitationDataService {
       (snap) => {
         const data = snap.docs.map((doc) => {
           const raw = doc.data() as InvitationDoc;
+          const expiresAt = raw.expiresAt instanceof Timestamp
+            ? raw.expiresAt.toDate()
+            : null;
+          let status = raw.status;
+          if (status !== 'accepted' && expiresAt && expiresAt < new Date()) {
+            status = 'expired';
+          }
           return {
             id: doc.id,
             name: raw.name,
             contactEmail: raw.contactEmail,
             role: raw.role,
-            status: raw.status,
-            expiresAt:
-              raw.expiresAt instanceof Timestamp
-                ? raw.expiresAt.toDate()
-                : null,
+            status,
+            expiresAt,
           } satisfies InvitationListItem;
         });
         this.invitationList.set(data);
@@ -104,6 +108,24 @@ export class InvitationDataService {
   unsubscribeInvitationList(): void {
     this.invitationListUnsub?.();
     this.invitationListUnsub = null;
+  }
+
+  async deleteInvitations(ids: string[], tid: string): Promise<void> {
+    if (!ids || ids.length === 0) return;
+
+    const batch = writeBatch(this.firestore);
+    ids.forEach((id) => {
+      const docRef = doc(this.firestore, 'tenants', tid, 'invitations', id);
+      batch.delete(docRef);
+    });
+
+    try {
+      await batch.commit();
+      this.invitationList.update((list) => list.filter((item) => !ids.includes(item.id)));
+    } catch (error) {
+      console.error(error);
+      throw new Error('招待を削除できませんでした。');
+    }
   }
 
   extractInvitationsFromCsvText(

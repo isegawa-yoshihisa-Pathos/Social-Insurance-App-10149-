@@ -153,6 +153,10 @@ export class EmployeesListCmp {
     }
 
     const targetEids = this.resolveTargetEids(row.eid);
+    if (targetEids.length === 1) {
+      this.openBulkEditDialog(col as BulkEditableColumn, row[col], targetEids, row.displayName);
+      return;
+    }
     this.openBulkEditDialog(col as BulkEditableColumn, row[col], targetEids);
   }
 
@@ -166,7 +170,7 @@ export class EmployeesListCmp {
       : [eid];
   }
 
-  private openBulkEditDialog(column: BulkEditableColumn, initialValue: unknown, targetEids: string[]): void {
+  private openBulkEditDialog(column: BulkEditableColumn, initialValue: unknown, targetEids: string[], displayName?: string): void {
     const dialogRef = this.dialog.open<BulkColumnEditDialogCmp, BulkColumnEditDialogData, BulkEditValue | undefined>(BulkColumnEditDialogCmp, {
       width: '420px',
       data: {
@@ -174,6 +178,7 @@ export class EmployeesListCmp {
         label: this.employeeListColumnLabels[column],
         selectedCount: targetEids.length,
         initialValue,
+        displayName: displayName ?? undefined,
       },
     });
 

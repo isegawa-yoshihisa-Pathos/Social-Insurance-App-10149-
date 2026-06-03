@@ -121,10 +121,6 @@ export const routes: Routes = [
             path: 'setting',
             loadComponent: () => import('./invitations-management/invitation-setting/invitation-setting.cmp').then(m => m.InvitationSettingCmp),
           },
-          {
-            path: 'detail/:id',
-            loadComponent: () => import('./invitations-management/invitations-mail/invitations-list/invitation-detail/invitation-detail.cmp').then(m => m.InvitationDetailCmp),
-          },
         ]
       },
       {

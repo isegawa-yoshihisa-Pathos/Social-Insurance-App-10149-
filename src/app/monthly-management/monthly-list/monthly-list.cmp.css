@@ -43,6 +43,12 @@
   border-color: #673ab7;
 }
 
+.calculate-premiums-button.disabled {
+  color: #666;
+  background-color: #ccc;
+  border-color: #ccc;
+}
+
 .search-container {
   display: flex;
   gap: 12px;

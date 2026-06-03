@@ -11,10 +11,18 @@
   color: #666;
 }
 
-.invitation-row {
-  cursor: pointer;
-}
-
 .invitation-row:hover {
   background-color: #f0f0f0;
+}
+
+.selected-row {
+  background-color: #f0f0f0;
+}
+
+.alert-class {
+  color: #f44336;
+}
+
+.delete-button {
+  color: #f44336;
 }

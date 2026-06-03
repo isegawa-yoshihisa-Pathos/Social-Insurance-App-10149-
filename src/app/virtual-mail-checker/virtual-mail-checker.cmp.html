@@ -17,6 +17,9 @@
                     <div class="mail-item-subject">
                       <span class="mail-item-label">Subject:</span> {{ mail.subject }}
                     </div>
+                    <div class="mail-item-createdAt">
+                      <span class="mail-item-label">Received At:</span> {{ formatCreatedAt(mail.createdAt) }}
+                    </div>
                 </button>
             }
         </div>

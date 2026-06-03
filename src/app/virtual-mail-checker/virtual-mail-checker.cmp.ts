@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, TemplateRef } from '@angular/core';
-import { Firestore, collection, getDocs } from '@angular/fire/firestore';
+import { Firestore, collection, getDocs, Timestamp } from '@angular/fire/firestore';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MailPreviewCmp } from '../mail-preview/mail-preview.cmp';
@@ -31,6 +31,10 @@ export class VirtualMailCheckerCmp implements OnInit {
       return to.join(', ');
     }
     return to ?? '';
+  }
+
+  formatCreatedAt(createdAt: Timestamp): string {
+    return createdAt.toDate().toLocaleString();
   }
 
   openPreview(template: TemplateRef<unknown>, mail: any): void {

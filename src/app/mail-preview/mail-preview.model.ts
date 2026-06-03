@@ -1,3 +1,5 @@
+import { Timestamp } from "@angular/fire/firestore";
+
 export interface InvitationMailPreviewBody {
     bodyText: string;
     inviteLink?: string | null;
@@ -13,5 +15,5 @@ export interface InvitationMailPreviewBody {
     inviteLink?: string;
     opened?: boolean;
     tid?: string;
-    createdAt?: unknown;
+    createdAt: Timestamp;
   }
