@@ -5,6 +5,7 @@ import {
   type GradesFromMonthsOutcome,
 } from './remuneration-average';
 import type { EmploymentType, MonthPaymentBaseInput } from './payment-base-days';
+import type { MonthlyRemunerationSource } from './remuneration-month-input';
 
 export interface PreviousGrades {
   healthGrade: number;
@@ -105,7 +106,7 @@ export type StandardZuijiDeterminationOutcome =
  */
 export function determineStandardZuiji(
   employmentType: EmploymentType,
-  months: readonly MonthPaymentBaseInput[],
+  months: readonly MonthlyRemunerationSource[],
   previous: PreviousGrades,
   options?: {
     minGradeDifference?: number;

@@ -1,3 +1,6 @@
+import type { MonthlyRemunerationSource } from './remuneration-month-input';
+import { toMonthPaymentBaseInput } from './remuneration-month-input';
+
 export type EmploymentType =
   | 'full-time'
   | 'short-time-worker'
@@ -75,20 +78,23 @@ export function isMonthEligibleForAverage(
  */
 export function selectMonthsForZuijiAverage(
   category: EmploymentType,
-  months: readonly MonthPaymentBaseInput[],
+  months: readonly MonthlyRemunerationSource[],
 ): RemunerationAverageSelectionOutcome {
   if (months.length !== 3) {
     return { kind: 'continue_previous', reason: 'all_months_below_secondary' };
   }
   const allPrimary = months.every(
-    (m) => classifyPaymentBaseDaysTier(category, m.paymentBaseDays) === 'primary',
+    (m) => {
+      const paymentBaseDays = m.paymentBaseDays ?? estimatePaymentBaseDaysCalendarMonth(m.hasMonthlyRecord, m.daysInMonth);
+      return classifyPaymentBaseDaysTier(category, paymentBaseDays) === 'primary';
+    }
   );
   if (!allPrimary) {
     return { kind: 'continue_previous', reason: 'all_months_below_secondary' };
   }
   return {
     kind: 'calculated',
-    result: buildAverage(months, 'primary'),
+    result: buildPayrollAverage(months, 'primary'),
   };
 }
 
@@ -139,6 +145,18 @@ function buildAverage(
   const total = usedMonths.reduce((s, m) => s + m.remuneration, 0);
   return {
     usedMonths: [...usedMonths],
+    tier,
+    averageRemuneration: total / usedMonths.length,
+  };
+}
+
+function buildPayrollAverage(
+  usedMonths: readonly MonthlyRemunerationSource[],
+  tier: PaymentBaseDaysTier,
+): RemunerationAverageSelectionResult {
+  const total = usedMonths.reduce((s, m) => s + m.payroll.basicSalary + (m.payroll.overtimePay ?? 0) + (m.payroll.commuterAllowance ?? 0) + (m.payroll.otherAllowance ?? 0), 0);
+  return {
+    usedMonths: usedMonths.map((m) => toMonthPaymentBaseInput(m)),
     tier,
     averageRemuneration: total / usedMonths.length,
   };

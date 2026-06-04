@@ -161,7 +161,7 @@ export class SocialInsuranceCalculationService {
 
         const outcome = determineStandardZuiji(
             ctx.employmentType,
-            sources.map((s) => toMonthPaymentBaseInput(s)),
+            sources,
             previous,
         );
         if (outcome.kind !== 'applicable') return null;
@@ -284,7 +284,7 @@ export class SocialInsuranceCalculationService {
             tid,
             eid,
         );
-        const prior = history.find((item) => item.yyyyMm < beforeYyyyMm);
+        const prior = history.find((item) => item.yyyyMm === beforeYyyyMm);
         if (!prior) return null;
         return {
             healthGrade: prior.doc.healthGrade,

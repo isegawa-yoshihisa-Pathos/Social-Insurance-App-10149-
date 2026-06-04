@@ -11,6 +11,10 @@ export type TeijiDeterminationOutcome = GradesFromMonthsOutcome;
 export function determineTeiji(
   employmentType: EmploymentType,
   months: readonly MonthPaymentBaseInput[],
+  gradeTable?: RemunerationGradeTableSet,
 ): TeijiDeterminationOutcome {
-  return calculateGradesFromMonths(employmentType, months, CURRENT_GRADE_TABLE);
+  if (!gradeTable) {
+    gradeTable = CURRENT_GRADE_TABLE;
+  }
+  return calculateGradesFromMonths(employmentType, months, gradeTable);
 }

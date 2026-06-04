@@ -8,6 +8,7 @@ import {
     type RemunerationAverageSelectionOutcome,
     type RemunerationAverageSelectionResult,
 } from './payment-base-days';
+import type { MonthlyRemunerationSource } from './remuneration-month-input';
 
 export type GradesFromMonthsOutcome =
     | {
@@ -50,7 +51,7 @@ export function calculateGradesFromMonths(
 
 export function calculateGradesForZuiji(
     employmentType: EmploymentType,
-    months: readonly MonthPaymentBaseInput[],
+    months: readonly MonthlyRemunerationSource[],
     gradeTable: RemunerationGradeTableSet,
 ): GradesFromMonthsOutcome {
     const selection = selectMonthsForZuijiAverage(employmentType, months);
