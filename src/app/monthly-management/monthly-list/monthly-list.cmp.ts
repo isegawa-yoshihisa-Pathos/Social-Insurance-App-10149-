@@ -16,7 +16,7 @@ import { CurrentTenantService } from '../../current-tenant.service';
 import { MonthlyListColumnKey, MonthlyListRow, getMonthlyListColumnLabel } from './monthly-list-columns';
 import { MonthlyDocument } from '../../monthly-document';
 import { BulkColumnEditDialogCmp, BulkColumnEditDialogData } from './bulk-column-edit-dialog/bulk-column-edit-dialog.cmp';
-import { BulkEditableColumn, BulkEditValue } from './monthly-bulk-edit.types';
+import { BulkEditableColumn, BulkEditValue, isEditableColumn } from './monthly-bulk-edit.types';
 import { MonthlyListBulkEditService } from './monthly-list-bulk-edit.service';
 import { formatMonthlyListCellValue, getMonthlyListEditValue, monthlyListSearchText, monthlyListSortValue, toMonthlyListRow } from './monthly-list-row.mapper';
 import { YEAR_OPTIONS, MONTH_OPTIONS } from '../../datePicker';
@@ -187,13 +187,17 @@ export class MonthlyListCmp {
     ]);
     if (token !== undefined && token !== this.loadToken) return;
 
-    const data = monthly.docs.map((snap) => {
-      const row = toMonthlyListRow(
-        snap.id,
-        snap.data() as Partial<MonthlyDocument>,  
-      );
-      return this.listDataService.mergeEmployeeMeta(row, employeeLookup);
-    });
+    const data = await this.listDataService.enrichWithStandardRemuneration(
+      tid,
+      yyyyMm,
+      monthly.docs.map((snap) => {
+        const row = toMonthlyListRow(
+          snap.id,
+          snap.data() as Partial<MonthlyDocument>,
+        );
+        return this.listDataService.mergeEmployeeMeta(row, employeeLookup);
+      }),
+    );
     this.monthlyRecordExists.set(data.length > 0);
     this.dataSource.data = data;
     const alive = new Set(data.map((r) => r.eid));
@@ -333,10 +337,12 @@ export class MonthlyListCmp {
       await this.bulkEditService.applyBulkEdit(tid, ym, targets, column, value);
       await this.loadMonthlyRecords(tid, ym);
     } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'データの更新に失敗しました。';
       this.dialog.open(ErrorDialogCmp, {
         data: {
           title: 'エラー',
-          message: 'データの更新に失敗しました。',
+          message,
         },
       });
     }

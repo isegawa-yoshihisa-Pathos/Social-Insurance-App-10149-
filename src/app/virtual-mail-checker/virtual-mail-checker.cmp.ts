@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, TemplateRef } from '@angular/core';
-import { Firestore, collection, getDocs, Timestamp } from '@angular/fire/firestore';
+import { Firestore, collection, getDocs, Timestamp, query, orderBy } from '@angular/fire/firestore';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MailPreviewCmp } from '../mail-preview/mail-preview.cmp';
@@ -19,7 +19,9 @@ export class VirtualMailCheckerCmp implements OnInit {
   selectedMail: InvitationMailRecord | null = null;
 
   async ngOnInit(): Promise<void> {
-    const snapshot = await getDocs(collection(this.firestore, 'invitation-mails'));
+    const mailRef = collection(this.firestore, 'invitation-mails');
+    const q = query(mailRef, orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
     this.mails = snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),

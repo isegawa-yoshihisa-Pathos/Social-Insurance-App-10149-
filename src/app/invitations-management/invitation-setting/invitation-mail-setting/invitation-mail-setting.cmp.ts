@@ -38,7 +38,7 @@ export class InvitationMailSettingCmp {
 
   readonly previewValues = {
     name: '山田太郎',
-    email: 'yamada.taro@example.com',
+    email: 'taro.yamada@example.com',
     tenantName: '縄文事業所',
     replyToEmail: 'admin@jomon.com',
   };

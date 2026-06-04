@@ -251,4 +251,37 @@ export class EmployeesListCmp {
       input.value = '';
     }
   }
+
+  formatValue(value: string): string {
+    switch (value) {
+      case '':
+        return '-未設定-';
+      case 'admin':
+        return '管理者';
+      case 'member':
+        return '一般';
+      case 'full-time':
+        return '正社員';
+      case 'short-time-worker':
+        return '短時間就労者';
+      case 'short-time-labor':
+        return '短時間労働者';
+      case 'active':
+        return '在職';
+      case 'leave':
+        return '休職';
+      case 'resigned':
+        return '退職';
+      case 'monthly':
+        return '月給';
+      case 'weekly':
+        return '週給';
+      case 'daily':
+        return '日給';
+      case 'hourly':
+        return '時給';
+      default:
+        return value;
+    }
+  }
 }

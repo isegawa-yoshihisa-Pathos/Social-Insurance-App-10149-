@@ -26,8 +26,8 @@
     <mat-form-field appearance="outline" style="width: 100%;">
       <mat-label>権限</mat-label>
       <mat-select [(ngModel)]="stringValue">
-        <mat-option value="admin">admin</mat-option>
-        <mat-option value="member">member</mat-option>
+        <mat-option value="admin">管理者</mat-option>
+        <mat-option value="member">一般</mat-option>
       </mat-select>
     </mat-form-field>
   } @else if (data.column === 'status') {

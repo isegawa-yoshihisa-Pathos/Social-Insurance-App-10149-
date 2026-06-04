@@ -13,6 +13,14 @@ export const PREMIUM_MONTHLY_LIST_COLUMN_KEYS = [
 
 export type PremiumMonthlyListColumnKey = (typeof PREMIUM_MONTHLY_LIST_COLUMN_KEYS)[number];
 
+export const BULK_EDITABLE_STANDARD_REMUNERATION_COLUMN_KEYS = [
+  'standardRemunerationHealth',
+  'standardRemunerationPension',
+] as const;
+
+export type BulkEditableStandardRemunerationColumnKey =
+  (typeof BULK_EDITABLE_STANDARD_REMUNERATION_COLUMN_KEYS)[number];
+
 const PREMIUM_COLUMN_LABELS: Record<PremiumMonthlyListColumnKey, string> = {
   standardRemunerationHealth: '標準報酬月額（健保）',
   standardRemunerationPension: '標準報酬月額（厚年）',
@@ -26,6 +34,12 @@ const PREMIUM_COLUMN_LABELS: Record<PremiumMonthlyListColumnKey, string> = {
 
 export function isPremiumColumn(column: MonthlyListColumnKey): column is PremiumMonthlyListColumnKey {
   return (PREMIUM_MONTHLY_LIST_COLUMN_KEYS as readonly string[]).includes(column);
+}
+
+export function isBulkEditableStandardRemunerationColumn(
+  column: MonthlyListColumnKey,
+): column is BulkEditableStandardRemunerationColumnKey {
+  return (BULK_EDITABLE_STANDARD_REMUNERATION_COLUMN_KEYS as readonly string[]).includes(column);
 }
 
 export function getPremiumColumnLabel(column: PremiumMonthlyListColumnKey): string {

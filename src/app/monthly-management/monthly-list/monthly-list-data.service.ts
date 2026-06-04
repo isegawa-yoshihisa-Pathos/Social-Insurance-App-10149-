@@ -3,6 +3,7 @@ import { Firestore, collection, getDocs, writeBatch, doc, serverTimestamp } from
 import { EmployeeDocument } from '../../employee-document';
 import { PayrollData } from '../../monthly-document';
 import { MonthlyListRow } from './monthly-list-columns';
+import { StandardRemunerationDataService } from '../../social-insurance/monthly/standard-remuneration-data.service';
 
 export interface EmployeeLookupEntry {
   eid: string;
@@ -11,7 +12,6 @@ export interface EmployeeLookupEntry {
 }
 
 const EMPTY_PAYROLL_DATA: PayrollData = {
-  totalPay: 0,
   basicSalary: 0,
   overtimePay: 0,
   commuterAllowance: 0,
@@ -24,6 +24,7 @@ const EMPTY_PAYROLL_DATA: PayrollData = {
 })
 export class MonthlyListDataService {
   private readonly firestore = inject(Firestore);
+  private readonly standardRemunerationDataService = inject(StandardRemunerationDataService);
 
   async loadEmployeeLookup(tid: string): Promise<Map<string, EmployeeLookupEntry>> {
     const employeesRef = collection(this.firestore, 'tenants', tid, 'employees');
@@ -40,6 +41,34 @@ export class MonthlyListDataService {
     }
 
     return lookup;
+  }
+
+  async enrichWithStandardRemuneration(
+    tid: string,
+    yyyyMm: string,
+    rows: MonthlyListRow[],
+  ): Promise<MonthlyListRow[]> {
+    return Promise.all(
+      rows.map(async (row) => {
+        if (
+          row.standardRemunerationHealth != null &&
+          row.standardRemunerationPension != null
+        ) {
+          return row;
+        }
+
+        const doc = await this.standardRemunerationDataService.get(tid, row.eid, yyyyMm);
+        if (!doc) return row;
+
+        return {
+          ...row,
+          standardRemunerationHealth:
+            row.standardRemunerationHealth ?? doc.standardRemuneration.health,
+          standardRemunerationPension:
+            row.standardRemunerationPension ?? doc.standardRemuneration.pension,
+        };
+      }),
+    );
   }
 
   mergeEmployeeMeta(

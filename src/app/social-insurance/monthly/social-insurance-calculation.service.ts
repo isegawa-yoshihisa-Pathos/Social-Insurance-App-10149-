@@ -39,14 +39,17 @@ export class SocialInsuranceCalculationService {
         tid: string,
         eid: string,
         yyyyMm: string,
-    ): Promise<CalculationEmployeeMonthResult> {
+    ): Promise<void> {
         const ctx = await this.loadContext(tid, eid, yyyyMm);
+        if (!ctx.employee.employeeEmployInfo?.licenseStartAt) {
+            throw new Error('社会保険の資格取得日が設定されていません。');
+        }
         const standardRemuneration = await this.resolveStandardRemuneration(tid, eid, yyyyMm, ctx);
         await this.standardRemunerationDataService.save(tid, eid, yyyyMm, standardRemuneration);
 
         const rate = await this.insuranceRateDataService.resolveRateForMonth(tid, yyyyMm);
         if (!rate) {
-            throw new Error('保険料率が見つかりません');
+            return;
         }
         
         const premiumData = calculateMonthlyPremium({
@@ -94,19 +97,10 @@ export class SocialInsuranceCalculationService {
         );
 
         const payRollData = ctx.monthly.payrollData;
-        const totalPay = payRollData.basicSalary 
-            + (payRollData.overtimePay ?? 0)
-            + (payRollData.commuterAllowance ?? 0)
-            + (payRollData.otherAllowance ?? 0)
-            + (payRollData.retroactivePay ?? 0)
-            - premiumData.healthInsurance.employee 
-            - (premiumData.careInsurance?.employee ?? 0)
-            - premiumData.pensionInsurance.employee;
 
         await updateDoc(monthlyRef, {
             payrollData: {
                 ...payRollData,
-                totalPay,
             },
             premiumData,
             calculationSnapshot: {
@@ -115,7 +109,6 @@ export class SocialInsuranceCalculationService {
             },
             updatedAt: serverTimestamp(),
         });
-        return { premiumData, calculationSnapshot, standardRemuneration };
     }
 
     private async resolveStandardRemuneration(
@@ -155,14 +148,14 @@ export class SocialInsuranceCalculationService {
         ctx: CalculationContext,
     ): Promise<StandardRemunerationSavePayload | null> {
         const monthKeys = [
+            addMonths(yyyyMm, -3),
             addMonths(yyyyMm, -2),
             addMonths(yyyyMm, -1),
-            yyyyMm,
         ];
         const sources = await this.loadMonthSources(tid, eid, monthKeys);
         if (sources.length !== 3) return null;
 
-        const windowStart = addMonths(yyyyMm, -2);
+        const windowStart = addMonths(yyyyMm, -4);
         const previous = await this.getPreviousGrades(tid, eid, windowStart);
         if (!previous) return null;
 
@@ -182,7 +175,12 @@ export class SocialInsuranceCalculationService {
         yyyyMm: string,
         ctx: CalculationContext,
     ): Promise<StandardRemunerationSavePayload | null> {
-        const { year } = parseYyyyMm(yyyyMm);
+        const { year, month } = parseYyyyMm(yyyyMm);
+        if (month !== 7) return null;
+        const licenseStartAt = ctx.employee.employeeEmployInfo?.licenseStartAt;
+        if (!licenseStartAt) return null;
+        if (licenseStartAt.toDate().getFullYear() === year && licenseStartAt.toDate().getMonth() === 6) return null;
+
         const monthKeys = [
             `${year}-04`,
             `${year}-05`,
@@ -197,7 +195,8 @@ export class SocialInsuranceCalculationService {
         );
         if (outcome.kind !== 'calculated') return null;
 
-        return this.gradesToPayload('teiji', yyyyMm, outcome.grades);
+        const effectiveFrom = `${year}-09`;
+        return this.gradesToPayload('teiji', effectiveFrom, outcome.grades);
     }
 
     private async tryInitial(
@@ -240,7 +239,7 @@ export class SocialInsuranceCalculationService {
             pensionGrade: prior.doc.pensionGrade,
             standardRemuneration: prior.doc.standardRemuneration,
             source: prior.doc.source,
-            effectiveFrom: `${yyyyMm}-01`,
+            effectiveFrom: prior.doc.effectiveFrom,
             remuneration: prior.doc.remuneration,
         };
     }

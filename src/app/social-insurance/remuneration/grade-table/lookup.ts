@@ -20,6 +20,14 @@ function findGrade(
     };
 }
 
+export function resolveGradeFromStandardAmount(
+    rows: readonly RemunerationGradeRow[],
+    standardAmount: number,
+): number | null {
+    const row = rows.find((r) => r.standardRemuneration === standardAmount);
+    return row?.grade ?? null;
+}
+
 export function resolveGradesFromRemuneration(
     table: RemunerationGradeTableSet,
     rawRemuneration: number,

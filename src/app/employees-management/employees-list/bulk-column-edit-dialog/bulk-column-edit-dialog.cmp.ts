@@ -52,6 +52,10 @@ export class BulkColumnEditDialogCmp {
     }
   }
 
+  setLicenseStartAt(): void {
+    this.dateValue = new Date();
+  }
+
   isDateColumn(column: BulkEditableColumn): boolean {
     return isDateBulkColumn(column);
   }

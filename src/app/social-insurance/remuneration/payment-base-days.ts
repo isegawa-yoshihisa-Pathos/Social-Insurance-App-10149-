@@ -61,6 +61,7 @@ export function classifyPaymentBaseDaysTier(
   return 'none';
 }
 
+/** 支払基礎日数がどのtierに該当するか */
 export function isMonthEligibleForAverage(
   category: EmploymentType,
   days: number,
@@ -98,6 +99,7 @@ export function selectMonthsForRemunerationAverageSelection(
   category: EmploymentType,
   months: readonly MonthPaymentBaseInput[],
 ): RemunerationAverageSelectionOutcome {
+  /** 4，5，6月の支払基礎日数が基準に満たない場合は前回の決定を継続 */
   if (months.length === 0) {
     return { kind: 'continue_previous', reason: 'all_months_below_secondary' };
   }
@@ -105,6 +107,7 @@ export function selectMonthsForRemunerationAverageSelection(
   const primary = months.filter((m) =>
     isMonthEligibleForAverage(category, m.paymentBaseDays, 'primary'),
   );
+  /** 4，5，6月の支払基礎日数がひと月でも基準（17日、11日以上）に満たす月があればその月で平均 */
   if (primary.length > 0) {
     return {
       kind: 'calculated',
@@ -112,6 +115,7 @@ export function selectMonthsForRemunerationAverageSelection(
     };
   }
 
+  /** 短時間就労者の場合は15日以上17日未満の月で平均（secondaryを考慮） */
   if (category === 'short-time-worker') {
     const secondary = months.filter((m) =>
       isMonthEligibleForAverage(category, m.paymentBaseDays, 'secondary'),
@@ -122,10 +126,6 @@ export function selectMonthsForRemunerationAverageSelection(
         result: buildAverage(secondary, 'secondary'),
       };
     }
-    return { kind: 'continue_previous', reason: 'all_months_below_secondary' };
-  }
-
-  if (category === 'short-time-labor') {
     return { kind: 'continue_previous', reason: 'all_months_below_secondary' };
   }
 

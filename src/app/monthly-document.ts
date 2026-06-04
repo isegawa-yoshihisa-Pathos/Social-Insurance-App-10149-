@@ -37,7 +37,6 @@ export interface CalculationSnapshot {
 export interface MonthlyFormData {
     displayName: string;
     employeeId: string;
-    totalPay: number;
     basicSalary: number;
     overtimePay: number | null;
     commuterAllowance: number | null;
@@ -46,7 +45,6 @@ export interface MonthlyFormData {
 }
 
 export interface PayrollData {
-    totalPay: number;
     basicSalary: number;
     overtimePay: number | null;
     commuterAllowance: number | null;

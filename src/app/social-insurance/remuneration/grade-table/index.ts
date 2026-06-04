@@ -7,6 +7,7 @@ export type {
 } from './types';
 export {
   gradeDifference,
+  resolveGradeFromStandardAmount,
   resolveGradesFromRemuneration,
   roundRemunerationForGrade,
 } from './lookup';

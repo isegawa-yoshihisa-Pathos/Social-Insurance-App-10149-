@@ -1,7 +1,4 @@
-import {
-    CURRENT_GRADE_TABLE,
-    resolveGradesFromRemuneration,
-} from './grade-table';
+import { resolveGradesFromRemuneration } from './grade-table';
 import type { RemunerationGradeTableSet, ResolvedStandardRemuneration } from './grade-table';
 import {
     selectMonthsForRemunerationAverageSelection,

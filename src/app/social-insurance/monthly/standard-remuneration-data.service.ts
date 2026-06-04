@@ -67,6 +67,6 @@ export class StandardRemunerationDataService {
         ? (existing.data() as StandardRemunerationDocument).createdAt
         : serverTimestamp(),
       updatedAt: serverTimestamp(),
-    });
+    }, {merge: true});
   }
 }

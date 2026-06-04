@@ -2,34 +2,51 @@
   display: block;
 }
 
-.section-description {
-  margin: 0 0 16px;
+.monthly-setting-label {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 24px;
+  border-left: 4px solid #673ab7;
+  padding-left: 8px;
+}
+
+.import-file-setting {
+  display: flex;
+  flex-direction: column;
+}
+
+.import-file-setting-content {
+  font-size: 14px;
   color: #666;
-  font-size: 0.9rem;
-}
-
-.import-setting-content {
-  display: block;
-}
-
-.section-title {
-  margin: 0 0 8px;
-  font-size: 1.1rem;
+  margin-bottom: 24px;
 }
 
 .header-label {
-  font-weight: 600;
+  color: #333;
+  font-size: 18px;
+  font-weight: bold;
 }
 
 .header-setting {
+  padding: 0 50px;
+}
+
+.header-setting-row {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
+.header-input {
+  flex: 1;
+  max-width: 320px;
+}
+
 .current-header {
-  display: block;
-  margin-bottom: 8px;
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: #555;
 }
 
 .validation-error {

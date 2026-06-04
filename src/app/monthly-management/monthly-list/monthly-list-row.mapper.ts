@@ -16,7 +16,6 @@ export function toMonthlyListRow(
       eid,
       employeeId: '',
       displayName: data.displayName ?? '',
-      totalPay: payroll?.totalPay ?? 0,
       basicSalary: payroll?.basicSalary ?? 0,
       overtimePay: payroll?.overtimePay ?? null,
       commuterAllowance: payroll?.commuterAllowance ?? null,

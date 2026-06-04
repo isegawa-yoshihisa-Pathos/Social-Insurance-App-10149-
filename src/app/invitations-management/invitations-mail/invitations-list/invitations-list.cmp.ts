@@ -114,8 +114,6 @@ export class InvitationsListCmp {
         items
       });
 
-      await this.invitationDataService.deleteInvitations(ids, this.tid);
-
       this.dialog.open(SuccessDialogCmp, {
         data: { message: `${total}件の招待メールを再送信しました。` },
       });

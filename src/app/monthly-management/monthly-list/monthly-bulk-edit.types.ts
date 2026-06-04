@@ -1,7 +1,18 @@
 import { MonthlyListColumnKey } from './monthly-list-columns';
-import { isPremiumColumn } from '../monthly-premium/monthly-premium-columns';
+import {
+  BulkEditableStandardRemunerationColumnKey,
+  isBulkEditableStandardRemunerationColumn,
+  isPremiumColumn,
+} from '../monthly-premium/monthly-premium-columns';
 
-export type BulkEditableColumn = Exclude<MonthlyListColumnKey, 'displayName' | 'employeeId'>;
+export type BulkEditablePayrollColumn = Exclude<
+  MonthlyListColumnKey,
+  'displayName' | 'employeeId' | BulkEditableStandardRemunerationColumnKey
+>;
+
+export type BulkEditableColumn =
+  | BulkEditablePayrollColumn
+  | BulkEditableStandardRemunerationColumnKey;
 
 export type BulkEditValue = number | null;
 
@@ -10,7 +21,11 @@ export interface BulkEditTarget {
 }
 
 export function isEditableColumn(column: MonthlyListColumnKey): column is BulkEditableColumn {
-  return !isPremiumColumn(column) 
-    && column !== 'displayName' 
-    && column !== 'employeeId' 
+  if (column === 'displayName' || column === 'employeeId') {
+    return false;
+  }
+  if (isBulkEditableStandardRemunerationColumn(column)) {
+    return true;
+  }
+  return !isPremiumColumn(column);
 }

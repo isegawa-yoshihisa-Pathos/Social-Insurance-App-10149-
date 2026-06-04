@@ -4,7 +4,6 @@ export type StaticMonthlyImportFieldKey = keyof Pick<
   MonthlyFormData,
   | 'displayName'
   | 'employeeId'
-  | 'totalPay'
   | 'basicSalary'
   | 'overtimePay'
   | 'commuterAllowance'
@@ -36,12 +35,6 @@ export const STATIC_MONTHLY_IMPORT_COLUMNS: MonthlyImportColumnDef[] = [
     defaultHeader: 'displayName',
     required: true,
     kind: 'string',
-  },
-  {
-    key: 'totalPay',
-    label: '総支給額',
-    defaultHeader: 'totalPay',
-    kind: 'number',
   },
   {
     key: 'basicSalary',

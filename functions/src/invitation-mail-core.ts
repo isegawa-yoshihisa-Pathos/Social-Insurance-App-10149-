@@ -104,7 +104,7 @@ export async function sendVirtualInvitationMail(
   const mailRef = admin.firestore().collection('invitation-mails').doc();
   await mailRef.set({
     id: mailRef.id,
-    from: '縄文 社会保険アプリ <no-reply@jomon.jp>',
+    from: '縄文 招待管理システム <no-reply@jomon.jp>',
     to: [email],
     subject: `【重要】${tenantName} から社会保険管理システムへの招待`,
     replyTo: replyToEmail,
