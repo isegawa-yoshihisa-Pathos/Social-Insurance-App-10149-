@@ -13,7 +13,6 @@ import { CurrentTenantService } from '../../../current-tenant.service';
 import { RoutesService } from '../../../routes.service';
 import { PaymentManagementDataService } from '../../payment-management-data.service';
 import { generateNextAllowanceType } from '../../payment-list/allowance-type.util';
-import { PaymentSettingDataService } from '../payment-setting-data.service';
 
 @Component({
   selector: 'app-allowance-kind-setting',
@@ -34,7 +33,6 @@ export class AllowanceKindSettingCmp implements OnInit {
   private readonly currentTenantService = inject(CurrentTenantService);
   private readonly routesService = inject(RoutesService);
   private readonly dialog = inject(MatDialog);
-  private readonly paymentSettingDataService = inject(PaymentSettingDataService);
   loading = false;
   saveBusy = false;
   validationError: string | null = null;
@@ -88,7 +86,6 @@ export class AllowanceKindSettingCmp implements OnInit {
     try {
       this.paymentManagementDataService.setAllowanceTypeDefinitions(this.types);
       await this.paymentManagementDataService.savePaymentSettings(tid);
-      this.paymentSettingDataService.syncVisibleColumnsForAllowanceTypes();
       this.types = this.paymentManagementDataService
         .allowanceTypeDefinitions()
         .map((item) => ({ ...item }));

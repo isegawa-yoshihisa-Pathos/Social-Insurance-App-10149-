@@ -1,7 +1,7 @@
 import { AllowanceData, AllowanceTypeDefinition } from '../../payment-document';
 import { Format } from '../../format-number-jp';
 import { sumAllowanceAmounts } from './allowance-data.util';
-import { BasePaymentListColumnKey, BASE_PAYMENT_LIST_COLUMN_KEYS } from './payment-list-columns';
+import { BASE_PAYMENT_LIST_COLUMN_KEYS } from './payment-list-column-keys';
 import { PREMIUM_PAYMENT_LIST_COLUMN_KEYS } from '../payment-premium/payment-premium-columns';
 
 export interface AllowanceDisplayParts {
@@ -87,7 +87,14 @@ export function allowanceTypeFromColumnKey(column: string): string | null {
     return column.slice('allowance_'.length);
   }
 
-  if (column.startsWith('bonus-') || column === 'bonus') {
+  if (
+    column.startsWith('bonus-') ||
+    column === 'bonus' ||
+    column.startsWith('bonusHealth') ||
+    column.startsWith('bonusCare') ||
+    column.startsWith('bonusPension') ||
+    column.startsWith('standardBonus')
+  ) {
     return null;
   }
 

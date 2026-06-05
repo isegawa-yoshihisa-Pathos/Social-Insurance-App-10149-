@@ -38,7 +38,18 @@ export class MainLayoutCmp {
     { initialValue: this.urlToSection(this.router.url) },
   );
 
-  private urlToSection(url: string): 'myPage' | 'personalSetting' | 'taskBoard' | 'tenantSetting' | 'createNewTenant' | 'employeesManagement' | 'invitationsManagement' | 'monthlyManagement' | 'bonusManagement' | 'paymentManagement' | 'virtualMailChecker' {
+  private urlToSection(url: string): 
+    | 'myPage' 
+    | 'personalSetting' 
+    | 'taskBoard' 
+    | 'tenantSetting'
+    | 'createNewTenant'
+    | 'employeesManagement'
+    | 'invitationsManagement'
+    | 'monthlyManagement'
+    | 'bonusManagement'
+    | 'paymentManagement'
+    | 'virtualMailChecker' {
     if (url.startsWith('/personal-setting')) return 'personalSetting';
     if (url.startsWith('/task-board')) return 'taskBoard';
     if (url.startsWith('/tenant-setting')) return 'tenantSetting';

@@ -278,6 +278,10 @@ export class MonthlyListCmp {
       return;
     }
 
+    if (col === 'fixedWage' || col === 'variableWage') {
+      return;
+    }
+
     const targetEids = this.resolveTargetEids(row.eid);
     this.openBulkEditDialog(col, getMonthlyListEditValue(row, col), targetEids);
   }

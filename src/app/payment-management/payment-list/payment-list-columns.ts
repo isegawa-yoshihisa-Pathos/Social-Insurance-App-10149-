@@ -7,10 +7,19 @@ import {
   getPremiumColumnLabel,
   getOptionalPremiumColumns,
   PREMIUM_PAYMENT_LIST_COLUMN_KEYS,
-  PremiumPaymentListColumnKey,
+  PremiumBonusPaymentListColumnKey,
+  PremiumMonthlyPaymentListColumnKey,
 } from '../payment-premium/payment-premium-columns';
 import { AllowanceData } from '../../payment-document';
 import { BonusAmountMap } from '../../bonus-document';
+import {
+  BASE_PAYMENT_LIST_COLUMN_KEYS,
+  BasePaymentListColumnKey,
+  STATIC_PAYMENT_LIST_COLUMN_LABELS,
+} from './payment-list-column-keys';
+
+export { BASE_PAYMENT_LIST_COLUMN_KEYS } from './payment-list-column-keys';
+export type { BasePaymentListColumnKey } from './payment-list-column-keys';
 
 export type PaymentFormColumnKey = keyof PaymentFormData;
 
@@ -25,19 +34,8 @@ export type PaymentListColumnKey =
   | 'bonus'
   | AllowanceColumnKey
   | BonusColumnKey
-  | PremiumPaymentListColumnKey;
-
-export const BASE_PAYMENT_LIST_COLUMN_KEYS = [
-  'displayName',
-  'employeeId',
-  'basicSalary',
-  'fixedWage',
-  'variableWage',
-  'retroactivePay',
-  'bonus',
-] as const;
-
-export type BasePaymentListColumnKey = (typeof BASE_PAYMENT_LIST_COLUMN_KEYS)[number];
+  | PremiumMonthlyPaymentListColumnKey
+  | PremiumBonusPaymentListColumnKey;
 
 export const DEFAULT_PAYMENT_LIST_COLUMNS: PaymentListColumnKey[] = [
   'displayName',
@@ -47,16 +45,6 @@ export const DEFAULT_PAYMENT_LIST_COLUMNS: PaymentListColumnKey[] = [
   'variableWage',
   'bonus',
 ];
-
-const STATIC_COLUMN_LABELS: Record<BasePaymentListColumnKey, string> = {
-  displayName: '氏名',
-  employeeId: '社員番号',
-  basicSalary: '基本給与',
-  fixedWage: '固定的賃金',
-  variableWage: '非固定的賃金',
-  retroactivePay: '遡及清算',
-  bonus: '賞与',
-};
 
 export function getAllPaymentListColumnKeys(
   allowanceDefinitions: AllowanceTypeDefinition[],
@@ -91,7 +79,7 @@ export function getOptionalPaymentListColumns(
     { key: 'variableWage', label: '非固定的賃金' },
     ...allowanceColumns,
     { key: 'retroactivePay', label: '遡及清算' },
-    { key: 'bonus', label: '賞与' },
+    { key: 'bonus', label: '賞与合計' },
     ...bonusColumns,
     ...getOptionalPremiumColumns(),
   ];
@@ -116,7 +104,7 @@ export function getPaymentListColumnLabel(
     return getPremiumColumnLabel(column);
   }
 
-  return STATIC_COLUMN_LABELS[column as BasePaymentListColumnKey] ?? column;
+  return STATIC_PAYMENT_LIST_COLUMN_LABELS[column as BasePaymentListColumnKey] ?? column;
 }
 
 export interface PaymentListRow {
@@ -138,4 +126,12 @@ export interface PaymentListRow {
   careInsuranceEmployer: number | null;
   pensionInsuranceEmployee: number | null;
   pensionInsuranceEmployer: number | null;
+  standardBonusHealth: number | null;
+  standardBonusPension: number | null;
+  bonusHealthInsuranceEmployee: number | null;
+  bonusHealthInsuranceEmployer: number | null;
+  bonusCareInsuranceEmployee: number | null;
+  bonusCareInsuranceEmployer: number | null;
+  bonusPensionInsuranceEmployee: number | null;
+  bonusPensionInsuranceEmployer: number | null;
 }

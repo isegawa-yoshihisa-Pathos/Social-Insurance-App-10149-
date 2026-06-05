@@ -6,7 +6,8 @@ import { PaymentListColumnKey, PaymentListRow } from './payment-list-columns';
 import { Format } from '../../format-number-jp';
 import { isPremiumColumn } from '../payment-premium/payment-premium-columns';
 import {
-  applyPremiumFieldsToRow,
+  applyMonthlyPremiumFieldsToRow,
+  applyBonusPremiumFieldsToRow,
   formatPremiumCellValue,
   premiumSortValue,
   premiumSearchText,
@@ -14,7 +15,6 @@ import {
 import { allowanceTypeFromColumnKey } from './allowance-display.util';
 import { bonusTypeFromColumnKey } from '../../bonus-management/bonus-list/bonus-display.util';
 import { extractBonusAmounts } from '../../bonus-management/bonus-list/bonus-data.util';
-import { sumAllowanceAmounts } from './allowance-data.util';
 
 export function toPaymentListRow(
   eid: string,
@@ -26,23 +26,39 @@ export function toPaymentListRow(
   const bonus = bonusData?.bonusData ? extractBonusAmounts(bonusData.bonusData) : {};
   const bonusTotal = Object.values(bonus).reduce((sum, amount) => sum + (amount ?? 0), 0);
 
-  return {
-    ...applyPremiumFieldsToRow(
-      {
-        eid,
-        employeeId: '',
-        displayName: monthlyData?.displayName ?? bonusData?.displayName ?? '',
-        basicSalary: payroll?.basicSalary ?? 0,
-        fixedWage: payroll?.fixedWage ?? null,
-        variableWage: payroll?.variableWage ?? null,
-        allowances: payroll?.allowances ?? {},
-        retroactivePay: payroll?.retroactivePay ?? null,
-        bonus,
-        bonusTotal,
-      } as PaymentListRow,
-      monthlyData ?? {},
-    ),
+  const baseRow: PaymentListRow = {
+    eid,
+    employeeId: '',
+    displayName: monthlyData?.displayName ?? bonusData?.displayName ?? '',
+    basicSalary: payroll?.basicSalary ?? 0,
+    fixedWage: payroll?.fixedWage ?? null,
+    variableWage: payroll?.variableWage ?? null,
+    allowances: payroll?.allowances ?? {},
+    retroactivePay: payroll?.retroactivePay ?? null,
+    bonus,
+    bonusTotal,
+    standardRemunerationHealth: null,
+    standardRemunerationPension: null,
+    healthInsuranceEmployee: null,
+    healthInsuranceEmployer: null,
+    careInsuranceEmployee: null,
+    careInsuranceEmployer: null,
+    pensionInsuranceEmployee: null,
+    pensionInsuranceEmployer: null,
+    standardBonusHealth: null,
+    standardBonusPension: null,
+    bonusHealthInsuranceEmployee: null,
+    bonusHealthInsuranceEmployer: null,
+    bonusCareInsuranceEmployee: null,
+    bonusCareInsuranceEmployer: null,
+    bonusPensionInsuranceEmployee: null,
+    bonusPensionInsuranceEmployer: null,
   };
+
+  return applyBonusPremiumFieldsToRow(
+    applyMonthlyPremiumFieldsToRow(baseRow, monthlyData ?? {}),
+    bonusData ?? {},
+  );
 }
 
 export function formatPaymentListCellValue(

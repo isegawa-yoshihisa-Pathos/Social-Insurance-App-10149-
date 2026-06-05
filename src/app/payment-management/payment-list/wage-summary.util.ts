@@ -33,11 +33,9 @@ export function computeWageSummary(
     }
   }
 
-  const retroactive = payroll.retroactivePay ?? 0;
-
   return {
     fixedWage: payroll.basicSalary + fixedAllowances,
-    variableWage: variableAllowances + retroactive,
+    variableWage: variableAllowances,
   };
 }
 

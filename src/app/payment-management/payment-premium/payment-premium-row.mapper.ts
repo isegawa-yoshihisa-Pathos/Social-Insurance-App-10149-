@@ -1,11 +1,12 @@
-import { PaymentDocument } from '../../payment-document';
+import { BonusDocument } from '../../bonus-document';
+import { MonthlyDocument } from '../../monthly-document';
 import { Format } from '../../format-number-jp';
 import { PaymentListRow } from '../payment-list/payment-list-columns';
 import { PremiumPaymentListColumnKey } from './payment-premium-columns';
 
-export function applyPremiumFieldsToRow(
+export function applyMonthlyPremiumFieldsToRow(
   row: PaymentListRow,
-  data: Partial<PaymentDocument>,
+  data: Partial<MonthlyDocument>,
 ): PaymentListRow {
   const premium = data.premiumData;
   const snapshot = data.calculationSnapshot;
@@ -20,6 +21,26 @@ export function applyPremiumFieldsToRow(
     careInsuranceEmployer: premium?.careInsurance.employer ?? null,
     pensionInsuranceEmployee: premium?.pensionInsurance.employee ?? null,
     pensionInsuranceEmployer: premium?.pensionInsurance.employer ?? null,
+  };
+}
+
+export function applyBonusPremiumFieldsToRow(
+  row: PaymentListRow,
+  data: Partial<BonusDocument>,
+): PaymentListRow {
+  const premium = data.premiumData;
+  const snapshot = data.calculationSnapshot;
+
+  return {
+    ...row,
+    standardBonusHealth: snapshot?.standardBonus.health ?? null,
+    standardBonusPension: snapshot?.standardBonus.pension ?? null,
+    bonusHealthInsuranceEmployee: premium?.healthInsurance.employee ?? null,
+    bonusHealthInsuranceEmployer: premium?.healthInsurance.employer ?? null,
+    bonusCareInsuranceEmployee: premium?.careInsurance.employee ?? null,
+    bonusCareInsuranceEmployer: premium?.careInsurance.employer ?? null,
+    bonusPensionInsuranceEmployee: premium?.pensionInsurance.employee ?? null,
+    bonusPensionInsuranceEmployer: premium?.pensionInsurance.employer ?? null,
   };
 }
 

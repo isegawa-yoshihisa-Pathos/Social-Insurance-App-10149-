@@ -2,10 +2,6 @@ import { EnvironmentInjector, inject, Injectable, runInInjectionContext, signal 
 import { doc, Firestore, getDoc, serverTimestamp, setDoc } from '@angular/fire/firestore';
 import { AllowanceTypeDefinition } from '../../payment-document';
 import {
-  buildDefaultImportHeaders,
-  PaymentImportFieldKey,
-} from './payment-import-columns';
-import {
   DEFAULT_PAYMENT_LIST_COLUMNS,
   getAllPaymentListColumnKeys,
   PaymentListColumnKey,
@@ -43,10 +39,6 @@ export class PaymentSettingDataService {
     this.settingsLoading.set(true);
     try {
       await this.paymentManagementDataService.loadPaymentSettings(tid);
-      const allowanceDefinitions = this.paymentManagementDataService.allowanceTypeDefinitions();
-      const doc = await this.loadPaymentDocument(tid);
-      const saved = doc?.importHeaders ?? {};
-      this.importHeaders.set(mergeImportHeaders(saved, allowanceDefinitions));
     } finally {
       this.settingsLoading.set(false);
     }
@@ -94,24 +86,6 @@ export class PaymentSettingDataService {
     this.listSettingsLoadedTid = tid;
   }
 
-  syncVisibleColumnsForAllowanceTypes(): void {
-    const allowanceDefinitions = this.paymentManagementDataService.allowanceTypeDefinitions();
-    const bonusDefinitions = this.bonusManagementDataService.bonusTypeDefinitions();
-    this.setVisibleColumns(this.visibleColumns(), allowanceDefinitions, bonusDefinitions);
-    const tid = this.listSettingsLoadedTid;
-    if (tid) {
-      const defaults = buildDefaultImportHeaders(allowanceDefinitions);
-      const current = this.importHeaders();
-      const merged: Record<string, string> = { ...defaults };
-      for (const [key, value] of Object.entries(current)) {
-        if (value?.trim()) {
-          merged[key] = value.trim();
-        }
-      }
-      this.importHeaders.set(merged);
-    }
-  }
-
   toggleOptionalColumn(key: PaymentListColumnKey, checked: boolean): void {
     const current = this.visibleColumns();
     const exists = current.includes(key);
@@ -125,10 +99,6 @@ export class PaymentSettingDataService {
 
   isColumnVisible(key: PaymentListColumnKey): boolean {
     return this.visibleColumns().includes(key);
-  }
-
-  setHeader(key: PaymentImportFieldKey, header: string): void {
-    this.importHeaders.update((prev) => ({ ...prev, [key]: header }));
   }
 
   reset(): void {
@@ -205,20 +175,4 @@ export class PaymentSettingDataService {
       return snap.data() as PaymentSettingDocument;
     });
   }
-}
-
-export function mergeImportHeaders(
-  saved: Partial<Record<string, string>>,
-  allowanceDefinitions: AllowanceTypeDefinition[],
-): Record<string, string> {
-  const defaults = buildDefaultImportHeaders(allowanceDefinitions);
-  const merged: Record<string, string> = { ...defaults };
-
-  for (const [key, value] of Object.entries(saved)) {
-    if (value?.trim()) {
-      merged[key] = value.trim();
-    }
-  }
-
-  return merged;
 }
