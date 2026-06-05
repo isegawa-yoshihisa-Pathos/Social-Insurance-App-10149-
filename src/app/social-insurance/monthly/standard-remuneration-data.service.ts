@@ -41,6 +41,16 @@ export class StandardRemunerationDataService {
     return snap.data() as StandardRemunerationDocument;
   }
 
+  async getLatest(
+    tid: string,
+    eid: string,
+    yyyyMm: string,
+  ): Promise<StandardRemunerationSavePayload | null> {
+    const history = await this.listForEmployee(tid, eid);
+    const found = history.find((item) => item.yyyyMm <= yyyyMm);
+    return found?.doc ?? null;
+  }
+
   async listForEmployee(
     tid: string,
     eid: string,

@@ -44,8 +44,13 @@ export class SocialInsuranceCalculationService {
         if (!ctx.employee.employeeEmployInfo?.licenseStartAt) {
             throw new Error('社会保険の資格取得日が設定されていません。');
         }
-        const standardRemuneration = await this.resolveStandardRemuneration(tid, eid, yyyyMm, ctx);
-        await this.standardRemunerationDataService.save(tid, eid, yyyyMm, standardRemuneration);
+        const rawStandardRemuneration = await this.resolveStandardRemuneration(tid, eid, yyyyMm, ctx);
+
+        if (rawStandardRemuneration.source !== 'carried')  {
+            await this.standardRemunerationDataService.save(tid, eid, rawStandardRemuneration.effectiveFrom, rawStandardRemuneration);
+        }
+
+        const standardRemuneration = await this.standardRemunerationDataService.getLatest(tid, eid, yyyyMm) ?? rawStandardRemuneration;
 
         const rate = await this.insuranceRateDataService.resolveRateForMonth(tid, yyyyMm);
         if (!rate) {
@@ -151,22 +156,28 @@ export class SocialInsuranceCalculationService {
             addMonths(yyyyMm, -3),
             addMonths(yyyyMm, -2),
             addMonths(yyyyMm, -1),
+            yyyyMm,
         ];
         const sources = await this.loadMonthSources(tid, eid, monthKeys);
-        if (sources.length !== 3) return null;
+        if (sources.length !== 4) return null;
 
-        const windowStart = addMonths(yyyyMm, -4);
-        const previous = await this.getPreviousGrades(tid, eid, windowStart);
+        const previousPayroll = sources[0].payroll.basicSalary + (sources[0].payroll.commuterAllowance ?? 0) + (sources[0].payroll.otherAllowance ?? 0);
+        const currentPayroll = sources[1].payroll.basicSalary + (sources[1].payroll.commuterAllowance ?? 0) + (sources[1].payroll.otherAllowance ?? 0);
+        if (previousPayroll === currentPayroll) {
+            return null;
+        }
+
+        const previous = await this.getPreviousGrades(tid, eid, addMonths(yyyyMm, -3));
         if (!previous) return null;
 
         const outcome = determineStandardZuiji(
             ctx.employmentType,
-            sources,
+            sources.slice(1),
             previous,
         );
         if (outcome.kind !== 'applicable') return null;
 
-        return this.gradesToPayload('zuiji', yyyyMm, outcome.grades);
+        return this.gradesToPayload('zuiji', addMonths(yyyyMm, 1), outcome.grades);
     }
 
     private async tryTeiji(
@@ -180,6 +191,13 @@ export class SocialInsuranceCalculationService {
         const licenseStartAt = ctx.employee.employeeEmployInfo?.licenseStartAt;
         if (!licenseStartAt) return null;
         if (licenseStartAt.toDate().getFullYear() === year && licenseStartAt.toDate().getMonth() === 6) return null;
+
+        const history = await this.standardRemunerationDataService.listForEmployee(
+            tid,
+            eid,
+        );
+        const prior = history.find((item) => item.yyyyMm === yyyyMm);
+        if (prior && prior.doc.source === 'zuiji') return null;
 
         const monthKeys = [
             `${year}-04`,
@@ -238,7 +256,7 @@ export class SocialInsuranceCalculationService {
             healthGrade: prior.doc.healthGrade,
             pensionGrade: prior.doc.pensionGrade,
             standardRemuneration: prior.doc.standardRemuneration,
-            source: prior.doc.source,
+            source: 'carried',
             effectiveFrom: prior.doc.effectiveFrom,
             remuneration: prior.doc.remuneration,
         };
@@ -257,7 +275,7 @@ export class SocialInsuranceCalculationService {
                 pension: grades.pension.standardRemuneration,
             },
             source,
-            effectiveFrom: `${yyyyMm}-01`,
+            effectiveFrom: yyyyMm,
             remuneration: grades.remuneration,
         };
     }
@@ -284,7 +302,7 @@ export class SocialInsuranceCalculationService {
             tid,
             eid,
         );
-        const prior = history.find((item) => item.yyyyMm === beforeYyyyMm);
+        const prior = history.find((item) => item.yyyyMm <= beforeYyyyMm);
         if (!prior) return null;
         return {
             healthGrade: prior.doc.healthGrade,
