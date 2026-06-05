@@ -2,7 +2,7 @@
   display: block;
 }
 
-.bonus-setting-label {
+.payment-setting-label {
   font-size: 18px;
   font-weight: bold;
   color: #333;
@@ -22,11 +22,31 @@
   margin-bottom: 24px;
 }
 
-.type-row {
+.header-label {
+  color: #333;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.header-setting {
+  padding: 0 50px;
+}
+
+.header-setting-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 8px;
+}
+
+.header-input {
+  flex: 1;
+  max-width: 320px;
+}
+
+.current-header {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: #555;
 }
 
 .validation-error {
@@ -34,16 +54,3 @@
   color: #c62828;
 }
 
-.actions {
-  margin-top: 16px;
-}
-
-.add-type-button {
-  width: fit-content;
-}
-
-.loading-row {
-  display: flex;
-  justify-content: center;
-  padding: 24px 0;
-}

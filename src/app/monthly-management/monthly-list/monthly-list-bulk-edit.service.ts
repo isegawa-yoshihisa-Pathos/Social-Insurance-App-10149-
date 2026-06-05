@@ -10,7 +10,6 @@ import {
 } from '@angular/fire/firestore';
 import {
   BulkEditableColumn,
-  BulkEditablePayrollColumn,
   BulkEditTarget,
   BulkEditValue,
 } from './monthly-bulk-edit.types';
@@ -27,14 +26,9 @@ import {
   CURRENT_GRADE_TABLE,
   resolveGradeFromStandardAmount,
 } from '../../social-insurance/remuneration/grade-table';
-
-const PAYROLL_COLUMNS: readonly BulkEditablePayrollColumn[] = [
-  'basicSalary',
-  'overtimePay',
-  'commuterAllowance',
-  'otherAllowance',
-  'retroactivePay',
-] as const;
+import { allowanceTypeFromColumnKey } from '../../payment-management/payment-list/allowance-display.util';
+import { PaymentManagementDataService } from '../../payment-management/payment-management-data.service';
+import { buildPayrollWageFields } from '../../payment-management/payment-list/payroll-wage-update.util';
 
 @Injectable({
   providedIn: 'root',
@@ -42,6 +36,7 @@ const PAYROLL_COLUMNS: readonly BulkEditablePayrollColumn[] = [
 export class MonthlyListBulkEditService {
   private readonly firestore = inject(Firestore);
   private readonly standardRemunerationDataService = inject(StandardRemunerationDataService);
+  private readonly paymentManagementDataService = inject(PaymentManagementDataService);
 
   async applyBulkEdit(
     tid: string,
@@ -57,9 +52,10 @@ export class MonthlyListBulkEditService {
       return;
     }
 
+    const definitions = this.paymentManagementDataService.allowanceTypeDefinitions();
     const batch = writeBatch(this.firestore);
 
-    for (const { eid } of targets) {
+    for (const target of targets) {
       const employeeRef = doc(
         this.firestore,
         'tenants',
@@ -67,9 +63,9 @@ export class MonthlyListBulkEditService {
         'monthly-records',
         yyyyMm,
         'employees',
-        eid,
+        target.eid,
       );
-      const payload = this.buildPayrollUpdatePayload(column, value);
+      const payload = this.buildPayrollUpdatePayload(target, column, value, definitions);
       batch.update(employeeRef, payload);
     }
 
@@ -138,17 +134,56 @@ export class MonthlyListBulkEditService {
   }
 
   private buildPayrollUpdatePayload(
-    column: BulkEditablePayrollColumn,
+    target: BulkEditTarget,
+    column: BulkEditableColumn,
     value: BulkEditValue,
+    definitions: ReturnType<PaymentManagementDataService['allowanceTypeDefinitions']>,
   ): UpdateData<DocumentData> {
-    if (PAYROLL_COLUMNS.includes(column)) {
-      return {
-        [`payrollData.${column}`]: value === null ? deleteField() : value,
-        updatedAt: serverTimestamp(),
-      } as UpdateData<DocumentData>;
+    const allowanceType = allowanceTypeFromColumnKey(column);
+    const patch: {
+      basicSalary?: number;
+      allowances?: Record<string, number>;
+      retroactivePay?: number | null;
+    } = {};
+
+    if (allowanceType) {
+      const allowances = { ...target.allowances };
+      if (value == null || value === 0) {
+        delete allowances[allowanceType];
+      } else {
+        allowances[allowanceType] = value;
+      }
+      patch.allowances = allowances;
+    } else if (column === 'basicSalary') {
+      patch.basicSalary = value === null ? 0 : value;
+    } else if (column === 'retroactivePay') {
+      patch.retroactivePay = value;
     }
 
-    return { updatedAt: serverTimestamp() };
+    const wages = buildPayrollWageFields(target, patch, definitions);
+    const update: Record<string, unknown> = {
+      'payrollData.fixedWage': wages.fixedWage,
+      'payrollData.variableWage': wages.variableWage,
+      updatedAt: serverTimestamp(),
+    };
+
+    if (patch.basicSalary !== undefined) {
+      update['payrollData.basicSalary'] = patch.basicSalary;
+    }
+    if (patch.retroactivePay !== undefined) {
+      update['payrollData.retroactivePay'] =
+        patch.retroactivePay === null ? deleteField() : patch.retroactivePay;
+    }
+    if (patch.allowances !== undefined) {
+      if (Object.keys(patch.allowances).length === 0) {
+        update['payrollData.allowances'] = {};
+      } else {
+        for (const [type, amount] of Object.entries(patch.allowances)) {
+          update[`payrollData.allowances.${type}`] = amount;
+        }
+      }
+    }
+
+    return update as UpdateData<DocumentData>;
   }
 }
-

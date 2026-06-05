@@ -1,9 +1,11 @@
 import { MonthlyDocument } from '../../monthly-document';
+import { AllowanceTypeDefinition } from '../../payment-document';
 import { BulkEditValue } from './monthly-bulk-edit.types';
 import { MonthlyListColumnKey, MonthlyListRow } from './monthly-list-columns';
 import { Format } from '../../format-number-jp';
 import { isPremiumColumn } from '../monthly-premium/monthly-premium-columns';
 import { applyPremiumFieldsToRow, formatPremiumCellValue, premiumSortValue, premiumSearchText } from '../monthly-premium/monthly-premium-row.mapper';
+import { allowanceTypeFromColumnKey } from '../../payment-management/payment-list/allowance-display.util';
 
 export function toMonthlyListRow(
   eid: string,
@@ -17,9 +19,9 @@ export function toMonthlyListRow(
       employeeId: '',
       displayName: data.displayName ?? '',
       basicSalary: payroll?.basicSalary ?? 0,
-      overtimePay: payroll?.overtimePay ?? null,
-      commuterAllowance: payroll?.commuterAllowance ?? null,
-      otherAllowance: payroll?.otherAllowance ?? null,
+      fixedWage: payroll?.fixedWage ?? null,
+      variableWage: payroll?.variableWage ?? null,
+      allowances: payroll?.allowances ?? {},
       retroactivePay: payroll?.retroactivePay ?? null,
     } as MonthlyListRow, data),
   };
@@ -29,6 +31,11 @@ export function getMonthlyListEditValue(
   row: MonthlyListRow,
   column: MonthlyListColumnKey,
 ): BulkEditValue {
+  const allowanceType = allowanceTypeFromColumnKey(column);
+  if (allowanceType) {
+    const amount = row.allowances[allowanceType] ?? 0;
+    return amount === 0 ? null : amount;
+  }
 
   const value = row[column as keyof MonthlyListRow];
   if (value == null || value === '') return null;
@@ -39,6 +46,7 @@ export function getMonthlyListEditValue(
 export function formatMonthlyListCellValue(
   row: MonthlyListRow,
   column: MonthlyListColumnKey,
+  allowanceDefinitions: AllowanceTypeDefinition[] = [],
 ): string {
   if (isPremiumColumn(column)) {
     return formatPremiumCellValue(row, column);
@@ -46,6 +54,17 @@ export function formatMonthlyListCellValue(
 
   if (column === 'displayName' || column === 'employeeId') {
     return String(row[column] ?? '');
+  }
+
+  if (column === 'fixedWage' || column === 'variableWage') {
+    const value = row[column];
+    return value == null ? '' : Format(value);
+  }
+
+  const allowanceType = allowanceTypeFromColumnKey(column);
+  if (allowanceType) {
+    const amount = row.allowances[allowanceType] ?? 0;
+    return amount === 0 ? '' : Format(amount);
   }
 
   const value = row[column as keyof MonthlyListRow];
@@ -61,6 +80,15 @@ export function monthlyListSortValue(
     return premiumSortValue(row, column);
   }
 
+  if (column === 'fixedWage' || column === 'variableWage') {
+    return row[column] ?? 0;
+  }
+
+  const allowanceType = allowanceTypeFromColumnKey(column);
+  if (allowanceType) {
+    return row.allowances[allowanceType] ?? 0;
+  }
+
   const value = row[column as keyof MonthlyListRow];
   if (typeof value === 'number') return value;
 
@@ -74,6 +102,12 @@ export function monthlyListSearchText(
 ): string {
   if (isPremiumColumn(column)) {
     return premiumSearchText(row, column);
+  }
+
+  const allowanceType = allowanceTypeFromColumnKey(column);
+  if (allowanceType) {
+    const amount = row.allowances[allowanceType] ?? 0;
+    return amount === 0 ? '' : Format(amount);
   }
 
   const value = row[column as keyof MonthlyListRow];

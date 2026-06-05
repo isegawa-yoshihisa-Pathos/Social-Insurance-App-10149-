@@ -1,0 +1,41 @@
+<div class="import-setting-content">
+  <div class="payment-setting-label">
+    CSVファイルインポート設定
+  </div>
+  <div class="import-file-setting">
+      <div class="import-file-setting-content">
+          ヘッダー名を指定してください。
+      </div>
+      @if (loading || paymentSettingDataService.settingsLoading()) {
+        <mat-spinner diameter="32" />
+      } @else {
+        @for (col of importColumns(); track col.key) {
+      <div class="header-setting">
+        <label class="current-header">
+          {{ col.label }}ヘッダー名：
+          <span class="header-label">{{ currentHeader(col.key) }}</span>
+        </label>
+        <div class="header-setting-row">
+          <mat-form-field appearance="outline" class="header-input">
+            <mat-label>新しいヘッダー</mat-label>
+            <input
+              matInput
+              [ngModel]="newHeaderInput(col.key)"
+              (ngModelChange)="setNewHeaderInput(col.key, $event)"
+              [disabled]="saveBusy"
+            />
+          </mat-form-field>
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            [disabled]="saveBusy"
+            (click)="changeHeader(col.key)"
+          >
+            変更
+          </button>
+        </div>
+      </div>
+    }
+  }
+</div>

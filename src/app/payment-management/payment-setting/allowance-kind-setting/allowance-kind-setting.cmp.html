@@ -1,0 +1,58 @@
+@if (loading) {
+  <div class="loading-row">
+    <mat-spinner diameter="32"></mat-spinner>
+  </div>
+} @else {
+  <section class="allowance-setting-section">
+    <div class="allowance-setting-label">
+      手当の設定
+    </div>
+    <div class="import-file-setting">
+      <div class="import-file-setting-content">
+        手当の種別を追加できます。各手当を固定的賃金か非固定的賃金に振り分けてください。
+      </div>
+
+      @for (item of types; track $index) {
+        <div class="type-row">
+          <label class="type-label">手当種別#{{ $index + 1 }}</label>
+          <mat-form-field appearance="outline" class="label-field">
+            <mat-label>表示名</mat-label>
+            <input matInput [(ngModel)]="item.label" placeholder="通勤手当" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="category-field">
+            <mat-label>賃金区分</mat-label>
+            <mat-select [(ngModel)]="item.wageCategory">
+              @for (option of wageCategoryOptions; track option.value) {
+                <mat-option [value]="option.value">{{ option.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+      }
+
+      <button mat-stroked-button type="button" class="add-type-button" (click)="addType()">
+        種別を追加
+      </button>
+
+      @if (validationError) {
+        <p class="validation-error">{{ validationError }}</p>
+      }
+
+      <div class="actions">
+        <button
+          mat-flat-button
+          color="primary"
+          type="button"
+          [disabled]="saveBusy"
+          (click)="save()"
+        >
+          @if (saveBusy) {
+            <mat-spinner diameter="20"></mat-spinner>
+          } @else {
+            保存
+          }
+        </button>
+      </div>
+    </div>
+  </section>
+}

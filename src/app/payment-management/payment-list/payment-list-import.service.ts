@@ -3,28 +3,28 @@ import {
   DocumentData,
   Firestore,
   UpdateData,
+  deleteField,
   doc,
   serverTimestamp,
   writeBatch,
 } from '@angular/fire/firestore';
-import { MonthlySettingDataService } from '../monthly-setting/monthly-setting-data.service';
+import { PaymentSettingDataService } from '../payment-setting/payment-setting-data.service';
 import {
-  MonthlyImportColumnDef,
-  MonthlyImportFieldKey,
-  buildMonthlyImportColumnDefs,
-} from '../monthly-setting/monthly-import-columns';
-import { MonthlyListRow } from './monthly-list-columns';
-import { MonthlyListDataService } from './monthly-list-data.service';
-import { PaymentManagementDataService } from '../../payment-management/payment-management-data.service';
-import { buildPayrollWageFields } from '../../payment-management/payment-list/payroll-wage-update.util';
+  PaymentImportColumnDef,
+  PaymentImportFieldKey,
+  buildPaymentImportColumnDefs,
+} from '../payment-setting/payment-import-columns';
+import { PaymentListRow } from './payment-list-columns';
+import { PaymentListDataService } from './payment-list-data.service';
+import { PaymentManagementDataService } from '../payment-management-data.service';
 
-export interface MonthlyCsvImportOptions {
+export interface PaymentCsvImportOptions {
   yyyyMm: string;
-  allRows: MonthlyListRow[];
+  allRows: PaymentListRow[];
   scopeEids?: Set<string>;
 }
 
-export interface MonthlyCsvImportResult {
+export interface PaymentCsvImportResult {
   updated: number;
   skippedNoMatch: number;
   skippedOutOfScope: number;
@@ -33,23 +33,19 @@ export interface MonthlyCsvImportResult {
 }
 
 @Injectable({ providedIn: 'root' })
-export class MonthlyListImportService {
+export class PaymentListImportService {
   private readonly firestore = inject(Firestore);
-  private readonly monthlySettingDataService = inject(MonthlySettingDataService);
+  private readonly paymentSettingDataService = inject(PaymentSettingDataService);
+  private readonly listDataService = inject(PaymentListDataService);
   private readonly paymentManagementDataService = inject(PaymentManagementDataService);
-  private readonly listDataService = inject(MonthlyListDataService);
-
   async importFromCsv(
     tid: string,
     file: File,
-    options: MonthlyCsvImportOptions,
-  ): Promise<MonthlyCsvImportResult> {
-    await Promise.all([
-      this.monthlySettingDataService.loadSettings(tid),
-      this.paymentManagementDataService.loadPaymentSettings(tid),
-    ]);
+    options: PaymentCsvImportOptions,
+  ): Promise<PaymentCsvImportResult> {
+    await this.paymentSettingDataService.loadSettings(tid);
 
-    const columnDefs = buildMonthlyImportColumnDefs(
+    const columnDefs = buildPaymentImportColumnDefs(
       this.paymentManagementDataService.allowanceTypeDefinitions(),
     );
     const csvText = await file.text();
@@ -74,9 +70,8 @@ export class MonthlyListImportService {
     const { eidByEmployeeId, eidsByDisplayName } =
       this.listDataService.buildMatchMaps(employeeLookup);
 
-    const definitions = this.paymentManagementDataService.allowanceTypeDefinitions();
     const batch = writeBatch(this.firestore);
-    const result: MonthlyCsvImportResult = {
+    const result: PaymentCsvImportResult = {
       updated: 0,
       skippedNoMatch: 0,
       skippedOutOfScope: 0,
@@ -112,12 +107,10 @@ export class MonthlyListImportService {
       }
 
       const existingRow = options.allRows.find((r) => r.eid === matched);
-      const patch = this.buildMonthlyPatch(
+      const patch = this.buildPaymentPatch(
         cols,
         headerIndex,
         columnDefs,
-        existingRow,
-        definitions,
       );
       if (!patch) {
         result.skippedEmpty++;
@@ -128,7 +121,7 @@ export class MonthlyListImportService {
         this.firestore,
         'tenants',
         tid,
-        'monthly-records',
+        'payment-records',
         options.yyyyMm,
         'employees',
         matched,
@@ -152,10 +145,10 @@ export class MonthlyListImportService {
 
   private buildHeaderIndexMap(
     headers: string[],
-    columnDefs: MonthlyImportColumnDef[],
+    columnDefs: PaymentImportColumnDef[],
   ): Record<string, number> {
     const map: Record<string, number> = {};
-    const config = this.monthlySettingDataService.importHeaders();
+    const config = this.paymentSettingDataService.importHeaders();
 
     for (const col of columnDefs) {
       const headerName = (config[col.key] ?? col.defaultHeader).trim();
@@ -184,71 +177,35 @@ export class MonthlyListImportService {
     return null;
   }
 
-  private buildMonthlyPatch(
+  private buildPaymentPatch(
     cols: string[],
     idx: Record<string, number>,
-    columnDefs: MonthlyImportColumnDef[],
-    existingRow: MonthlyListRow | undefined,
-    definitions: ReturnType<PaymentManagementDataService['allowanceTypeDefinitions']>,
+    columnDefs: PaymentImportColumnDef[],
   ): UpdateData<DocumentData> | null {
     const update: Record<string, unknown> = {};
     let hasUpdate = false;
 
-    const current = {
-      basicSalary: existingRow?.basicSalary ?? 0,
-      allowances: { ...(existingRow?.allowances ?? {}) },
-      retroactivePay: existingRow?.retroactivePay ?? null,
+    const setPayrollIfPresent = (key: PaymentImportFieldKey) => {
+      const i = idx[key];
+      if (i === undefined || i < 0) return;
+      const raw = (cols[i] ?? '').trim();
+      if (!raw) return;
+      const num = this.parseNumber(raw);
+      if (num === null) return;
+      update[`payrollData.${key}`] = num;
+      hasUpdate = true;
     };
 
-    const patch: {
-      basicSalary?: number;
-      allowances?: Record<string, number>;
-      retroactivePay?: number | null;
-    } = {};
-
     for (const col of columnDefs) {
-      if (col.key === 'displayName' || col.key === 'employeeId' || col.kind !== 'number') {
+      if (col.key === 'displayName' || col.key === 'employeeId') {
         continue;
       }
-
-      const i = idx[col.key];
-      if (i === undefined || i < 0) continue;
-      const raw = (cols[i] ?? '').trim();
-      if (!raw) continue;
-      const num = this.parseNumber(raw);
-      if (num === null) continue;
-
-      if (col.key === 'basicSalary') {
-        patch.basicSalary = num;
-        hasUpdate = true;
-      } else if (col.key === 'retroactivePay') {
-        patch.retroactivePay = num;
-        hasUpdate = true;
-      } else {
-        const allowances = { ...(patch.allowances ?? current.allowances) };
-        allowances[col.key] = num;
-        patch.allowances = allowances;
-        hasUpdate = true;
+      if (col.kind === 'number') {
+        setPayrollIfPresent(col.key);
       }
     }
 
     if (!hasUpdate) return null;
-
-    const wages = buildPayrollWageFields(current, patch, definitions);
-    update['payrollData.fixedWage'] = wages.fixedWage;
-    update['payrollData.variableWage'] = wages.variableWage;
-
-    if (patch.basicSalary !== undefined) {
-      update['payrollData.basicSalary'] = patch.basicSalary;
-    }
-    if (patch.retroactivePay !== undefined) {
-      update['payrollData.retroactivePay'] = patch.retroactivePay;
-    }
-    if (patch.allowances !== undefined) {
-      for (const [type, amount] of Object.entries(patch.allowances)) {
-        update[`payrollData.allowances.${type}`] = amount;
-      }
-    }
 
     update['updatedAt'] = serverTimestamp();
     return update as UpdateData<DocumentData>;

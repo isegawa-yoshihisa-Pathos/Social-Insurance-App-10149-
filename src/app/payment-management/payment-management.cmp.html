@@ -1,0 +1,19 @@
+<nav mat-tab-nav-bar [tabPanel]="tabPanel" animationDuration="0ms">
+  <a
+    mat-tab-link
+    [routerLink]="['/payment-management']"
+    [active]="!isSettingActive"
+  >給与閲覧</a>
+  <a
+    mat-tab-link
+    [routerLink]="['/payment-management', 'setting']"
+    [active]="isSettingActive"
+  >設定</a>
+</nav>
+<mat-tab-nav-panel #tabPanel>
+  <div class="payment-management">
+    <div class="payment-list-container">
+      <router-outlet></router-outlet>
+    </div>
+  </div>
+</mat-tab-nav-panel>

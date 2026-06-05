@@ -156,6 +156,22 @@ export const routes: Routes = [
         ],
       },
       {
+        path: 'payment-management',
+        loadComponent: () => import('./payment-management/payment-management.cmp').then(m => m.PaymentManagementCmp),
+        canActivate: [adminGuard],
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            loadComponent: () => import('./payment-management/payment-list/payment-list.cmp').then(m => m.PaymentListCmp),
+          },
+          {
+            path: 'setting',
+            loadComponent: () => import('./payment-management/payment-setting/payment-setting.cmp').then(m => m.PaymentSettingCmp),
+          },
+        ],
+      },
+      {
         path: 'virtual-mail-checker',
         loadComponent: () => import('./virtual-mail-checker/virtual-mail-checker.cmp').then(m => m.VirtualMailCheckerCmp),
       },

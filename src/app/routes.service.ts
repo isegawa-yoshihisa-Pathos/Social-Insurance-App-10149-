@@ -81,6 +81,10 @@ export class RoutesService {
     void this.router.navigate(['/monthly-management']);
   }
 
+  redirectToPaymentManagement(): void {
+    void this.router.navigate(['/payment-management']);
+  }
+
   redirectToBonusManagement(): void {
     void this.router.navigate(['/bonus-management']);
   }

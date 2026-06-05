@@ -161,8 +161,8 @@ export class SocialInsuranceCalculationService {
         const sources = await this.loadMonthSources(tid, eid, monthKeys);
         if (sources.length !== 4) return null;
 
-        const previousPayroll = sources[0].payroll.basicSalary + (sources[0].payroll.commuterAllowance ?? 0) + (sources[0].payroll.otherAllowance ?? 0);
-        const currentPayroll = sources[1].payroll.basicSalary + (sources[1].payroll.commuterAllowance ?? 0) + (sources[1].payroll.otherAllowance ?? 0);
+        const previousPayroll = sources[0].payroll.fixedWage ?? sources[0].payroll.basicSalary;
+        const currentPayroll = sources[1].payroll.fixedWage ?? sources[1].payroll.basicSalary;
         if (previousPayroll === currentPayroll) {
             return null;
         }

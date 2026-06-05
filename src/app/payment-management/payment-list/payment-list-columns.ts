@@ -1,0 +1,141 @@
+import { BonusTypeDefinition } from '../../bonus-document';
+import { AllowanceTypeDefinition, PaymentFormData } from '../../payment-document';
+import { allowanceColumnKey, allowanceTypeFromColumnKey } from './allowance-display.util';
+import { bonusColumnKey, bonusTypeFromColumnKey } from '../../bonus-management/bonus-list/bonus-display.util';
+import {
+  isPremiumColumn,
+  getPremiumColumnLabel,
+  getOptionalPremiumColumns,
+  PREMIUM_PAYMENT_LIST_COLUMN_KEYS,
+  PremiumPaymentListColumnKey,
+} from '../payment-premium/payment-premium-columns';
+import { AllowanceData } from '../../payment-document';
+import { BonusAmountMap } from '../../bonus-document';
+
+export type PaymentFormColumnKey = keyof PaymentFormData;
+
+export type AllowanceColumnKey = string;
+
+export type BonusColumnKey = string;
+
+export type PaymentListColumnKey =
+  | PaymentFormColumnKey
+  | 'fixedWage'
+  | 'variableWage'
+  | 'bonus'
+  | AllowanceColumnKey
+  | BonusColumnKey
+  | PremiumPaymentListColumnKey;
+
+export const BASE_PAYMENT_LIST_COLUMN_KEYS = [
+  'displayName',
+  'employeeId',
+  'basicSalary',
+  'fixedWage',
+  'variableWage',
+  'retroactivePay',
+  'bonus',
+] as const;
+
+export type BasePaymentListColumnKey = (typeof BASE_PAYMENT_LIST_COLUMN_KEYS)[number];
+
+export const DEFAULT_PAYMENT_LIST_COLUMNS: PaymentListColumnKey[] = [
+  'displayName',
+  'employeeId',
+  'basicSalary',
+  'fixedWage',
+  'variableWage',
+  'bonus',
+];
+
+const STATIC_COLUMN_LABELS: Record<BasePaymentListColumnKey, string> = {
+  displayName: '氏名',
+  employeeId: '社員番号',
+  basicSalary: '基本給与',
+  fixedWage: '固定的賃金',
+  variableWage: '非固定的賃金',
+  retroactivePay: '遡及清算',
+  bonus: '賞与',
+};
+
+export function getAllPaymentListColumnKeys(
+  allowanceDefinitions: AllowanceTypeDefinition[],
+  bonusDefinitions: BonusTypeDefinition[],
+): PaymentListColumnKey[] {
+  return [
+    ...BASE_PAYMENT_LIST_COLUMN_KEYS,
+    ...allowanceDefinitions.map((def) => allowanceColumnKey(def.type)),
+    ...bonusDefinitions.map((def) => bonusColumnKey(def.type)),
+    ...PREMIUM_PAYMENT_LIST_COLUMN_KEYS,
+  ] as PaymentListColumnKey[];
+}
+
+export function getOptionalPaymentListColumns(
+  allowanceDefinitions: AllowanceTypeDefinition[],
+  bonusDefinitions: BonusTypeDefinition[],
+): { key: PaymentListColumnKey; label: string }[] {
+  const allowanceColumns = allowanceDefinitions.map((def) => ({
+    key: allowanceColumnKey(def.type) as PaymentListColumnKey,
+    label: def.label,
+  }));
+  const bonusColumns = bonusDefinitions.map((def) => ({
+    key: bonusColumnKey(def.type) as PaymentListColumnKey,
+    label: def.label,
+  }));
+
+  return [
+    { key: 'displayName', label: '氏名' },
+    { key: 'employeeId', label: '社員番号' },
+    { key: 'basicSalary', label: '基本給与' },
+    { key: 'fixedWage', label: '固定的賃金' },
+    { key: 'variableWage', label: '非固定的賃金' },
+    ...allowanceColumns,
+    { key: 'retroactivePay', label: '遡及清算' },
+    { key: 'bonus', label: '賞与' },
+    ...bonusColumns,
+    ...getOptionalPremiumColumns(),
+  ];
+}
+
+export function getPaymentListColumnLabel(
+  column: PaymentListColumnKey,
+  allowanceDefinitions: AllowanceTypeDefinition[],
+  bonusDefinitions: BonusTypeDefinition[],
+): string {
+  const allowanceType = allowanceTypeFromColumnKey(column);
+  if (allowanceType) {
+    return allowanceDefinitions.find((def) => def.type === allowanceType)?.label ?? column;
+  }
+
+  const bonusType = bonusTypeFromColumnKey(column);
+  if (bonusType) {
+    return bonusDefinitions.find((def) => def.type === bonusType)?.label ?? column;
+  }
+
+  if (isPremiumColumn(column)) {
+    return getPremiumColumnLabel(column);
+  }
+
+  return STATIC_COLUMN_LABELS[column as BasePaymentListColumnKey] ?? column;
+}
+
+export interface PaymentListRow {
+  eid: string;
+  employeeId: string;
+  displayName: string;
+  basicSalary: number;
+  fixedWage: number | null;
+  variableWage: number | null;
+  allowances: AllowanceData;
+  retroactivePay: number | null;
+  bonus: BonusAmountMap;
+  bonusTotal: number;
+  standardRemunerationHealth: number | null;
+  standardRemunerationPension: number | null;
+  healthInsuranceEmployee: number | null;
+  healthInsuranceEmployer: number | null;
+  careInsuranceEmployee: number | null;
+  careInsuranceEmployer: number | null;
+  pensionInsuranceEmployee: number | null;
+  pensionInsuranceEmployer: number | null;
+}

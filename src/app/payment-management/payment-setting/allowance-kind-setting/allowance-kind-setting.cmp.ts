@@ -5,17 +5,18 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectModule } from '@angular/material/select';
 import { MatDialog } from '@angular/material/dialog';
-import { BonusTypeDefinition } from '../../../bonus-document';
+import { AllowanceTypeDefinition, WageCategory } from '../../../payment-document';
 import { ErrorDialogCmp, mapFirebaseError } from '../../../error-dialog/error-dialog.cmp';
 import { CurrentTenantService } from '../../../current-tenant.service';
 import { RoutesService } from '../../../routes.service';
-import { BonusManagementDataService } from '../../bonus-management-data.service';
-import { generateNextBonusType } from '../../bonus-list/bonus-type.util';
-import { BonusSettingDataService } from '../bonus-setting-data.service';
+import { PaymentManagementDataService } from '../../payment-management-data.service';
+import { generateNextAllowanceType } from '../../payment-list/allowance-type.util';
+import { PaymentSettingDataService } from '../payment-setting-data.service';
 
 @Component({
-  selector: 'app-bonus-kind-setting',
+  selector: 'app-allowance-kind-setting',
   imports: [
     FormsModule,
     MatButtonModule,
@@ -23,20 +24,26 @@ import { BonusSettingDataService } from '../bonus-setting-data.service';
     MatIconModule,
     MatInputModule,
     MatProgressSpinnerModule,
+    MatSelectModule,
   ],
-  templateUrl: './bonus-kind-setting.cmp.html',
-  styleUrl: './bonus-kind-setting.cmp.css',
+  templateUrl: './allowance-kind-setting.cmp.html',
+  styleUrl: './allowance-kind-setting.cmp.css',
 })
-export class BonusKindSettingCmp implements OnInit {
-  private readonly bonusManagementDataService = inject(BonusManagementDataService);
+export class AllowanceKindSettingCmp implements OnInit {
+  private readonly paymentManagementDataService = inject(PaymentManagementDataService);
   private readonly currentTenantService = inject(CurrentTenantService);
   private readonly routesService = inject(RoutesService);
   private readonly dialog = inject(MatDialog);
-  private readonly bonusSettingDataService = inject(BonusSettingDataService);
+  private readonly paymentSettingDataService = inject(PaymentSettingDataService);
   loading = false;
   saveBusy = false;
   validationError: string | null = null;
-  types: BonusTypeDefinition[] = [];
+  types: AllowanceTypeDefinition[] = [];
+
+  readonly wageCategoryOptions: { value: WageCategory; label: string }[] = [
+    { value: 'fixed', label: '固定的賃金' },
+    { value: 'variable', label: '非固定的賃金' },
+  ];
 
   async ngOnInit(): Promise<void> {
     const tid = this.currentTenantService.currentTid();
@@ -47,8 +54,10 @@ export class BonusKindSettingCmp implements OnInit {
 
     this.loading = true;
     try {
-      await this.bonusManagementDataService.loadBonusSettings(tid);
-      this.types = this.bonusManagementDataService.bonusTypeDefinitions().map((item) => ({ ...item }));
+      await this.paymentManagementDataService.loadPaymentSettings(tid);
+      this.types = this.paymentManagementDataService
+        .allowanceTypeDefinitions()
+        .map((item) => ({ ...item }));
     } catch (e) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: mapFirebaseError(e) },
@@ -59,8 +68,8 @@ export class BonusKindSettingCmp implements OnInit {
   }
 
   addType(): void {
-    const type = generateNextBonusType(this.types.map((item) => item.type));
-    this.types.push({ label: '', type });
+    const type = generateNextAllowanceType(this.types.map((item) => item.type));
+    this.types.push({ label: '', type, wageCategory: 'variable' });
     this.validationError = null;
   }
 
@@ -77,10 +86,12 @@ export class BonusKindSettingCmp implements OnInit {
     this.saveBusy = true;
     this.validationError = null;
     try {
-      this.bonusManagementDataService.setBonusTypeDefinitions(this.types);
-      await this.bonusManagementDataService.saveBonusSettings(tid);
-      this.bonusSettingDataService.syncVisibleColumnsForBonusTypes();
-      this.types = this.bonusManagementDataService.bonusTypeDefinitions().map((item) => ({ ...item }));
+      this.paymentManagementDataService.setAllowanceTypeDefinitions(this.types);
+      await this.paymentManagementDataService.savePaymentSettings(tid);
+      this.paymentSettingDataService.syncVisibleColumnsForAllowanceTypes();
+      this.types = this.paymentManagementDataService
+        .allowanceTypeDefinitions()
+        .map((item) => ({ ...item }));
     } catch (e) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: mapFirebaseError(e) },
@@ -90,7 +101,7 @@ export class BonusKindSettingCmp implements OnInit {
     }
   }
 
-  private validateTypes(types: BonusTypeDefinition[]): string | null {
+  private validateTypes(types: AllowanceTypeDefinition[]): string | null {
     const seenLabels = new Set<string>();
 
     for (const item of types) {

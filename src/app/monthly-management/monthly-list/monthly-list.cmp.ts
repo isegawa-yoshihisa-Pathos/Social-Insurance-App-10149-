@@ -27,6 +27,7 @@ import { MonthlyListImportService } from './monthly-list-import.service';
 import { MonthlyListDataService } from './monthly-list-data.service';
 import { HelpContentCmp } from '../../help-content/help-content.cmp';
 import { MonthlyPremiumCalculateFacade } from '../monthly-premium/monthly-premium-calculate.facade';
+import { PaymentManagementDataService } from '../../payment-management/payment-management-data.service';
 
 @Component({
   selector: 'app-monthly-list',
@@ -56,6 +57,7 @@ export class MonthlyListCmp {
   private readonly bulkEditService = inject(MonthlyListBulkEditService);
   private readonly importService = inject(MonthlyListImportService);
   private readonly listDataService = inject(MonthlyListDataService);
+  private readonly paymentManagementDataService = inject(PaymentManagementDataService);
 
   readonly visibleColumns = computed(() => this.monthlySettingDataService.visibleColumns());
   readonly tableColumns = computed(() => ['selected', ...this.visibleColumns()]);
@@ -156,7 +158,10 @@ export class MonthlyListCmp {
     this.dataSource.filter = '';
     try {
       if (this.settingsLoadedTid !== tid) {
-        await this.monthlySettingDataService.loadListSettings(tid);
+        await Promise.all([
+          this.paymentManagementDataService.loadPaymentSettings(tid),
+          this.monthlySettingDataService.loadListSettings(tid),
+        ]);
         if (token !== this.loadToken) return;
         this.settingsLoadedTid = tid;
       }
@@ -278,7 +283,11 @@ export class MonthlyListCmp {
   }
 
   formatCellValue(row: MonthlyListRow, col: MonthlyListColumnKey): string {
-    return formatMonthlyListCellValue(row, col);
+    return formatMonthlyListCellValue(
+      row,
+      col,
+      this.paymentManagementDataService.allowanceTypeDefinitions(),
+    );
   }
 
   private resolveTargetEids(eid: string): string[] {
@@ -308,7 +317,10 @@ export class MonthlyListCmp {
         column,
         displayName: targetRow?.displayName,
         employeeId: targetRow?.employeeId,
-        label: getMonthlyListColumnLabel(column),
+        label: getMonthlyListColumnLabel(
+          column,
+          this.paymentManagementDataService.allowanceTypeDefinitions(),
+        ),
         selectedCount: targetEids.length,
         initialValue,
       },
@@ -330,7 +342,13 @@ export class MonthlyListCmp {
     if (!tid || !ym || targetEids.length === 0) return;
 
     const targets = targetEids.map((eid) => {
-      return { eid };
+      const row = this.dataSource.data.find((r) => r.eid === eid);
+      return {
+        eid,
+        basicSalary: row?.basicSalary ?? 0,
+        allowances: row?.allowances ?? {},
+        retroactivePay: row?.retroactivePay ?? null,
+      };
     });
 
     try {
@@ -349,7 +367,10 @@ export class MonthlyListCmp {
   }
 
   getColumnLabel(column: MonthlyListColumnKey): string {
-    return getMonthlyListColumnLabel(column);
+    return getMonthlyListColumnLabel(
+      column,
+      this.paymentManagementDataService.allowanceTypeDefinitions(),
+    );
   }
 
   async onCsvSelected(event: Event): Promise<void> {

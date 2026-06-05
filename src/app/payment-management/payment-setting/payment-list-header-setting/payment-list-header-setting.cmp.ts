@@ -7,28 +7,33 @@ import { MatDialog } from '@angular/material/dialog';
 import { ErrorDialogCmp, mapFirebaseError } from '../../../error-dialog/error-dialog.cmp';
 import { CurrentTenantService } from '../../../current-tenant.service';
 import { RoutesService } from '../../../routes.service';
-import { MonthlySettingDataService } from '../monthly-setting-data.service';
-import { PaymentManagementDataService } from '../../../payment-management/payment-management-data.service';
+import { PaymentSettingDataService } from '../payment-setting-data.service';
+import { PaymentManagementDataService } from '../../payment-management-data.service';
+import { BonusManagementDataService } from '../../../bonus-management/bonus-management-data.service';
 import {
-  getOptionalMonthlyListColumns,
-  MonthlyListColumnKey,
-} from '../../monthly-list/monthly-list-columns';
+  getOptionalPaymentListColumns,
+  PaymentListColumnKey,
+} from '../../payment-list/payment-list-columns';
 
 @Component({
-  selector: 'app-monthly-list-header-setting',
+  selector: 'app-payment-list-header-setting',
   imports: [FormsModule, MatButtonModule, MatCheckboxModule, MatProgressSpinnerModule],
-  templateUrl: './monthly-list-header-setting.cmp.html',
-  styleUrl: './monthly-list-header-setting.cmp.css',
+  templateUrl: './payment-list-header-setting.cmp.html',
+  styleUrl: './payment-list-header-setting.cmp.css',
 })
-export class MonthlyListHeaderSettingCmp implements OnInit {
-  private readonly monthlySettingDataService = inject(MonthlySettingDataService);
+export class PaymentListHeaderSettingCmp implements OnInit {
+  private readonly paymentSettingDataService = inject(PaymentSettingDataService);
   private readonly paymentManagementDataService = inject(PaymentManagementDataService);
+  private readonly bonusManagementDataService = inject(BonusManagementDataService);
   private readonly currentTenantService = inject(CurrentTenantService);
   private readonly routesService = inject(RoutesService);
   private readonly dialog = inject(MatDialog);
 
   readonly optionalColumns = computed(() =>
-    getOptionalMonthlyListColumns(this.paymentManagementDataService.allowanceTypeDefinitions()),
+    getOptionalPaymentListColumns(
+      this.paymentManagementDataService.allowanceTypeDefinitions(),
+      this.bonusManagementDataService.bonusTypeDefinitions(),
+    ),
   );
 
   loading = false;
@@ -42,8 +47,11 @@ export class MonthlyListHeaderSettingCmp implements OnInit {
     }
     this.loading = true;
     try {
-      await this.paymentManagementDataService.loadPaymentSettings(tid);
-      await this.monthlySettingDataService.loadListSettings(tid);
+      await Promise.all([
+        this.paymentManagementDataService.loadPaymentSettings(tid),
+        this.bonusManagementDataService.loadBonusSettings(tid),
+      ]);
+      await this.paymentSettingDataService.loadListSettings(tid);
     } catch (e) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: mapFirebaseError(e) },
@@ -53,12 +61,12 @@ export class MonthlyListHeaderSettingCmp implements OnInit {
     }
   }
 
-  isChecked(key: MonthlyListColumnKey): boolean {
-    return this.monthlySettingDataService.isColumnVisible(key);
+  isChecked(key: PaymentListColumnKey): boolean {
+    return this.paymentSettingDataService.isColumnVisible(key);
   }
 
-  onOptionalChange(key: MonthlyListColumnKey, checked: boolean): void {
-    this.monthlySettingDataService.toggleOptionalColumn(key, checked);
+  onOptionalChange(key: PaymentListColumnKey, checked: boolean): void {
+    this.paymentSettingDataService.toggleOptionalColumn(key, checked);
   }
 
   isAllSelected(): boolean {
@@ -74,7 +82,7 @@ export class MonthlyListHeaderSettingCmp implements OnInit {
     if (!tid) return;
     this.saveBusy = true;
     try {
-      await this.monthlySettingDataService.saveListSettings(tid);
+      await this.paymentSettingDataService.saveListSettings(tid);
     } catch (e) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: mapFirebaseError(e) },

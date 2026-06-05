@@ -1,0 +1,97 @@
+:host {
+  display: block;
+}
+
+.payment-list-container {
+  padding: 20px;
+}
+
+.payment-list-content {
+  width: 100%;
+  padding: 20px;
+  background-color: white;
+  box-sizing: border-box;
+  box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.month-picker-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.date-picker {
+  width: 100px;
+}
+
+.action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.calculate-premiums-button {
+  color: #fff;
+  background-color: #673ab7;
+  border-color: #673ab7;
+}
+
+.calculate-premiums-button.disabled {
+  color: #666;
+  background-color: #ccc;
+  border-color: #ccc;
+}
+
+.search-container {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.search-query-field {
+  flex: 1;
+}
+
+.table-scroll-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.payment-table {
+  width: max-content;
+  min-width: 100%;
+}
+
+.payment-table th,
+.payment-table td {
+  white-space: nowrap;
+}
+
+.payment-row {
+  cursor: pointer;
+}
+
+.payment-row:hover {
+  background-color: #f0f0f0;
+}
+
+.check-col {
+  width: 48px;
+}
+
+.bonus-cell {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:host ::ng-deep .bonus-tooltip {
+  white-space: pre-line;
+}

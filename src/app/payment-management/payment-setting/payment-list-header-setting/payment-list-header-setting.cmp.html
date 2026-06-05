@@ -1,0 +1,48 @@
+@if (loading) {
+  <div class="loading-row">
+    <mat-spinner diameter="32"></mat-spinner>
+  </div>
+} @else {
+  <section class="header-setting-section">
+    <div class="payment-setting-label">
+      月次一覧の表示項目
+    </div>
+
+    <mat-checkbox 
+      [checked]="isAllSelected()"
+      (change)="toggleAll($event.checked)">
+        @if (isAllSelected()) {
+          すべて解除
+        } @else {
+          すべて選択
+        }
+    </mat-checkbox>
+
+    @for (col of optionalColumns(); track col.key) {
+      <div class="checkbox-row">
+        <mat-checkbox
+          [checked]="isChecked(col.key)"
+          (change)="onOptionalChange(col.key, $event.checked)"
+        >
+          {{ col.label }}
+        </mat-checkbox>
+      </div>
+    }
+
+    <div class="actions">
+      <button
+        mat-flat-button
+        color="primary"
+        type="button"
+        [disabled]="saveBusy"
+        (click)="save()"
+      >
+        @if (saveBusy) {
+          <mat-spinner diameter="20"></mat-spinner>
+        } @else {
+          保存
+        }
+      </button>
+    </div>
+  </section>
+}

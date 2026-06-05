@@ -10,15 +10,15 @@ import { ErrorDialogCmp, mapFirebaseError } from '../../../error-dialog/error-di
 import { CurrentTenantService } from '../../../current-tenant.service';
 import { RoutesService } from '../../../routes.service';
 import {
-  buildMonthlyImportColumnDefs,
-  MonthlyImportColumnDef,
-  MonthlyImportFieldKey,
-} from '../monthly-import-columns';
-import { MonthlySettingDataService } from '../monthly-setting-data.service';
-import { PaymentManagementDataService } from '../../../payment-management/payment-management-data.service';
+  buildPaymentImportColumnDefs,
+  PaymentImportColumnDef,
+  PaymentImportFieldKey,
+} from '../payment-import-columns';
+import { PaymentSettingDataService } from '../payment-setting-data.service';
+import { PaymentManagementDataService } from '../../payment-management-data.service';
 
 @Component({
-  selector: 'app-monthly-import-setting',
+  selector: 'app-payment-import-setting',
   imports: [
     FormsModule,
     MatButtonModule,
@@ -26,19 +26,19 @@ import { PaymentManagementDataService } from '../../../payment-management/paymen
     MatInputModule,
     MatProgressSpinnerModule,
   ],
-  templateUrl: './monthly-import-setting.cmp.html',
-  styleUrl: './monthly-import-setting.cmp.css',
+  templateUrl: './payment-import-setting.cmp.html',
+  styleUrl: './payment-import-setting.cmp.css',
 })
-export class MonthlyImportSettingCmp implements OnInit {
-  readonly monthlySettingDataService = inject(MonthlySettingDataService);
+export class PaymentImportSettingCmp implements OnInit {
+  readonly paymentSettingDataService = inject(PaymentSettingDataService);
   private readonly paymentManagementDataService = inject(PaymentManagementDataService);
   private readonly dialog = inject(MatDialog);
   private readonly currentTenantService = inject(CurrentTenantService);
   private readonly routesService = inject(RoutesService);
   private readonly firestore = inject(Firestore);
 
-  readonly importColumns = computed((): MonthlyImportColumnDef[] =>
-    buildMonthlyImportColumnDefs(this.paymentManagementDataService.allowanceTypeDefinitions()),
+  readonly importColumns = computed((): PaymentImportColumnDef[] =>
+    buildPaymentImportColumnDefs(this.paymentManagementDataService.allowanceTypeDefinitions()),
   );
 
   loading = false;
@@ -57,7 +57,7 @@ export class MonthlyImportSettingCmp implements OnInit {
 
     this.loading = true;
     try {
-      await this.monthlySettingDataService.loadSettings(
+      await this.paymentSettingDataService.loadSettings(
         tid,
       );
     } catch (error) {
@@ -69,19 +69,19 @@ export class MonthlyImportSettingCmp implements OnInit {
     }
   }
 
-  currentHeader(key: MonthlyImportFieldKey): string {
-    return this.monthlySettingDataService.importHeaders()[key] ?? '';
+  currentHeader(key: PaymentImportFieldKey): string {
+    return this.paymentSettingDataService.importHeaders()[key] ?? '';
   }
 
-  newHeaderInput(key: MonthlyImportFieldKey): string {
+  newHeaderInput(key: PaymentImportFieldKey): string {
     return this.newHeaderByKey[key] ?? '';
   }
 
-  setNewHeaderInput(key: MonthlyImportFieldKey, value: string): void {
+  setNewHeaderInput(key: PaymentImportFieldKey, value: string): void {
     this.newHeaderByKey[key] = value;
   }
 
-  async changeHeader(key: MonthlyImportFieldKey): Promise<void> {
+  async changeHeader(key: PaymentImportFieldKey): Promise<void> {
     const header = (this.newHeaderByKey[key] ?? '').trim();
     if (!header) {
       return;
@@ -94,15 +94,15 @@ export class MonthlyImportSettingCmp implements OnInit {
       return;
     }
 
-    this.monthlySettingDataService.setHeader(key, header);
+    this.paymentSettingDataService.setHeader(key, header);
 
     try {
       this.saveBusy = true;
-      const docRef = doc(this.firestore, 'tenants', this.tid, 'settings', 'monthlySetting');
+      const docRef = doc(this.firestore, 'tenants', this.tid, 'settings', 'paymentSetting');
       await setDoc(
         docRef,
         {
-          importHeaders: this.monthlySettingDataService.importHeaders(),
+          importHeaders: this.paymentSettingDataService.importHeaders(),
           updatedAt: serverTimestamp(),
         },
         { merge: true },

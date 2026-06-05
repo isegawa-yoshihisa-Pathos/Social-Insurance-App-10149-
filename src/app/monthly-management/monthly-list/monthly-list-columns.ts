@@ -1,17 +1,32 @@
 import { MonthlyFormData } from '../../monthly-document';
-import { isPremiumColumn, getPremiumColumnLabel, getOptionalPremiumColumns, PREMIUM_MONTHLY_LIST_COLUMN_KEYS, PremiumMonthlyListColumnKey } from '../monthly-premium/monthly-premium-columns';
+import { AllowanceTypeDefinition } from '../../payment-document';
+import { allowanceColumnKey, allowanceTypeFromColumnKey } from '../../payment-management/payment-list/allowance-display.util';
+import {
+  isPremiumColumn,
+  getPremiumColumnLabel,
+  getOptionalPremiumColumns,
+  PREMIUM_MONTHLY_LIST_COLUMN_KEYS,
+  PremiumMonthlyListColumnKey,
+} from '../monthly-premium/monthly-premium-columns';
+import { AllowanceData } from '../../payment-document';
 
 export type MonthlyFormColumnKey = keyof MonthlyFormData;
 
-export type MonthlyListColumnKey = MonthlyFormColumnKey | PremiumMonthlyListColumnKey;
+export type AllowanceColumnKey = string;
+
+export type MonthlyListColumnKey =
+  | MonthlyFormColumnKey
+  | 'fixedWage'
+  | 'variableWage'
+  | AllowanceColumnKey
+  | PremiumMonthlyListColumnKey;
 
 export const BASE_MONTHLY_LIST_COLUMN_KEYS = [
   'displayName',
   'employeeId',
   'basicSalary',
-  'overtimePay',
-  'commuterAllowance',
-  'otherAllowance',
+  'fixedWage',
+  'variableWage',
   'retroactivePay',
 ] as const;
 
@@ -20,37 +35,43 @@ export type BaseMonthlyListColumnKey = (typeof BASE_MONTHLY_LIST_COLUMN_KEYS)[nu
 export const DEFAULT_MONTHLY_LIST_COLUMNS: MonthlyListColumnKey[] = [
   'displayName',
   'employeeId',
+  'basicSalary',
 ];
 
 const STATIC_COLUMN_LABELS: Record<BaseMonthlyListColumnKey, string> = {
   displayName: '氏名',
   employeeId: '社員番号',
   basicSalary: '基本給与',
-  overtimePay: '残業手当',
-  commuterAllowance: '通勤手当',
-  otherAllowance: 'その他手当',
+  fixedWage: '固定的賃金',
+  variableWage: '非固定的賃金',
   retroactivePay: '遡及清算',
 };
 
 export function getAllMonthlyListColumnKeys(
+  definitions: AllowanceTypeDefinition[],
 ): MonthlyListColumnKey[] {
-
   return [
     ...BASE_MONTHLY_LIST_COLUMN_KEYS,
+    ...definitions.map((def) => allowanceColumnKey(def.type)),
     ...PREMIUM_MONTHLY_LIST_COLUMN_KEYS,
   ];
 }
 
 export function getOptionalMonthlyListColumns(
+  definitions: AllowanceTypeDefinition[],
 ): { key: MonthlyListColumnKey; label: string }[] {
+  const allowanceColumns = definitions.map((def) => ({
+    key: allowanceColumnKey(def.type) as MonthlyListColumnKey,
+    label: def.label,
+  }));
 
   return [
     { key: 'displayName', label: '氏名' },
     { key: 'employeeId', label: '社員番号' },
     { key: 'basicSalary', label: '基本給与' },
-    { key: 'overtimePay', label: '残業手当' },
-    { key: 'commuterAllowance', label: '通勤手当' },
-    { key: 'otherAllowance', label: 'その他手当' },
+    { key: 'fixedWage', label: '固定的賃金' },
+    { key: 'variableWage', label: '非固定的賃金' },
+    ...allowanceColumns,
     { key: 'retroactivePay', label: '遡及清算' },
     ...getOptionalPremiumColumns(),
   ];
@@ -58,13 +79,18 @@ export function getOptionalMonthlyListColumns(
 
 export function getMonthlyListColumnLabel(
   column: MonthlyListColumnKey,
+  definitions: AllowanceTypeDefinition[],
 ): string {
+  const allowanceType = allowanceTypeFromColumnKey(column);
+  if (allowanceType) {
+    return definitions.find((def) => def.type === allowanceType)?.label ?? column;
+  }
 
   if (isPremiumColumn(column)) {
     return getPremiumColumnLabel(column);
   }
 
-  return STATIC_COLUMN_LABELS[column as BaseMonthlyListColumnKey];
+  return STATIC_COLUMN_LABELS[column as BaseMonthlyListColumnKey] ?? column;
 }
 
 export interface MonthlyListRow {
@@ -72,9 +98,9 @@ export interface MonthlyListRow {
   employeeId: string;
   displayName: string;
   basicSalary: number;
-  overtimePay: number | null;
-  commuterAllowance: number | null;
-  otherAllowance: number | null;
+  fixedWage: number | null;
+  variableWage: number | null;
+  allowances: AllowanceData;
   retroactivePay: number | null;
   standardRemunerationHealth: number | null;
   standardRemunerationPension: number | null;

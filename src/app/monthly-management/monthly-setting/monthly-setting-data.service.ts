@@ -1,45 +1,22 @@
 import { EnvironmentInjector, inject, Injectable, runInInjectionContext, signal } from '@angular/core';
 import { doc, Firestore, getDoc, serverTimestamp, setDoc } from '@angular/fire/firestore';
+import { AllowanceTypeDefinition } from '../../payment-document';
 import {
   buildDefaultImportHeaders,
   MonthlyImportFieldKey,
-  StaticMonthlyImportFieldKey,
 } from './monthly-import-columns';
 import {
   DEFAULT_MONTHLY_LIST_COLUMNS,
   getAllMonthlyListColumnKeys,
   MonthlyListColumnKey,
 } from '../monthly-list/monthly-list-columns';
+import { allowanceColumnKey, allowanceTypeFromColumnKey } from '../../payment-management/payment-list/allowance-display.util';
+import { PaymentManagementDataService } from '../../payment-management/payment-management-data.service';
 
 export interface MonthlySettingDocument {
   importHeaders?: Partial<Record<string, string>>;
   visibleColumns?: MonthlyListColumnKey[];
-
-  /** @deprecated importHeaders へ移行 */
-  basicSalaryHeader?: string;
-  overtimePayHeader?: string;
-  commuterAllowanceHeader?: string;
-  otherAllowanceHeader?: string;
-  retroactivePayHeader?: string;
 }
-
-const LEGACY_HEADER_KEYS: {
-  docKey: keyof Pick<
-    MonthlySettingDocument,
-    | 'basicSalaryHeader'
-    | 'overtimePayHeader'
-    | 'commuterAllowanceHeader'
-    | 'otherAllowanceHeader'
-    | 'retroactivePayHeader'
-  >;
-  fieldKey: StaticMonthlyImportFieldKey;
-}[] = [
-  { docKey: 'basicSalaryHeader', fieldKey: 'basicSalary' },
-  { docKey: 'overtimePayHeader', fieldKey: 'overtimePay' },
-  { docKey: 'commuterAllowanceHeader', fieldKey: 'commuterAllowance' },
-  { docKey: 'otherAllowanceHeader', fieldKey: 'otherAllowance' },
-  { docKey: 'retroactivePayHeader', fieldKey: 'retroactivePay' },
-];
 
 @Injectable({
   providedIn: 'root',
@@ -47,6 +24,7 @@ const LEGACY_HEADER_KEYS: {
 export class MonthlySettingDataService {
   private readonly firestore = inject(Firestore);
   private readonly injector = inject(EnvironmentInjector);
+  private readonly paymentManagementDataService = inject(PaymentManagementDataService);
 
   readonly importHeaders = signal<Record<string, string>>({});
   readonly visibleColumns = signal<MonthlyListColumnKey[]>([
@@ -56,14 +34,14 @@ export class MonthlySettingDataService {
 
   private listSettingsLoadedTid: string | null = null;
 
-  async loadSettings(
-    tid: string,
-  ): Promise<void> {
+  async loadSettings(tid: string): Promise<void> {
     this.settingsLoading.set(true);
     try {
+      await this.paymentManagementDataService.loadPaymentSettings(tid);
+      const allowanceDefinitions = this.paymentManagementDataService.allowanceTypeDefinitions();
       const doc = await this.loadMonthlyDocument(tid);
-      const saved = doc ? extractImportHeadersFromDocument(doc) : {};
-      this.importHeaders.set(mergeImportHeaders(saved));
+      const saved = doc?.importHeaders ?? {};
+      this.importHeaders.set(mergeImportHeaders(saved, allowanceDefinitions));
     } finally {
       this.settingsLoading.set(false);
     }
@@ -74,11 +52,14 @@ export class MonthlySettingDataService {
       return;
     }
 
+    await this.paymentManagementDataService.loadPaymentSettings(tid);
+    const allowanceDefinitions = this.paymentManagementDataService.allowanceTypeDefinitions();
+
     const settingsRef = doc(this.firestore, 'tenants', tid, 'settings', 'monthlyListSetting');
     const settingsSnap = await getDoc(settingsRef);
 
     if (!settingsSnap.exists()) {
-      this.setVisibleColumns([...DEFAULT_MONTHLY_LIST_COLUMNS]);
+      this.setVisibleColumns([...DEFAULT_MONTHLY_LIST_COLUMNS], allowanceDefinitions);
       this.listSettingsLoadedTid = tid;
       return;
     }
@@ -86,15 +67,17 @@ export class MonthlySettingDataService {
     const data = settingsSnap.data() as { visibleColumns?: MonthlyListColumnKey[] };
     this.setVisibleColumns(
       data.visibleColumns?.length ? data.visibleColumns : [...DEFAULT_MONTHLY_LIST_COLUMNS],
+      allowanceDefinitions,
     );
     this.listSettingsLoadedTid = tid;
   }
 
   async saveListSettings(tid: string): Promise<void> {
     const settingsRef = doc(this.firestore, 'tenants', tid, 'settings', 'monthlyListSetting');
+    const allowanceDefinitions = this.paymentManagementDataService.allowanceTypeDefinitions();
 
     await setDoc(settingsRef, {
-      visibleColumns: this.normalizeColumns(this.visibleColumns()),
+      visibleColumns: this.normalizeColumns(this.visibleColumns(), allowanceDefinitions),
       updatedAt: serverTimestamp(),
     });
     this.listSettingsLoadedTid = tid;
@@ -127,8 +110,9 @@ export class MonthlySettingDataService {
 
   private setVisibleColumns(
     cols: MonthlyListColumnKey[],
+    allowanceDefinitions: AllowanceTypeDefinition[] = this.paymentManagementDataService.allowanceTypeDefinitions(),
   ): void {
-    const normalized = this.normalizeColumns(cols);
+    const normalized = this.normalizeColumns(cols, allowanceDefinitions);
     const current = this.visibleColumns();
 
     if (
@@ -143,13 +127,14 @@ export class MonthlySettingDataService {
 
   private normalizeColumns(
     cols: MonthlyListColumnKey[],
+    allowanceDefinitions: AllowanceTypeDefinition[],
   ): MonthlyListColumnKey[] {
-    const canonicalOrder = getAllMonthlyListColumnKeys();
+    const canonicalOrder = getAllMonthlyListColumnKeys(allowanceDefinitions);
     const valid = new Set<string>(canonicalOrder);
     const selected = new Set<MonthlyListColumnKey>();
 
     for (const col of cols) {
-      const resolved = this.resolveColumnKey(col, valid);
+      const resolved = this.resolveColumnKey(col, valid, allowanceDefinitions);
       if (resolved) {
         selected.add(resolved);
       }
@@ -161,8 +146,14 @@ export class MonthlySettingDataService {
   private resolveColumnKey(
     col: MonthlyListColumnKey,
     valid: Set<string>,
+    allowanceDefinitions: AllowanceTypeDefinition[],
   ): MonthlyListColumnKey | null {
     if (valid.has(col)) return col;
+
+    const allowanceType = allowanceTypeFromColumnKey(col);
+    if (allowanceType && valid.has(allowanceColumnKey(allowanceType))) {
+      return allowanceColumnKey(allowanceType) as MonthlyListColumnKey;
+    }
 
     return null;
   }
@@ -181,8 +172,9 @@ export class MonthlySettingDataService {
 
 export function mergeImportHeaders(
   saved: Partial<Record<string, string>>,
+  allowanceDefinitions: AllowanceTypeDefinition[],
 ): Record<string, string> {
-  const defaults = buildDefaultImportHeaders();
+  const defaults = buildDefaultImportHeaders(allowanceDefinitions);
   const merged: Record<string, string> = { ...defaults };
 
   for (const [key, value] of Object.entries(saved)) {
@@ -192,19 +184,4 @@ export function mergeImportHeaders(
   }
 
   return merged;
-}
-
-function extractImportHeadersFromDocument(
-  doc: MonthlySettingDocument,
-): Partial<Record<string, string>> {
-  const headers: Partial<Record<string, string>> = { ...(doc.importHeaders ?? {}) };
-
-  for (const { docKey, fieldKey } of LEGACY_HEADER_KEYS) {
-    const legacy = doc[docKey];
-    if (legacy?.trim() && headers[fieldKey] == null) {
-      headers[fieldKey] = legacy.trim();
-    }
-  }
-
-  return headers;
 }

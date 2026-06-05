@@ -154,7 +154,11 @@ function buildPayrollAverage(
   usedMonths: readonly MonthlyRemunerationSource[],
   tier: PaymentBaseDaysTier,
 ): RemunerationAverageSelectionResult {
-  const total = usedMonths.reduce((s, m) => s + m.payroll.basicSalary + (m.payroll.overtimePay ?? 0) + (m.payroll.commuterAllowance ?? 0) + (m.payroll.otherAllowance ?? 0), 0);
+  const total = usedMonths.reduce((s, m) => {
+    const fixed = m.payroll.fixedWage ?? m.payroll.basicSalary;
+    const variable = m.payroll.variableWage ?? 0;
+    return s + fixed + variable;
+  }, 0);
   return {
     usedMonths: usedMonths.map((m) => toMonthPaymentBaseInput(m)),
     tier,

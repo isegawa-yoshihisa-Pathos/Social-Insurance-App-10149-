@@ -2,6 +2,7 @@
   display: block;
 }
 
+.allowance-setting-label,
 .bonus-setting-label {
   font-size: 18px;
   font-weight: bold;
@@ -27,6 +28,11 @@
   align-items: center;
   gap: 12px;
   margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.category-field {
+  min-width: 180px;
 }
 
 .validation-error {
