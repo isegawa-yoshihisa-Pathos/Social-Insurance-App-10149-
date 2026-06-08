@@ -4,6 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog } from '@angular/material/dialog';
 import { BonusTypeDefinition } from '../../../bonus-document';
@@ -23,6 +24,7 @@ import { BonusSettingDataService } from '../bonus-setting-data.service';
     MatIconModule,
     MatInputModule,
     MatProgressSpinnerModule,
+    MatSelectModule,
   ],
   templateUrl: './bonus-kind-setting.cmp.html',
   styleUrl: './bonus-kind-setting.cmp.css',
@@ -60,7 +62,7 @@ export class BonusKindSettingCmp implements OnInit {
 
   addType(): void {
     const type = generateNextBonusType(this.types.map((item) => item.type));
-    this.types.push({ label: '', type });
+    this.types.push({ label: '', type, bonusFrequency: 'low' });
     this.validationError = null;
   }
 

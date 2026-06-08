@@ -34,7 +34,21 @@ export const routes: Routes = [
       },
       {
         path: 'task-board', 
-        loadComponent: () => import('./task-board/task-board.cmp').then(m => m.TaskBoardCmp) 
+        loadComponent: () => import('./task-board/task-board.cmp').then(m => m.TaskBoardCmp), 
+        children: [
+          {
+            path: 'allowance-application',
+            loadComponent: () => import('./task-board/personal-task/allowance-application/allowance-application.cmp').then(m => m.AllowanceApplicationCmp),
+          },
+          {
+            path: 'leave-application',
+            loadComponent: () => import('./task-board/personal-task/leave-application/leave-application.cmp').then(m => m.LeaveApplicationCmp),
+          },
+          {
+            path: 'resign-application',
+            loadComponent: () => import('./task-board/personal-task/resign-application/resign-application.cmp').then(m => m.ResignApplicationCmp),
+          }
+        ],
       },
       {
         path: 'notifications',

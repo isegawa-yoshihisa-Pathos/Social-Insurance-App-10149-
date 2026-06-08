@@ -1,5 +1,13 @@
 <div class="personal-task-container">
     <div class="personal-task-content">
-        <app-applications />
+        <button mat-button class="personal-task-button" (click)="navigateToAllowanceApplication()">
+            諸手当申請
+        </button>
+        <button mat-button class="personal-task-button" (click)="navigateToLeaveApplication()">
+            休暇申請
+        </button>
+        <button mat-button class="personal-task-button" (click)="navigateToResignApplication()">
+            退職申請
+        </button>
     </div>
 </div>

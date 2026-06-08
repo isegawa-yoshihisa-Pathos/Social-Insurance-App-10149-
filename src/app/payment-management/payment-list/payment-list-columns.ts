@@ -85,19 +85,51 @@ export function getOptionalPaymentListColumns(
   ];
 }
 
+export function bonusTypeForPaymentColumn(
+  column: string,
+  bonusDefinitions: BonusTypeDefinition[],
+): string | null {
+  if (bonusDefinitions.some((def) => def.type === column)) {
+    return column;
+  }
+
+  const resolved = bonusTypeFromColumnKey(column);
+  if (resolved && bonusDefinitions.some((def) => def.type === resolved)) {
+    return resolved;
+  }
+
+  return null;
+}
+
+export function allowanceTypeForPaymentColumn(
+  column: string,
+  allowanceDefinitions: AllowanceTypeDefinition[],
+): string | null {
+  if (allowanceDefinitions.some((def) => def.type === column)) {
+    return column;
+  }
+
+  const resolved = allowanceTypeFromColumnKey(column);
+  if (resolved && allowanceDefinitions.some((def) => def.type === resolved)) {
+    return resolved;
+  }
+
+  return null;
+}
+
 export function getPaymentListColumnLabel(
   column: PaymentListColumnKey,
   allowanceDefinitions: AllowanceTypeDefinition[],
   bonusDefinitions: BonusTypeDefinition[],
 ): string {
-  const allowanceType = allowanceTypeFromColumnKey(column);
-  if (allowanceType) {
-    return allowanceDefinitions.find((def) => def.type === allowanceType)?.label ?? column;
-  }
-
-  const bonusType = bonusTypeFromColumnKey(column);
+  const bonusType = bonusTypeForPaymentColumn(column, bonusDefinitions);
   if (bonusType) {
     return bonusDefinitions.find((def) => def.type === bonusType)?.label ?? column;
+  }
+
+  const allowanceType = allowanceTypeForPaymentColumn(column, allowanceDefinitions);
+  if (allowanceType) {
+    return allowanceDefinitions.find((def) => def.type === allowanceType)?.label ?? column;
   }
 
   if (isPremiumColumn(column)) {

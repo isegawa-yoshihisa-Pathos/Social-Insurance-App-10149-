@@ -28,7 +28,7 @@ export function normalizeBonusTypeDefinitions(
       type = generateNextBonusType(usedTypes);
     }
     usedTypes.add(type);
-    normalized.push({ label, type });
+    normalized.push({ label, type, bonusFrequency: item.bonusFrequency });
   }
 
   return normalized;

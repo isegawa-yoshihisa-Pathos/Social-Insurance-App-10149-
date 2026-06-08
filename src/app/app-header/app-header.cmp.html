@@ -1,7 +1,7 @@
 <mat-toolbar class="app-shell-toolbar">
     <button class="jomon-logo-button" (click)="navigateToHome()">
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=moving" />
-        縄文<span class="material-symbols-outlined">moving</span>
+        <span class="jomon-logo-text">縄文</span>
+        <mat-icon class="jomon-logo-icon">trending_up</mat-icon>
     </button>
     @if (!auth.currentUser) {
         <div class="button-container">

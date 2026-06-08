@@ -19,6 +19,13 @@
               <mat-label>表示名</mat-label>
               <input matInput [(ngModel)]="item.label" placeholder="定期賞与" />
             </mat-form-field>
+            <mat-form-field appearance="outline" class="category-field">
+              <mat-label>頻度区分</mat-label>
+              <mat-select [(ngModel)]="item.bonusFrequency">
+                <mat-option value="low">年4回未満</mat-option>
+                <mat-option value="high">年4回以上</mat-option>
+              </mat-select>  
+            </mat-form-field>
           </div>
         }
     

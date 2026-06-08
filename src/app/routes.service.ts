@@ -96,4 +96,16 @@ export class RoutesService {
   redirectToVirtualMailChecker(): void {
     void this.router.navigate(['/virtual-mail-checker']);
   }
+
+  redirectToAllowanceApplication(): void {
+    void this.router.navigate(['/task-board', 'allowance-application']);
+  }
+
+  redirectToLeaveApplication(): void {
+    void this.router.navigate(['/task-board', 'leave-application']);
+  }
+
+  redirectToResignApplication(): void {
+    void this.router.navigate(['/task-board', 'resign-application']);
+  }
 }

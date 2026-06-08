@@ -5,11 +5,13 @@ import {
   DEFAULT_PAYMENT_LIST_COLUMNS,
   getAllPaymentListColumnKeys,
   PaymentListColumnKey,
+  allowanceTypeForPaymentColumn,
+  bonusTypeForPaymentColumn,
 } from '../payment-list/payment-list-columns';
-import { allowanceColumnKey, allowanceTypeFromColumnKey } from '../payment-list/allowance-display.util';
+import { allowanceColumnKey } from '../payment-list/allowance-display.util';
 import { PaymentManagementDataService } from '../payment-management-data.service';
 import { BonusManagementDataService } from '../../bonus-management/bonus-management-data.service';
-import { bonusColumnKey, bonusTypeFromColumnKey } from '../../bonus-management/bonus-list/bonus-display.util';
+import { bonusColumnKey } from '../../bonus-management/bonus-list/bonus-display.util';
 import { BonusTypeDefinition } from '../../bonus-document';
 
 export interface PaymentSettingDocument {
@@ -152,14 +154,14 @@ export class PaymentSettingDataService {
   ): PaymentListColumnKey | null {
     if (valid.has(col)) return col;
 
-    const allowanceType = allowanceTypeFromColumnKey(col);
-    if (allowanceType && valid.has(allowanceColumnKey(allowanceType))) {
-      return allowanceColumnKey(allowanceType) as PaymentListColumnKey;
-    }
-
-    const bonusType = bonusTypeFromColumnKey(col);
+    const bonusType = bonusTypeForPaymentColumn(col, bonusDefinitions);
     if (bonusType && valid.has(bonusColumnKey(bonusType))) {
       return bonusColumnKey(bonusType) as PaymentListColumnKey;
+    }
+
+    const allowanceType = allowanceTypeForPaymentColumn(col, allowanceDefinitions);
+    if (allowanceType && valid.has(allowanceColumnKey(allowanceType))) {
+      return allowanceColumnKey(allowanceType) as PaymentListColumnKey;
     }
 
     return null;

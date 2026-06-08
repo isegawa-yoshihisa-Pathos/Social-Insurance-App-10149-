@@ -145,6 +145,7 @@ async function recordTaskResult(
         failed: nextFailed,
       },
       read: false,
+      tid,
       createdBy: job.createdBy ?? createdBy,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };

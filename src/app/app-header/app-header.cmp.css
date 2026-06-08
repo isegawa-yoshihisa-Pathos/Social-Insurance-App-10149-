@@ -24,9 +24,10 @@
     transition: opacity 0.3s ease-in-out;
 }
 
-.material-symbols-outlined {
-    font-size: 48px;
-    font-weight: 800;
+.jomon-logo-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 40px;
     vertical-align: bottom;
 }
 

@@ -82,7 +82,7 @@ export function getBonusListColumnLabel(
     return getPremiumColumnLabel(column);
   }
 
-  return STATIC_COLUMN_LABELS[column as BaseBonusListColumnKey];
+  return STATIC_COLUMN_LABELS[column as BaseBonusListColumnKey] ?? column;
 }
 
 export interface BonusListRow {

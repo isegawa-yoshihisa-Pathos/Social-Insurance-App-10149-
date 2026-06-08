@@ -1,7 +1,7 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { collection, doc, Firestore, limit, onSnapshot, orderBy, query, Unsubscribe, updateDoc, where } from '@angular/fire/firestore';
 
-export type NotificationScope = 'tenant' | 'individual';
+export type NotificationScope = 'tenant' | 'personal';
 
 export interface AppNotification {
   id: string;
@@ -11,6 +11,7 @@ export interface AppNotification {
   title?: string;
   body?: string;
   message?: string;
+  tid?: string;
   read: boolean;
   createdAt: Date | null;
   totals?: { total: number; succeeded: number; failed: number };
@@ -47,7 +48,7 @@ export class NotificationService {
 
     this.subscribePersonalNotifications(params.uid);
     if (params.isAdmin) {
-      this.subscribeTenantNotifications(params.tid);
+      this.subscribeTenantNotifications(params.uid, params.tid);
     }
   }
 
@@ -83,9 +84,9 @@ export class NotificationService {
     this.personalNotifications.set([]);
   }
 
-  private subscribeTenantNotifications(uid: string): void {
+  private subscribeTenantNotifications(uid: string, tid: string): void {
     const ref = collection(this.firestore, 'accounts', uid, 'notifications');
-    const q = query(ref, where('scope', '==', 'tenant'), orderBy('createdAt', 'desc'), limit(30));
+    const q = query(ref, where('scope', '==', 'tenant'), where('tid', '==', tid), orderBy('createdAt', 'desc'), limit(30));
     this.tenantUnsub = onSnapshot(q, (snap) => {
       const items = snap.docs.map((d) =>
         this.mapNotificationDoc(d.id, d.data()),
@@ -117,6 +118,7 @@ export class NotificationService {
       title: raw?.title,
       body: raw?.body,
       message: raw?.message,
+      tid: raw?.tid,
       read: !!raw?.read,
       totals: raw?.totals,
       createdAt: raw?.createdAt?.toDate?.() ?? null,

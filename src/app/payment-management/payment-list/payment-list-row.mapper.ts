@@ -2,7 +2,12 @@ import { BonusTypeDefinition } from '../../bonus-document';
 import { AllowanceTypeDefinition } from '../../payment-document';
 import { MonthlyDocument } from '../../monthly-document';
 import { BonusDocument } from '../../bonus-document';
-import { PaymentListColumnKey, PaymentListRow } from './payment-list-columns';
+import {
+  allowanceTypeForPaymentColumn,
+  bonusTypeForPaymentColumn,
+  PaymentListColumnKey,
+  PaymentListRow,
+} from './payment-list-columns';
 import { Format } from '../../format-number-jp';
 import { isPremiumColumn } from '../payment-premium/payment-premium-columns';
 import {
@@ -12,8 +17,6 @@ import {
   premiumSortValue,
   premiumSearchText,
 } from '../payment-premium/payment-premium-row.mapper';
-import { allowanceTypeFromColumnKey } from './allowance-display.util';
-import { bonusTypeFromColumnKey } from '../../bonus-management/bonus-list/bonus-display.util';
 import { extractBonusAmounts } from '../../bonus-management/bonus-list/bonus-data.util';
 
 export function toPaymentListRow(
@@ -79,15 +82,15 @@ export function formatPaymentListCellValue(
     return row.bonusTotal === 0 ? '' : Format(row.bonusTotal);
   }
 
-  const allowanceType = allowanceTypeFromColumnKey(column);
-  if (allowanceType) {
-    const amount = row.allowances[allowanceType] ?? 0;
+  const bonusType = bonusTypeForPaymentColumn(column, bonusDefinitions);
+  if (bonusType) {
+    const amount = row.bonus[bonusType] ?? 0;
     return amount === 0 ? '' : Format(amount);
   }
 
-  const bonusType = bonusTypeFromColumnKey(column);
-  if (bonusType) {
-    const amount = row.bonus[bonusType] ?? 0;
+  const allowanceType = allowanceTypeForPaymentColumn(column, allowanceDefinitions);
+  if (allowanceType) {
+    const amount = row.allowances[allowanceType] ?? 0;
     return amount === 0 ? '' : Format(amount);
   }
 
@@ -100,6 +103,8 @@ export function formatPaymentListCellValue(
 export function paymentListSortValue(
   row: PaymentListRow,
   column: PaymentListColumnKey,
+  allowanceDefinitions: AllowanceTypeDefinition[],
+  bonusDefinitions: BonusTypeDefinition[],
 ): string | number {
   if (isPremiumColumn(column)) {
     return premiumSortValue(row, column);
@@ -109,14 +114,14 @@ export function paymentListSortValue(
     return row.bonusTotal;
   }
 
-  const allowanceType = allowanceTypeFromColumnKey(column);
-  if (allowanceType) {
-    return row.allowances[allowanceType] ?? 0;
-  }
-
-  const bonusType = bonusTypeFromColumnKey(column);
+  const bonusType = bonusTypeForPaymentColumn(column, bonusDefinitions);
   if (bonusType) {
     return row.bonus[bonusType] ?? 0;
+  }
+
+  const allowanceType = allowanceTypeForPaymentColumn(column, allowanceDefinitions);
+  if (allowanceType) {
+    return row.allowances[allowanceType] ?? 0;
   }
 
   const value = row[column as keyof PaymentListRow];
@@ -128,6 +133,8 @@ export function paymentListSortValue(
 export function paymentListSearchText(
   row: PaymentListRow,
   column: PaymentListColumnKey,
+  allowanceDefinitions: AllowanceTypeDefinition[],
+  bonusDefinitions: BonusTypeDefinition[],
 ): string {
   if (isPremiumColumn(column)) {
     return premiumSearchText(row, column);
@@ -137,15 +144,15 @@ export function paymentListSearchText(
     return row.bonusTotal === 0 ? '' : Format(row.bonusTotal);
   }
 
-  const allowanceType = allowanceTypeFromColumnKey(column);
-  if (allowanceType) {
-    const amount = row.allowances[allowanceType] ?? 0;
+  const bonusType = bonusTypeForPaymentColumn(column, bonusDefinitions);
+  if (bonusType) {
+    const amount = row.bonus[bonusType] ?? 0;
     return amount === 0 ? '' : Format(amount);
   }
 
-  const bonusType = bonusTypeFromColumnKey(column);
-  if (bonusType) {
-    const amount = row.bonus[bonusType] ?? 0;
+  const allowanceType = allowanceTypeForPaymentColumn(column, allowanceDefinitions);
+  if (allowanceType) {
+    const amount = row.allowances[allowanceType] ?? 0;
     return amount === 0 ? '' : Format(amount);
   }
 

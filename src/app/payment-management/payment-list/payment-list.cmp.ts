@@ -127,7 +127,12 @@ export class PaymentListCmp implements OnInit {
 
   constructor() {
     this.dataSource.sortingDataAccessor = (row, property) =>
-      paymentListSortValue(row, property as PaymentListColumnKey);
+      paymentListSortValue(
+        row,
+        property as PaymentListColumnKey,
+        this.paymentManagementDataService.allowanceTypeDefinitions(),
+        this.bonusManagementDataService.bonusTypeDefinitions(),
+      );
 
     effect(() => {
       const tid = this.currentTenantService.currentTid();
@@ -149,7 +154,12 @@ export class PaymentListCmp implements OnInit {
         query: string;
       };
 
-      const text = paymentListSearchText(data, searchCondition.column).toLowerCase();
+      const text = paymentListSearchText(
+        data,
+        searchCondition.column,
+        this.paymentManagementDataService.allowanceTypeDefinitions(),
+        this.bonusManagementDataService.bonusTypeDefinitions(),
+      ).toLowerCase();
       return text.includes(searchCondition.query);
     };
   }

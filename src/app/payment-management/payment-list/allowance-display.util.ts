@@ -89,6 +89,7 @@ export function allowanceTypeFromColumnKey(column: string): string | null {
 
   if (
     column.startsWith('bonus-') ||
+    column.endsWith('-bonus') ||
     column === 'bonus' ||
     column.startsWith('bonusHealth') ||
     column.startsWith('bonusCare') ||

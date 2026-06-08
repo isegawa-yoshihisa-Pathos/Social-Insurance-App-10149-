@@ -41,7 +41,9 @@ export interface BonusFormData {
 export interface BonusTypeDefinition {
     label: string;
     type: string;
+    bonusFrequency: BonusFrequency;
 }
+export type BonusFrequency = 'high' | 'low';
 
 export type BonusAmountMap = Record<string, number>;
 
@@ -51,12 +53,12 @@ export interface BonusData {
 }
 
 export const DEFAULT_BONUS_TYPE_DEFINITIONS: readonly BonusTypeDefinition[] = [
-    { label: '定期賞与', type: 'bonus-1' },
-    { label: '期末賞与', type: 'bonus-2' },
-    { label: 'インセンティブ', type: 'bonus-3' },
-    { label: '臨時手当', type: 'bonus-4' },
-    { label: '特別賞与', type: 'bonus-5' },
-    { label: 'その他', type: 'bonus-6' },
+    { label: '定期賞与', type: 'annual-bonus', bonusFrequency: 'low' },
+    { label: '期末賞与', type: 'period-bonus', bonusFrequency: 'low' },
+    { label: 'インセンティブ', type: 'incentive-bonus', bonusFrequency: 'low' },
+    { label: '臨時手当', type: 'temporary-allowance', bonusFrequency: 'low' },
+    { label: '特別賞与', type: 'special-bonus', bonusFrequency: 'low' },
+    { label: 'その他', type: 'other-bonus', bonusFrequency: 'low' },
 ] as const;
 
 export interface PremiumData {

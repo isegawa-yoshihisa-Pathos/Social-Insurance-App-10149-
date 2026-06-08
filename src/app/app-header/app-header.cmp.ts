@@ -45,7 +45,7 @@ export class AppHeaderCmp {
 
   constructor() {
     effect((onCleanup) => {
-      const uid = this.auth.currentUser?.uid;
+      const uid = this.authService.uid();
       const tid = this.currentTenantService.currentTid();
       const isAdmin = this.currentTenantService.isAdmin();
       if (!uid || !tid) {

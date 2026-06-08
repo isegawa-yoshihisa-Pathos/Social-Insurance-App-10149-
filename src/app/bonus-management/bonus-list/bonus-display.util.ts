@@ -1,6 +1,7 @@
 import { BonusAmountMap, BonusTypeDefinition } from '../../bonus-document';
 import { Format } from '../../format-number-jp';
 import { sumBonusAmounts } from './bonus-data.util';
+import { PREMIUM_BONUS_LIST_COLUMN_KEYS } from '../bonus-premium/bonus-premium-columns';
 
 export interface BonusDisplayParts {
   display: string;
@@ -8,6 +9,13 @@ export interface BonusDisplayParts {
   total: number;
   entries: { type: string; amount: number }[];
 }
+
+const RESERVED_COLUMN_KEYS = new Set<string>([
+  'displayName',
+  'employeeId',
+  'bonus',
+  ...PREMIUM_BONUS_LIST_COLUMN_KEYS,
+]);
 
 export function labelForBonusType(
   type: string,
@@ -67,7 +75,9 @@ export function bonusColumnKey(type: string): string {
 }
 
 export function bonusTypeFromColumnKey(column: string): string | null {
-  if (column === 'bonus') return null;
+  if (RESERVED_COLUMN_KEYS.has(column)) {
+    return null;
+  }
 
   if (/^bonus-\d+$/.test(column)) {
     return column;
@@ -76,8 +86,7 @@ export function bonusTypeFromColumnKey(column: string): string | null {
   if (column.startsWith('bonus_')) {
     return column.slice('bonus_'.length);
   }
-
-  return null;
+  return column;
 }
 
 export function isKnownBonusType(
