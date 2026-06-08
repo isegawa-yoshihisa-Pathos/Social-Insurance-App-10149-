@@ -15,6 +15,8 @@ export { deliverInvitationMailTask } from './invitation-mail-task';
 export { saveInvitationTemplate } from './invitation-functions';
 export { validateInvitationToken } from './invitation-accept-functions';
 export { acceptInvitation } from './invitation-accept-functions';
+export { startPremiumCalculationBatch } from './premium-calculation/batch';
+export { calculatePremiumTask } from './premium-calculation/task';
 // import {onRequest} from "firebase-functions/https";
 // import * as logger from "firebase-functions/logger";
 

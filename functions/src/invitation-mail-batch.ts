@@ -3,12 +3,11 @@ import { getFunctions } from 'firebase-admin/functions';
 import * as admin from 'firebase-admin';
 import { randomUUID } from 'crypto';
 import {
-  assertTenantAdmin,
   createInvitationToken,
   isValidEmail,
   loadInvitationMailContext,
-  mapCoreErrorToHttpsError,
 } from './invitation-mail-core';
+import { assertTenantAdmin, mapCoreErrorToHttpsError } from './core-functions';
 
 if (admin.apps.length === 0) {
   admin.initializeApp();

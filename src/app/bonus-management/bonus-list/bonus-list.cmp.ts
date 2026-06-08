@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal, ViewChild } from '@angular/core';
+import { Component, computed, effect, inject, signal, ViewChild, OnInit } from '@angular/core';
 import { Firestore, collection, getDocs } from '@angular/fire/firestore';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
@@ -28,6 +28,7 @@ import { BonusListImportService } from './bonus-list-import.service';
 import { BonusListDataService } from './bonus-list-data.service';
 import { HelpContentCmp } from '../../help-content/help-content.cmp';
 import { BonusPremiumCalculateFacade } from '../bonus-premium/bonus-premium-calculate.facade';
+import { Router, ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-bonus-list',
@@ -47,7 +48,7 @@ import { BonusPremiumCalculateFacade } from '../bonus-premium/bonus-premium-calc
   templateUrl: './bonus-list.cmp.html',
   styleUrl: './bonus-list.cmp.css',
 })
-export class BonusListCmp {
+export class BonusListCmp implements OnInit {
   private readonly firestore = inject(Firestore);
   private readonly routesService = inject(RoutesService);
   private readonly currentTenantService = inject(CurrentTenantService);
@@ -84,7 +85,6 @@ export class BonusListCmp {
   readonly isFilterActive = computed(() => !!this.searchQuery.trim());
   readonly hasFilteredResults = computed(() => this.dataSource.filteredData.length > 0);
   readonly bonusRecordExists = signal<boolean>(false);
-  initializing = false;
 
   premiumRecalculating = false;
 
@@ -98,6 +98,28 @@ export class BonusListCmp {
     const m = String(this.selectedMonth()).padStart(2, '0');
     return `${y}-${m}`;
   });
+
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+
+  ngOnInit(): void {
+    this.route.queryParams.subscribe(params => {
+      if (params['yyyyMm']) {
+        this.selectedYear.set(parseInt(params['yyyyMm'].split('-')[0]));
+        this.selectedMonth.set(parseInt(params['yyyyMm'].split('-')[1]));
+      } else {
+        this.updateUrlQuery(this.yyyyMm());
+      }
+    });
+  }
+
+  private updateUrlQuery(yyyyMm: string): void {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { yyyyMm },
+      queryParamsHandling: 'merge',
+    });
+  }
 
   previousMonth(): void {
     if (this.selectedMonth() === 1) {
@@ -202,30 +224,6 @@ export class BonusListCmp {
     const alive = new Set(data.map((r) => r.eid));
     this.selectedEids = new Set([...this.selectedEids].filter((eid) => alive.has(eid)));
   }
-
-  async initializeBonusRecords(): Promise<void> {
-    const tid = this.currentTenantService.currentTid();
-    const ym = this.yyyyMm();
-    if (!tid || !ym || this.bonusRecordExists()) return;
-    this.initializing = true;
-    try {
-      const created = await this.listDataService.initializeBonusRecords(tid, ym);
-      await this.loadBonusRecords(tid, ym);
-      this.dialog.open(SuccessDialogCmp, {
-        data: {
-          title: '月次データ作成',
-          message: `${created}件の月次レコードを作成しました。`,
-        },
-      });
-    } catch (error) {
-      this.dialog.open(ErrorDialogCmp, {
-        data: { message: mapFirebaseError(error) },
-      });
-    } finally {
-      this.initializing = false;
-    }
-  }
-  
 
   search(): void {
     this.dataSource.filter = JSON.stringify({
@@ -378,10 +376,9 @@ export class BonusListCmp {
 
     this.bulkSaving = true;
     try {
-      const scopeEids =
-        this.dataSource.filter
-          ? new Set(this.dataSource.filteredData.map((r) => r.eid))
-          : undefined;
+      const scopeEids = this.isFilterActive()
+        ? new Set(this.dataSource.filteredData.map((r) => r.eid))
+        : undefined;
 
       const result = await this.importService.importFromCsv(tid, file, {
         yyyyMm: ym,
@@ -396,6 +393,7 @@ export class BonusListCmp {
           title: 'CSVインポート結果',
           message:
             `更新: ${result.updated}件 / ` +
+            `新規作成: ${result.created}件 / ` +
             `未一致: ${result.skippedNoMatch}件 / ` +
             `範囲外: ${result.skippedOutOfScope}件 / ` +
             `氏名重複: ${result.skippedAmbiguous}件 / ` +

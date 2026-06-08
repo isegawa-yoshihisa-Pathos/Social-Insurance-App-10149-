@@ -10,26 +10,31 @@ import {
 import { MonthlySettingDataService } from '../monthly-setting/monthly-setting-data.service';
 import {
   MonthlyImportColumnDef,
-  MonthlyImportFieldKey,
   buildMonthlyImportColumnDefs,
 } from '../monthly-setting/monthly-import-columns';
+import { PayrollData } from '../../monthly-document';
 import { MonthlyListRow } from './monthly-list-columns';
-import { MonthlyListDataService } from './monthly-list-data.service';
+import { EmployeeLookupEntry, MonthlyListDataService } from './monthly-list-data.service';
 import { PaymentManagementDataService } from '../../payment-management/payment-management-data.service';
 import { buildPayrollWageFields } from '../../payment-management/payment-list/payroll-wage-update.util';
 
 export interface MonthlyCsvImportOptions {
   yyyyMm: string;
   allRows: MonthlyListRow[];
-  scopeEids?: Set<string>;
 }
 
 export interface MonthlyCsvImportResult {
   updated: number;
+  created: number;
   skippedNoMatch: number;
-  skippedOutOfScope: number;
   skippedAmbiguous: number;
   skippedEmpty: number;
+}
+
+interface PayrollImportPatch {
+  basicSalary?: number;
+  allowances?: Record<string, number>;
+  retroactivePay?: number | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -67,9 +72,6 @@ export class MonthlyListImportService {
       throw new Error('CSVに社員番号または氏名の列がありません。');
     }
 
-    const scopeEids =
-      options.scopeEids ?? new Set(options.allRows.map((r) => r.eid));
-
     const employeeLookup = await this.listDataService.loadEmployeeLookup(tid);
     const { eidByEmployeeId, eidsByDisplayName } =
       this.listDataService.buildMatchMaps(employeeLookup);
@@ -78,8 +80,8 @@ export class MonthlyListImportService {
     const batch = writeBatch(this.firestore);
     const result: MonthlyCsvImportResult = {
       updated: 0,
+      created: 0,
       skippedNoMatch: 0,
-      skippedOutOfScope: 0,
       skippedAmbiguous: 0,
       skippedEmpty: 0,
     };
@@ -102,24 +104,20 @@ export class MonthlyListImportService {
         result.skippedAmbiguous++;
         continue;
       }
+
       if (!matched) {
         result.skippedNoMatch++;
         continue;
       }
-      if (!scopeEids.has(matched)) {
-        result.skippedOutOfScope++;
-        continue;
-      }
 
       const existingRow = options.allRows.find((r) => r.eid === matched);
-      const patch = this.buildMonthlyPatch(
+      const payrollPatch = this.extractPayrollPatch(
         cols,
         headerIndex,
         columnDefs,
         existingRow,
-        definitions,
       );
-      if (!patch) {
+      if (!payrollPatch) {
         result.skippedEmpty++;
         continue;
       }
@@ -133,9 +131,25 @@ export class MonthlyListImportService {
         'employees',
         matched,
       );
-      batch.update(employeeRef, patch);
 
-      result.updated++;
+      if (existingRow) {
+        batch.update(
+          employeeRef,
+          this.buildMonthlyUpdatePayload(payrollPatch, existingRow, definitions),
+        );
+        result.updated++;
+      } else {
+        const employee = employeeLookup.get(matched);
+        if (!employee) {
+          result.skippedNoMatch++;
+          continue;
+        }
+        batch.set(
+          employeeRef,
+          this.buildMonthlyDocument(employee, payrollPatch, definitions),
+        );
+        result.created++;
+      }
     }
 
     await batch.commit();
@@ -184,27 +198,20 @@ export class MonthlyListImportService {
     return null;
   }
 
-  private buildMonthlyPatch(
+  private extractPayrollPatch(
     cols: string[],
     idx: Record<string, number>,
     columnDefs: MonthlyImportColumnDef[],
     existingRow: MonthlyListRow | undefined,
-    definitions: ReturnType<PaymentManagementDataService['allowanceTypeDefinitions']>,
-  ): UpdateData<DocumentData> | null {
-    const update: Record<string, unknown> = {};
-    let hasUpdate = false;
-
+  ): PayrollImportPatch | null {
     const current = {
       basicSalary: existingRow?.basicSalary ?? 0,
       allowances: { ...(existingRow?.allowances ?? {}) },
       retroactivePay: existingRow?.retroactivePay ?? null,
     };
 
-    const patch: {
-      basicSalary?: number;
-      allowances?: Record<string, number>;
-      retroactivePay?: number | null;
-    } = {};
+    const patch: PayrollImportPatch = {};
+    let hasUpdate = false;
 
     for (const col of columnDefs) {
       if (col.key === 'displayName' || col.key === 'employeeId' || col.kind !== 'number') {
@@ -232,26 +239,74 @@ export class MonthlyListImportService {
       }
     }
 
-    if (!hasUpdate) return null;
+    return hasUpdate ? patch : null;
+  }
 
-    const wages = buildPayrollWageFields(current, patch, definitions);
-    update['payrollData.fixedWage'] = wages.fixedWage;
-    update['payrollData.variableWage'] = wages.variableWage;
+  private buildMonthlyUpdatePayload(
+    payrollPatch: PayrollImportPatch,
+    existingRow: MonthlyListRow,
+    definitions: ReturnType<PaymentManagementDataService['allowanceTypeDefinitions']>,
+  ): UpdateData<DocumentData> {
+    const current = {
+      basicSalary: existingRow.basicSalary ?? 0,
+      allowances: { ...(existingRow.allowances ?? {}) },
+      retroactivePay: existingRow.retroactivePay ?? null,
+    };
 
-    if (patch.basicSalary !== undefined) {
-      update['payrollData.basicSalary'] = patch.basicSalary;
+    const wages = buildPayrollWageFields(current, payrollPatch, definitions);
+    const update: Record<string, unknown> = {
+      'payrollData.fixedWage': wages.fixedWage,
+      'payrollData.variableWage': wages.variableWage,
+      updatedAt: serverTimestamp(),
+    };
+
+    if (payrollPatch.basicSalary !== undefined) {
+      update['payrollData.basicSalary'] = payrollPatch.basicSalary;
     }
-    if (patch.retroactivePay !== undefined) {
-      update['payrollData.retroactivePay'] = patch.retroactivePay;
+    if (payrollPatch.retroactivePay !== undefined) {
+      update['payrollData.retroactivePay'] = payrollPatch.retroactivePay;
     }
-    if (patch.allowances !== undefined) {
-      for (const [type, amount] of Object.entries(patch.allowances)) {
+    if (payrollPatch.allowances !== undefined) {
+      for (const [type, amount] of Object.entries(payrollPatch.allowances)) {
         update[`payrollData.allowances.${type}`] = amount;
       }
     }
 
-    update['updatedAt'] = serverTimestamp();
     return update as UpdateData<DocumentData>;
+  }
+
+  private buildMonthlyDocument(
+    employee: EmployeeLookupEntry,
+    payrollPatch: PayrollImportPatch,
+    definitions: ReturnType<PaymentManagementDataService['allowanceTypeDefinitions']>,
+  ): {
+    uid: string;
+    displayName: string;
+    payrollData: PayrollData;
+    updatedAt: ReturnType<typeof serverTimestamp>;
+  } {
+    const current = {
+      basicSalary: 0,
+      allowances: {},
+      retroactivePay: null,
+    };
+
+    const wages = buildPayrollWageFields(current, payrollPatch, definitions);
+
+    const payrollData: PayrollData = {
+      basicSalary: payrollPatch.basicSalary ?? 0,
+      fixedWage: wages.fixedWage,
+      variableWage: wages.variableWage,
+      allowances: payrollPatch.allowances ?? {},
+      retroactivePay: payrollPatch.retroactivePay ?? 0,
+    };
+
+    return {
+      uid: employee.uid,
+      displayName: employee.displayName,
+      payrollData,
+      updatedAt: serverTimestamp(),
+    };
   }
 
   private parseNumber(raw: string): number | null {
@@ -260,3 +315,4 @@ export class MonthlyListImportService {
     return Number.isNaN(num) ? null : num;
   }
 }
+

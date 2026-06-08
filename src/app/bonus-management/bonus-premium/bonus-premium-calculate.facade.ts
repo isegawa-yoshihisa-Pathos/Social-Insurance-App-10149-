@@ -1,25 +1,28 @@
 import { Injectable, inject } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { BonusPremiumBatchService } from '../../social-insurance/bonus/bonus-premium-batch.service';
 import { ErrorDialogCmp, mapFirebaseError } from '../../error-dialog/error-dialog.cmp';
-import { SuccessDialogCmp } from '../../success-dialog/success-dialog.cmp';
+import { FunctionsService } from '../../functions.service';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Injectable({ providedIn: 'root' })
 export class BonusPremiumCalculateFacade {
-  private readonly batchService = inject(BonusPremiumBatchService);
+  private readonly functionsService = inject(FunctionsService);
   private readonly dialog = inject(MatDialog);
+  private readonly snackBar = inject(MatSnackBar);
 
-  async calculateMonth(tid: string, yyyyMm: string, reload: () => Promise<void>): Promise<void> {
+  async calculateMonth(tid: string, yyyyMm: string, _reload: () => Promise<void>): Promise<void> {
     try {
-      const { processed, errors } = await this.batchService.calculateBonus(tid, yyyyMm);
-      await reload();
-
-      const errorLines =
-        errors.length > 0 ? `\n失敗: ${errors.length}件\n${errors.slice(0, 5).join('\n')}` : '';
-
-      this.dialog.open(SuccessDialogCmp, {
-        data: { title: '保険料計算', message: `計算: ${processed}件${errorLines}` },
+      const { total } = await this.functionsService.startPremiumCalculationBatch({
+        tid,
+        kind: 'bonus',
+        yyyyMm,
       });
+
+      this.snackBar.open(
+        `${total}件の保険料計算を開始しました。完了は通知で確認できます。`,
+        '閉じる',
+        { duration: 6000 },
+      );
     } catch (error) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: mapFirebaseError(error) },

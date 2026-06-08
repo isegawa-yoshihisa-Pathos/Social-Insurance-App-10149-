@@ -2,8 +2,7 @@
   display: block;
 }
 
-.allowance-setting-label,
-.bonus-setting-label {
+.allowance-setting-label {
   font-size: 18px;
   font-weight: bold;
   color: #333;

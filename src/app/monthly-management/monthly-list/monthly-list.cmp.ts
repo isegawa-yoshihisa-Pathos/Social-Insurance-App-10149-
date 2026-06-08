@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal, ViewChild } from '@angular/core';
+import { Component, computed, effect, inject, signal, ViewChild, OnInit } from '@angular/core';
 import { Firestore, collection, getDocs } from '@angular/fire/firestore';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
@@ -28,6 +28,7 @@ import { MonthlyListDataService } from './monthly-list-data.service';
 import { HelpContentCmp } from '../../help-content/help-content.cmp';
 import { MonthlyPremiumCalculateFacade } from '../monthly-premium/monthly-premium-calculate.facade';
 import { PaymentManagementDataService } from '../../payment-management/payment-management-data.service';
+import { Router, ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-monthly-list',
@@ -47,7 +48,7 @@ import { PaymentManagementDataService } from '../../payment-management/payment-m
   templateUrl: './monthly-list.cmp.html',
   styleUrl: './monthly-list.cmp.css',
 })
-export class MonthlyListCmp {
+export class MonthlyListCmp implements OnInit {
   private readonly firestore = inject(Firestore);
   private readonly routesService = inject(RoutesService);
   private readonly currentTenantService = inject(CurrentTenantService);
@@ -80,11 +81,9 @@ export class MonthlyListCmp {
   searchTargetColumn: MonthlyListColumnKey = 'employeeId';
   searchQuery = '';
 
-  readonly hasMonthlyRecords = computed(() => this.dataSource.data.length > 0);
   readonly isFilterActive = computed(() => !!this.searchQuery.trim());
   readonly hasFilteredResults = computed(() => this.dataSource.filteredData.length > 0);
   readonly monthlyRecordExists = signal<boolean>(false);
-  initializing = false;
 
   premiumRecalculating = false;
 
@@ -99,6 +98,28 @@ export class MonthlyListCmp {
     return `${y}-${m}`;
   });
 
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+
+  ngOnInit(): void {
+    this.route.queryParams.subscribe(params => {
+      if (params['yyyyMm']) {
+        this.selectedYear.set(parseInt(params['yyyyMm'].split('-')[0]));
+        this.selectedMonth.set(parseInt(params['yyyyMm'].split('-')[1]));
+      } else {
+        this.updateUrlQuery(this.yyyyMm());
+      }
+    });
+  }
+
+  private updateUrlQuery(yyyyMm: string): void {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { yyyyMm },
+      queryParamsHandling: 'merge',
+    });
+  }
+
   previousMonth(): void {
     if (this.selectedMonth() === 1) {
       this.selectedYear.set(this.selectedYear() - 1);
@@ -106,6 +127,7 @@ export class MonthlyListCmp {
     } else {
       this.selectedMonth.set(this.selectedMonth() - 1);
     }
+    this.updateUrlQuery(this.yyyyMm());
   }
 
   nextMonth(): void {
@@ -115,11 +137,13 @@ export class MonthlyListCmp {
     } else {
       this.selectedMonth.set(this.selectedMonth() + 1);
     }
+    this.updateUrlQuery(this.yyyyMm());
   }
 
   setThisMonth(): void {
     this.selectedYear.set(new Date().getFullYear());
     this.selectedMonth.set(new Date().getMonth() + 1);
+    this.updateUrlQuery(this.yyyyMm());
   }
 
   constructor() {
@@ -208,31 +232,7 @@ export class MonthlyListCmp {
     const alive = new Set(data.map((r) => r.eid));
     this.selectedEids = new Set([...this.selectedEids].filter((eid) => alive.has(eid)));
   }
-
-  async initializeMonthlyRecords(): Promise<void> {
-    const tid = this.currentTenantService.currentTid();
-    const ym = this.yyyyMm();
-    if (!tid || !ym || this.monthlyRecordExists()) return;
-    this.initializing = true;
-    try {
-      const created = await this.listDataService.initializeMonthlyRecords(tid, ym);
-      await this.loadMonthlyRecords(tid, ym);
-      this.dialog.open(SuccessDialogCmp, {
-        data: {
-          title: '月次データ作成',
-          message: `${created}件の月次レコードを作成しました。`,
-        },
-      });
-    } catch (error) {
-      this.dialog.open(ErrorDialogCmp, {
-        data: { message: mapFirebaseError(error) },
-      });
-    } finally {
-      this.initializing = false;
-    }
-  }
   
-
   search(): void {
     this.dataSource.filter = JSON.stringify({
       column: this.searchTargetColumn,
@@ -394,15 +394,9 @@ export class MonthlyListCmp {
 
     this.bulkSaving = true;
     try {
-      const scopeEids =
-        this.dataSource.filter
-          ? new Set(this.dataSource.filteredData.map((r) => r.eid))
-          : undefined;
-
       const result = await this.importService.importFromCsv(tid, file, {
         yyyyMm: ym,
         allRows: this.dataSource.data,
-        scopeEids,
       });
 
       await this.loadMonthlyRecords(tid, ym);
@@ -412,8 +406,8 @@ export class MonthlyListCmp {
           title: 'CSVインポート結果',
           message:
             `更新: ${result.updated}件 / ` +
+            `新規作成: ${result.created}件 / ` +
             `未一致: ${result.skippedNoMatch}件 / ` +
-            `範囲外: ${result.skippedOutOfScope}件 / ` +
             `氏名重複: ${result.skippedAmbiguous}件 / ` +
             `空欄のみ: ${result.skippedEmpty}件`,
         },

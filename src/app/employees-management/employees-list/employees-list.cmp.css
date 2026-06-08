@@ -32,10 +32,6 @@
   white-space: nowrap;
 }
 
-.employees-table td.mat-mdc-cell:hover {
-  background-color: #e0e0e0;
-}
-
 .employee-row {
   cursor: pointer;
 }

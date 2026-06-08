@@ -7,6 +7,8 @@ import { PaymentListRow } from './payment-list-columns';
 import { StandardRemunerationDataService } from '../../social-insurance/monthly/standard-remuneration-data.service';
 import { toPaymentListRow } from './payment-list-row.mapper';
 import { BonusTypeDefinition } from '../../bonus-document';
+import { TenantSettingDataService } from '../../tenant-setting/tenant-setting-data.service';
+import { addMonths } from '../../social-insurance/monthly/social-insurance-data.util';
 
 export interface EmployeeLookupEntry {
   eid: string;
@@ -20,6 +22,20 @@ export interface EmployeeLookupEntry {
 export class PaymentListDataService {
   private readonly firestore = inject(Firestore);
   private readonly standardRemunerationDataService = inject(StandardRemunerationDataService);
+  private readonly tenantdata = inject(TenantSettingDataService);
+
+  get collectionMonth(): number {
+    switch (this.tenantdata.form.socialInsuranceSettings.socialInsuranceCollectionMonth) {
+      case 'nextMonth':
+        return -1;
+      case 'currentMonth':
+        return 0;
+      case 'nextNextMonth':
+        return -2;
+      default:
+        return -1;
+    }
+  }
 
   async loadEmployeeLookup(tid: string): Promise<Map<string, EmployeeLookupEntry>> {
     const employeesRef = collection(this.firestore, 'tenants', tid, 'employees');
@@ -43,12 +59,21 @@ export class PaymentListDataService {
     yyyyMm: string,
     bonusTypeDefinitions: BonusTypeDefinition[],
   ): Promise<PaymentListRow[]> {
-    const monthlyRef = collection(
+    const collectionMonth = addMonths(yyyyMm, this.collectionMonth);
+    const monthlySalaryRef = collection(
       this.firestore,
       'tenants',
       tid,
       'monthly-records',
       yyyyMm,
+      'employees',
+    );
+    const monthlyPremiumRef = collection(
+      this.firestore,
+      'tenants',
+      tid,
+      'monthly-records',
+      collectionMonth,
       'employees',
     );
     const bonusRef = collection(
@@ -60,31 +85,42 @@ export class PaymentListDataService {
       'employees',
     );
 
-    const [monthlySnap, bonusSnap, employeeLookup] = await Promise.all([
-      getDocs(monthlyRef),
+    const [monthlySalarySnap, monthlyPremiumSnap, bonusSnap, employeeLookup] = await Promise.all([
+      getDocs(monthlySalaryRef),
+      getDocs(monthlyPremiumRef),
       getDocs(bonusRef),
       this.loadEmployeeLookup(tid),
     ]);
 
-    const monthlyByEid = new Map(
-      monthlySnap.docs.map((snap) => [snap.id, snap.data() as Partial<MonthlyDocument>]),
+    const monthlySalaryByEid = new Map(
+      monthlySalarySnap.docs.map((snap) => [snap.id, snap.data() as Partial<MonthlyDocument>]),
+    );
+    const monthlyPremiumByEid = new Map(
+      monthlyPremiumSnap.docs.map((snap) => [snap.id, snap.data() as Partial<MonthlyDocument>]),
     );
     const bonusByEid = new Map(
       bonusSnap.docs.map((snap) => [snap.id, snap.data() as Partial<BonusDocument>]),
     );
 
-    const eids = new Set([...monthlyByEid.keys(), ...bonusByEid.keys()]);
+    const eids = new Set([...monthlySalaryByEid.keys(), ...monthlyPremiumByEid.keys(), ...bonusByEid.keys()]);
     const rows = [...eids].map((eid) => {
+      const monthlySalaryDoc = monthlySalaryByEid.get(eid) || {};
+      const monthlyPremiumDoc = monthlyPremiumByEid.get(eid) || {};
+      const mergedMonthlyDoc = {
+        ...monthlySalaryDoc,
+        calculationSnapshot: monthlyPremiumDoc.calculationSnapshot,
+        premiumData: monthlyPremiumDoc.premiumData,
+      };
       const row = toPaymentListRow(
         eid,
-        monthlyByEid.get(eid),
+        mergedMonthlyDoc,
         bonusByEid.get(eid),
         bonusTypeDefinitions,
       );
       return this.mergeEmployeeMeta(row, employeeLookup);
     });
 
-    return this.enrichWithStandardRemuneration(tid, yyyyMm, rows);
+    return this.enrichWithStandardRemuneration(tid, collectionMonth, rows);
   }
 
   async enrichWithStandardRemuneration(

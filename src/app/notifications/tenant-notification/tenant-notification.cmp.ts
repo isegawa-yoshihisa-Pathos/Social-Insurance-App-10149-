@@ -1,4 +1,5 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
+import { NotificationService } from '../notification.service';
 
 @Component({
   selector: 'app-tenant-notification',
@@ -7,5 +8,7 @@ import { Component } from '@angular/core';
   styleUrl: './tenant-notification.cmp.css',
 })
 export class TenantNotificationCmp {
+  readonly notificationService = inject(NotificationService);
 
+  readonly notifications = this.notificationService.tenantNotifications;
 }

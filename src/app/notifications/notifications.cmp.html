@@ -1,1 +1,8 @@
-<p>notifications works!</p>
+@if (isAdmin) {
+    <div class="notifications-container">
+        <app-tenant-notification />
+    </div>
+}
+<div class="notifications-container">
+    <app-individual-notification />
+</div>

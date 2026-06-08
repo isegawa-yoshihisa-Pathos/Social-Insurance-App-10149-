@@ -37,6 +37,10 @@ export class RoutesService {
     void this.router.navigate(['/task-board']);
   }
 
+  redirectToNotifications(): void {
+    void this.router.navigate(['/notifications']);
+  }
+
   redirectToTenantSetting(): void {
     void this.router.navigate(['/tenant-setting']);
   }

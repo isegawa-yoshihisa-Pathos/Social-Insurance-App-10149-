@@ -42,6 +42,7 @@ export class MainLayoutCmp {
     | 'myPage' 
     | 'personalSetting' 
     | 'taskBoard' 
+    | 'notifications'
     | 'tenantSetting'
     | 'createNewTenant'
     | 'employeesManagement'
@@ -52,6 +53,7 @@ export class MainLayoutCmp {
     | 'virtualMailChecker' {
     if (url.startsWith('/personal-setting')) return 'personalSetting';
     if (url.startsWith('/task-board')) return 'taskBoard';
+    if (url.startsWith('/notifications')) return 'notifications';
     if (url.startsWith('/tenant-setting')) return 'tenantSetting';
     if (url.startsWith('/create-new-tenant')) return 'createNewTenant';
     if (url.startsWith('/employees-management')) return 'employeesManagement';
@@ -89,6 +91,10 @@ export class MainLayoutCmp {
     } else {
       this.routesService.redirectToPersonalSetting();
     }
+  }
+
+  navigateToNotifications(): void {
+    this.routesService.redirectToNotifications();
   }
 
   navigateToTenantSetting(): void {

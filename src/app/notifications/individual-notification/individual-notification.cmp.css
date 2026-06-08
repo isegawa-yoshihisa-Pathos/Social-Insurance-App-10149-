@@ -1,3 +1,18 @@
 :host {
   display: block;
 }
+
+.notification-label {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 24px;
+  border-left: 4px solid #673ab7;
+  padding-left: 8px;
+}
+
+.notification-content-description {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 24px;
+}

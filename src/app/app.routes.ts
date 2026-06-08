@@ -37,6 +37,10 @@ export const routes: Routes = [
         loadComponent: () => import('./task-board/task-board.cmp').then(m => m.TaskBoardCmp) 
       },
       {
+        path: 'notifications',
+        loadComponent: () => import('./notifications/notifications.cmp').then(m => m.NotificationsCmp),
+      },
+      {
         path: 'create-new-tenant',
         loadComponent: () => import('./create-new-tenant/create-new-tenant.cmp').then(m => m.CreateNewTenantCmp),
       },

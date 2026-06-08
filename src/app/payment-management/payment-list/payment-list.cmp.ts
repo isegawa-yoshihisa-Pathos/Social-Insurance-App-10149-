@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal, ViewChild } from '@angular/core';
+import { Component, computed, effect, inject, signal, ViewChild, OnInit  } from '@angular/core';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { FormsModule } from '@angular/forms';
@@ -17,6 +17,7 @@ import { PaymentSettingDataService } from '../payment-setting/payment-setting-da
 import { PaymentListDataService } from './payment-list-data.service';
 import { PaymentManagementDataService } from '../payment-management-data.service';
 import { BonusManagementDataService } from '../../bonus-management/bonus-management-data.service';
+import { Router, ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-payment-list',
@@ -34,7 +35,7 @@ import { BonusManagementDataService } from '../../bonus-management/bonus-managem
   templateUrl: './payment-list.cmp.html',
   styleUrl: './payment-list.cmp.css',
 })
-export class PaymentListCmp {
+export class PaymentListCmp implements OnInit {
   private readonly routesService = inject(RoutesService);
   private readonly currentTenantService = inject(CurrentTenantService);
   private readonly paymentSettingDataService = inject(PaymentSettingDataService);
@@ -75,6 +76,29 @@ export class PaymentListCmp {
     return `${y}-${m}`;
   });
 
+  
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+
+  ngOnInit(): void {
+    this.route.queryParams.subscribe(params => {
+      if (params['yyyyMm']) {
+        this.selectedYear.set(parseInt(params['yyyyMm'].split('-')[0]));
+        this.selectedMonth.set(parseInt(params['yyyyMm'].split('-')[1]));
+      } else {
+        this.updateUrlQuery(this.yyyyMm());
+      }
+    });
+  }
+
+  private updateUrlQuery(yyyyMm: string): void {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { yyyyMm },
+      queryParamsHandling: 'merge',
+    });
+  }
+
   previousMonth(): void {
     if (this.selectedMonth() === 1) {
       this.selectedYear.set(this.selectedYear() - 1);
@@ -82,6 +106,7 @@ export class PaymentListCmp {
     } else {
       this.selectedMonth.set(this.selectedMonth() - 1);
     }
+    this.updateUrlQuery(this.yyyyMm());
   }
 
   nextMonth(): void {
@@ -91,11 +116,13 @@ export class PaymentListCmp {
     } else {
       this.selectedMonth.set(this.selectedMonth() + 1);
     }
+    this.updateUrlQuery(this.yyyyMm());
   }
 
   setThisMonth(): void {
     this.selectedYear.set(new Date().getFullYear());
     this.selectedMonth.set(new Date().getMonth() + 1);
+    this.updateUrlQuery(this.yyyyMm());
   }
 
   constructor() {

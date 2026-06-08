@@ -19,6 +19,8 @@ export class FunctionsService {
 
   private acceptInvitationFn = httpsCallable(this.functions, 'acceptInvitation');
 
+  private startPremiumCalculationBatchFn = httpsCallable(this.functions, 'startPremiumCalculationBatch');
+
   async registerAdminAndTenant(payload: any) {
     return await this.registerFn(payload);
   }
@@ -58,5 +60,15 @@ export class FunctionsService {
     mode: 'create' | 'link';
   }) {
     return await this.acceptInvitationFn(payload);
+  }
+
+  async startPremiumCalculationBatch(payload: {
+    tid: string;
+    kind: 'monthly' | 'bonus';
+    yyyyMm: string;
+    eids?: string[];
+  }) {
+    const result = await this.startPremiumCalculationBatchFn(payload);
+    return result.data as { jobId: string; total: number };
   }
 }

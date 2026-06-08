@@ -1,15 +1,5 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
-import {
-  collection,
-  doc,
-  Firestore,
-  limit,
-  onSnapshot,
-  orderBy,
-  query,
-  Unsubscribe,
-  updateDoc,
-} from '@angular/fire/firestore';
+import { collection, doc, Firestore, limit, onSnapshot, orderBy, query, Unsubscribe, updateDoc } from '@angular/fire/firestore';
 
 export type NotificationScope = 'tenant' | 'individual';
 
@@ -27,15 +17,15 @@ export interface AppNotification {
 }
 
 @Injectable({ providedIn: 'root' })
-export class TenantNotificationService {
+export class NotificationService {
   private readonly firestore = inject(Firestore);
   private tenantUnsub: Unsubscribe | null = null;
   private individualUnsub: Unsubscribe | null = null;
   private currentTid: string | null = null;
   private currentUid: string | null = null;
 
-  private readonly tenantNotifications = signal<AppNotification[]>([]);
-  private readonly individualNotifications = signal<AppNotification[]>([]);
+  readonly tenantNotifications = signal<AppNotification[]>([]);
+  readonly individualNotifications = signal<AppNotification[]>([]);
 
   readonly notifications = computed(() => {
     const merged = [...this.tenantNotifications(), ...this.individualNotifications()];

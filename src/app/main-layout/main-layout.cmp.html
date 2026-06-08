@@ -46,6 +46,8 @@
                 mat-flat-button 
                 class="menu-button" 
                 type="button"
+                (click)="navigateToNotifications()"
+                [class.selected]="isSelected() === 'notifications'"
             >通知管理
             </button>
 

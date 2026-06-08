@@ -8,17 +8,16 @@ import {
   serverTimestamp,
   writeBatch,
 } from '@angular/fire/firestore';
-import { BonusAmountMap, BonusTypeDefinition } from '../../bonus-document';
+import { BonusAmountMap, BonusData, BonusTypeDefinition } from '../../bonus-document';
 import { BonusManagementDataService } from '../bonus-management-data.service';
 import { BonusSettingDataService } from '../bonus-setting/bonus-setting-data.service';
 import {
   BonusImportColumnDef,
-  BonusImportFieldKey,
   buildBonusImportColumnDefs,
 } from '../bonus-setting/bonus-import-columns';
 import { buildBonusData } from './bonus-data.util';
 import { BonusListRow } from './bonus-list-columns';
-import { BonusListDataService } from './bonus-list-data.service';
+import { BonusListDataService, EmployeeLookupEntry } from './bonus-list-data.service';
 
 export interface BonusCsvImportOptions {
   yyyyMm: string;
@@ -28,10 +27,16 @@ export interface BonusCsvImportOptions {
 
 export interface BonusCsvImportResult {
   updated: number;
+  created: number;
   skippedNoMatch: number;
   skippedOutOfScope: number;
   skippedAmbiguous: number;
   skippedEmpty: number;
+}
+
+interface BonusImportPatch {
+  bonusAmounts?: BonusAmountMap;
+  payrollFields?: Record<string, number>;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -76,6 +81,7 @@ export class BonusListImportService {
     const batch = writeBatch(this.firestore);
     const result: BonusCsvImportResult = {
       updated: 0,
+      created: 0,
       skippedNoMatch: 0,
       skippedOutOfScope: 0,
       skippedAmbiguous: 0,
@@ -104,20 +110,21 @@ export class BonusListImportService {
         result.skippedNoMatch++;
         continue;
       }
-      if (!scopeEids.has(matched)) {
+
+      const existingRow = options.allRows.find((r) => r.eid === matched);
+      if (existingRow && !scopeEids.has(matched)) {
         result.skippedOutOfScope++;
         continue;
       }
 
-      const existingRow = options.allRows.find((r) => r.eid === matched);
-      const patch = this.buildBonusPatch(
+      const importPatch = this.extractBonusPatch(
         cols,
         headerIndex,
         columnDefs,
         bonusDefinitions,
         existingRow?.bonus ?? {},
       );
-      if (!patch) {
+      if (!importPatch) {
         result.skippedEmpty++;
         continue;
       }
@@ -131,9 +138,19 @@ export class BonusListImportService {
         'employees',
         matched,
       );
-      batch.update(employeeRef, patch);
 
-      result.updated++;
+      if (existingRow) {
+        batch.update(employeeRef, this.buildBonusUpdatePayload(importPatch));
+        result.updated++;
+      } else {
+        const employee = employeeLookup.get(matched);
+        if (!employee) {
+          result.skippedNoMatch++;
+          continue;
+        }
+        batch.set(employeeRef, this.buildBonusDocument(employee, importPatch));
+        result.created++;
+      }
     }
 
     await batch.commit();
@@ -182,64 +199,62 @@ export class BonusListImportService {
     return null;
   }
 
-  private buildBonusPatch(
+  private extractBonusPatch(
     cols: string[],
     idx: Record<string, number>,
     columnDefs: BonusImportColumnDef[],
     bonusDefinitions: BonusTypeDefinition[],
     existingBonus: BonusAmountMap,
-  ): UpdateData<DocumentData> | null {
-    const update: Record<string, unknown> = {};
-    let hasUpdate = false;
-
+  ): BonusImportPatch | null {
     const bonusTypes = new Set(bonusDefinitions.map((d) => d.type));
-    let bonusAmounts: BonusAmountMap | null = null;
-    let bonusChanged = false;
-
-    const setPayrollIfPresent = (key: BonusImportFieldKey) => {
-      const i = idx[key];
-      if (i === undefined || i < 0) return;
-      const raw = (cols[i] ?? '').trim();
-      if (!raw) return;
-      const num = this.parseNumber(raw);
-      if (num === null) return;
-      update[`payrollData.${key}`] = num;
-      hasUpdate = true;
-    };
-
-    const setBonusIfPresent = (bonusType: string) => {
-      const i = idx[bonusType];
-      if (i === undefined || i < 0) return;
-      const raw = (cols[i] ?? '').trim();
-      if (!raw) return;
-      const num = this.parseNumber(raw);
-      if (num === null) return;
-
-      if (!bonusAmounts) {
-        bonusAmounts = { ...existingBonus };
-      }
-      bonusChanged = true;
-      if (num === 0) {
-        delete bonusAmounts[bonusType];
-      } else {
-        bonusAmounts[bonusType] = num;
-      }
-      hasUpdate = true;
-    };
+    const patch: BonusImportPatch = {};
+    let hasUpdate = false;
 
     for (const col of columnDefs) {
       if (col.key === 'displayName' || col.key === 'employeeId') {
         continue;
       }
+
+      const i = idx[col.key];
+      if (i === undefined || i < 0) continue;
+      const raw = (cols[i] ?? '').trim();
+      if (!raw) continue;
+      const num = this.parseNumber(raw);
+      if (num === null) continue;
+
       if (bonusTypes.has(col.key)) {
-        setBonusIfPresent(col.key);
+        const bonusAmounts = { ...(patch.bonusAmounts ?? existingBonus) };
+        if (num === 0) {
+          delete bonusAmounts[col.key];
+        } else {
+          bonusAmounts[col.key] = num;
+        }
+        patch.bonusAmounts = bonusAmounts;
+        hasUpdate = true;
       } else if (col.kind === 'number') {
-        setPayrollIfPresent(col.key);
+        const payrollFields = { ...(patch.payrollFields ?? {}) };
+        payrollFields[col.key] = num;
+        patch.payrollFields = payrollFields;
+        hasUpdate = true;
       }
     }
 
-    if (bonusChanged && bonusAmounts) {
-      const bonusData = buildBonusData(bonusAmounts);
+    return hasUpdate ? patch : null;
+  }
+
+  private buildBonusUpdatePayload(
+    importPatch: BonusImportPatch,
+  ): UpdateData<DocumentData> {
+    const update: Record<string, unknown> = {};
+
+    if (importPatch.payrollFields) {
+      for (const [key, num] of Object.entries(importPatch.payrollFields)) {
+        update[`payrollData.${key}`] = num;
+      }
+    }
+
+    if (importPatch.bonusAmounts) {
+      const bonusData = buildBonusData(importPatch.bonusAmounts);
       if (bonusData === undefined) {
         update['bonusData'] = deleteField();
       } else {
@@ -247,10 +262,44 @@ export class BonusListImportService {
       }
     }
 
-    if (!hasUpdate) return null;
-
     update['updatedAt'] = serverTimestamp();
     return update as UpdateData<DocumentData>;
+  }
+
+  private buildBonusDocument(
+    employee: EmployeeLookupEntry,
+    importPatch: BonusImportPatch,
+  ): {
+    uid: string;
+    displayName: string;
+    bonusData?: BonusData;
+    payrollData?: Record<string, number>;
+    updatedAt: ReturnType<typeof serverTimestamp>;
+  } {
+    const doc: {
+      uid: string;
+      displayName: string;
+      bonusData?: BonusData;
+      payrollData?: Record<string, number>;
+      updatedAt: ReturnType<typeof serverTimestamp>;
+    } = {
+      uid: employee.uid,
+      displayName: employee.displayName,
+      updatedAt: serverTimestamp(),
+    };
+
+    if (importPatch.bonusAmounts) {
+      const bonusData = buildBonusData(importPatch.bonusAmounts);
+      if (bonusData !== undefined) {
+        doc.bonusData = bonusData;
+      }
+    }
+
+    if (importPatch.payrollFields && Object.keys(importPatch.payrollFields).length > 0) {
+      doc.payrollData = importPatch.payrollFields;
+    }
+
+    return doc;
   }
 
   private parseNumber(raw: string): number | null {

@@ -36,16 +36,16 @@
             }
             <button mat-button class="notification-button" [matMenuTriggerFor]="notificationMenu">
                 <mat-icon>notifications</mat-icon>
-                @if (tenantNotificationService.unreadCount() > 0) {
-                    <span class="notification-badge">{{ tenantNotificationService.unreadCount() }}</span>
+                @if (notificationService.unreadCount() > 0) {
+                    <span class="notification-badge">{{ notificationService.unreadCount() }}</span>
                 }
                 <mat-icon>arrow_drop_down</mat-icon>
             </button>
             <mat-menu #notificationMenu="matMenu" class="notification-menu">
-                @if (tenantNotificationService.notifications().length === 0) {
+                @if (notificationService.notifications().length === 0) {
                     <div class="notification-empty">通知はありません</div>
                 } @else {
-                    @for (notification of tenantNotificationService.notifications(); track notification.id + notification.scope) {
+                    @for (notification of notificationService.notifications(); track notification.id + notification.scope) {
                         <button mat-menu-item type="button" (click)="readNotification(notification)">
                             <div class="notification-row">
                                 <div class="notification-title-line">

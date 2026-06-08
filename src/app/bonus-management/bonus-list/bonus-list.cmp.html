@@ -43,10 +43,12 @@
             [disabled]="bulkSaving"
             (click)="csvFileInput.click()"
             matTooltip="CSVファイルからインポート">
-            <mat-icon>download</mat-icon>
-          </button>
-          <button mat-icon-button matTooltip="CSVエクスポート">
-            <mat-icon>upload</mat-icon>
+            <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=csv" />
+            <mat-icon>
+              <span class="material-symbols-outlined">
+                csv
+              </span>
+            </mat-icon>
           </button>
           <button
             mat-icon-button
@@ -83,15 +85,6 @@
   
       @if (loading) {
         <p class="loading-message">月次データを読み込んでいます...</p>
-      } @else if (!bonusRecordExists()) {
-        <p class="empty-message">{{ yyyyMm() }} の月次データはありません。</p>
-        <button
-          mat-flat-button
-          color="primary"
-          [disabled]="initializing"
-          (click)="initializeBonusRecords()">
-          今月の月次データを作成する
-        </button>
       } @else if (isFilterActive() && !hasFilteredResults()) {
         <p class="empty-message">検索結果がありません。</p>
       } @else {

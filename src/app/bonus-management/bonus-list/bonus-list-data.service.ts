@@ -1,9 +1,10 @@
 import { Injectable, inject } from '@angular/core';
-import { Firestore, collection, getDocs, writeBatch, doc, serverTimestamp } from '@angular/fire/firestore';
+import { Firestore, collection, getDocs } from '@angular/fire/firestore';
 import { EmployeeDocument } from '../../employee-document';
 import { BonusListRow } from './bonus-list-columns';
 
 export interface EmployeeLookupEntry {
+  uid: string;
   eid: string;
   employeeId: string;
   displayName: string;
@@ -23,6 +24,7 @@ export class BonusListDataService {
     for (const snap of employees.docs) {
       const data = snap.data() as Partial<EmployeeDocument>;
       lookup.set(snap.id, {
+        uid: data.uid ?? '',
         eid: snap.id,
         employeeId: data.employeeEmployInfo?.employeeId ?? '',
         displayName: data.employeePersonalInfo?.displayName ?? '',
@@ -66,42 +68,5 @@ export class BonusListDataService {
     }
 
     return { eidByEmployeeId, eidsByDisplayName };
-  }
-
-  async initializeBonusRecords(tid: string, yyyyMm: string): Promise<number> {
-    const employeesRef = collection(this.firestore, 'tenants', tid, 'employees');
-    const snapshot = await getDocs(employeesRef);
-    const targets = snapshot.docs.filter((snap) => {
-      const data = snap.data() as Partial<EmployeeDocument>;
-      const status = data.employeeEmployInfo?.status;
-      return status !== 'resigned';
-    });
-    if (targets.length === 0) return 0;
-    const BATCH_SIZE = 500;
-    let created = 0;
-    for (let i = 0; i < targets.length; i += BATCH_SIZE) {
-      const chunk = targets.slice(i, i + BATCH_SIZE);
-      const batch = writeBatch(this.firestore);
-      for (const snap of chunk) {
-        const data = snap.data() as Partial<EmployeeDocument>;
-        const ref = doc(
-          this.firestore,
-          'tenants',
-          tid,
-          'bonus-records',
-          yyyyMm,
-          'employees',
-          snap.id,
-        );
-        batch.set(ref, {
-          uid: data.uid ?? '',
-          displayName: data.employeePersonalInfo?.displayName ?? '',
-          updatedAt: serverTimestamp(),
-        });
-        created++;
-      }
-      await batch.commit();
-    }
-    return created;
   }
 }

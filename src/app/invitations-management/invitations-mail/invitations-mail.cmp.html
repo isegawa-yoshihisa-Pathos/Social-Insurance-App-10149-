@@ -76,7 +76,12 @@
                 class="import-invitation-emails-button" 
                 (click)="csvFileInput.click()"
                 matTooltip="CSVファイルからインポート">
-                <mat-icon>download</mat-icon>
+                <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=csv" />
+                <mat-icon>
+                  <span class="material-symbols-outlined">
+                    csv
+                  </span>
+                </mat-icon>
             </button>
             <button mat-flat-button color="primary" class="send-invitation-button" (click)="sendInvitation()">
                 <span>{{sendBusy ? '送信中...' : '送信'}}</span>
