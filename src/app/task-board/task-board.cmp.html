@@ -1,1 +1,8 @@
-<p>task-board works!</p>
+@if (isAdmin) {
+    <div class="task-board-container">
+        <app-tenant-task />
+    </div>
+}
+<div class="task-board-container">
+    <app-personal-task />
+</div>

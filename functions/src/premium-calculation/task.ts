@@ -128,19 +128,15 @@ async function recordTaskResult(
       return;
     }
 
-    const notifRef = db
-      .collection('tenants')
-      .doc(tid)
-      .collection('notifications')
-      .doc();
+    const admins = await db.collection('tenants').doc(tid).collection('employees').where('role', '==', 'admin').get();
+    const adminUids = admins.docs.map((doc) => doc.data()?.uid);
 
     const label = kind === 'monthly' ? '月次' : '賞与';
 
-    tx.set(notifRef, {
+    const notifDoc = {
+      scope: 'tenant',
       type: 'premium_calculation_completed',
       jobId,
-      kind,
-      yyyyMm,
       title: `${label}保険料計算が完了しました`,
       body: `${yyyyMm} / ${total}件中 ${nextSucceeded}件成功、${nextFailed}件失敗`,
       totals: {
@@ -151,7 +147,12 @@ async function recordTaskResult(
       read: false,
       createdBy: job.createdBy ?? createdBy,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    };
+
+    for (const uid of adminUids) {
+      const notifRef = db.collection('accounts').doc(uid).collection('notifications').doc();
+      tx.set(notifRef, notifDoc);
+    }
 
     tx.update(jobRef, {
       status: 'completed',

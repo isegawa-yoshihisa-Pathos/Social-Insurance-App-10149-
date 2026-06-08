@@ -2,11 +2,11 @@ import { Component, inject } from '@angular/core';
 import { NotificationService } from '../notification.service';
 
 @Component({
-  selector: 'app-tenant-notification',
+  selector: 'app-personal-notification',
   imports: [],
-  templateUrl: './tenant-notification.cmp.html',
-  styleUrl: './tenant-notification.cmp.css',
+  templateUrl: './personal-notification.cmp.html',
+  styleUrl: './personal-notification.cmp.css',
 })
-export class TenantNotificationCmp {
+export class PersonalNotificationCmp {
   readonly notificationService = inject(NotificationService);
 }

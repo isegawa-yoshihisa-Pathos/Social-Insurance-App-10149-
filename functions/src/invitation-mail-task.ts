@@ -147,13 +147,11 @@ async function recordTaskResult(
       return;
     }
 
-    const notifRef = db
-      .collection('tenants')
-      .doc(tid)
-      .collection('notifications')
-      .doc();
+    const admins = await db.collection('tenants').doc(tid).collection('employees').where('role', '==', 'admin').get();
+    const adminUids = admins.docs.map((doc) => doc.data()?.uid);
 
-    tx.set(notifRef, {
+    const notifDoc = {
+      scope: 'tenant',
       type: 'invitation_batch_completed',
       jobId,
       title: '招待メール送信が完了しました',
@@ -166,7 +164,12 @@ async function recordTaskResult(
       read: false,
       createdBy: job.createdBy ?? createdBy,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    };
+    
+    for (const uid of adminUids) {
+      const notifRef = db.collection('accounts').doc(uid).collection('notifications').doc();
+      tx.set(notifRef, notifDoc);
+    }
 
     tx.update(jobRef, {
       status: 'completed',

@@ -1,5 +1,5 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { collection, doc, Firestore, limit, onSnapshot, orderBy, query, Unsubscribe, updateDoc } from '@angular/fire/firestore';
+import { collection, doc, Firestore, limit, onSnapshot, orderBy, query, Unsubscribe, updateDoc, where } from '@angular/fire/firestore';
 
 export type NotificationScope = 'tenant' | 'individual';
 
@@ -20,15 +20,15 @@ export interface AppNotification {
 export class NotificationService {
   private readonly firestore = inject(Firestore);
   private tenantUnsub: Unsubscribe | null = null;
-  private individualUnsub: Unsubscribe | null = null;
+  private personalUnsub: Unsubscribe | null = null;
   private currentTid: string | null = null;
   private currentUid: string | null = null;
 
   readonly tenantNotifications = signal<AppNotification[]>([]);
-  readonly individualNotifications = signal<AppNotification[]>([]);
+  readonly personalNotifications = signal<AppNotification[]>([]);
 
   readonly notifications = computed(() => {
-    const merged = [...this.tenantNotifications(), ...this.individualNotifications()];
+    const merged = [...this.tenantNotifications(), ...this.personalNotifications()];
     return merged.sort((a, b) => {
       const aTime = a.createdAt?.getTime() ?? 0;
       const bTime = b.createdAt?.getTime() ?? 0;
@@ -45,7 +45,7 @@ export class NotificationService {
     this.currentUid = params.uid;
     this.currentTid = params.tid;
 
-    this.subscribeIndividualNotifications(params.uid);
+    this.subscribePersonalNotifications(params.uid);
     if (params.isAdmin) {
       this.subscribeTenantNotifications(params.tid);
     }
@@ -74,45 +74,44 @@ export class NotificationService {
 
   unsubscribe(): void {
     this.tenantUnsub?.();
-    this.individualUnsub?.();
+    this.personalUnsub?.();
     this.tenantUnsub = null;
-    this.individualUnsub = null;
+    this.personalUnsub = null;
     this.currentTid = null;
     this.currentUid = null;
     this.tenantNotifications.set([]);
-    this.individualNotifications.set([]);
+    this.personalNotifications.set([]);
   }
 
-  private subscribeTenantNotifications(tid: string): void {
-    const ref = collection(this.firestore, 'tenants', tid, 'notifications');
-    const q = query(ref, orderBy('createdAt', 'desc'), limit(30));
+  private subscribeTenantNotifications(uid: string): void {
+    const ref = collection(this.firestore, 'accounts', uid, 'notifications');
+    const q = query(ref, where('scope', '==', 'tenant'), orderBy('createdAt', 'desc'), limit(30));
     this.tenantUnsub = onSnapshot(q, (snap) => {
       const items = snap.docs.map((d) =>
-        this.mapNotificationDoc(d.id, d.data(), 'tenant'),
+        this.mapNotificationDoc(d.id, d.data()),
       );
       this.tenantNotifications.set(items);
     });
   }
 
-  private subscribeIndividualNotifications(uid: string): void {
+  private subscribePersonalNotifications(uid: string): void {
     const ref = collection(this.firestore, 'accounts', uid, 'notifications');
-    const q = query(ref, orderBy('createdAt', 'desc'), limit(30));
-    this.individualUnsub = onSnapshot(q, (snap) => {
+    const q = query(ref, where('scope', '==', 'personal'), orderBy('createdAt', 'desc'), limit(30));
+    this.personalUnsub = onSnapshot(q, (snap) => {
       const items = snap.docs.map((d) =>
-        this.mapNotificationDoc(d.id, d.data(), 'individual'),
+        this.mapNotificationDoc(d.id, d.data()),
       );
-      this.individualNotifications.set(items);
+      this.personalNotifications.set(items);
     });
   }
 
   private mapNotificationDoc(
     id: string,
     raw: any,
-    scope: NotificationScope,
   ): AppNotification {
     return {
       id,
-      scope,
+      scope: raw?.scope as NotificationScope,
       type: String(raw?.type ?? ''),
       jobId: raw?.jobId,
       title: raw?.title,
