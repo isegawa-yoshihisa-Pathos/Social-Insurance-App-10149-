@@ -85,7 +85,7 @@ export function selectMonthsForZuijiAverage(
   }
   const allPrimary = months.every(
     (m) => {
-      const paymentBaseDays = m.paymentBaseDays ?? estimatePaymentBaseDaysCalendarMonth(m.hasMonthlyRecord, m.daysInMonth);
+      const paymentBaseDays = m.paymentBaseDays;
       return classifyPaymentBaseDaysTier(category, paymentBaseDays) === 'primary';
     }
   );
@@ -164,12 +164,4 @@ function buildPayrollAverage(
     tier,
     averageRemuneration: total / usedMonths.length,
   };
-}
-
-/** 簡易: 月次レコードあり＋月給想定で暦日数 */
-export function estimatePaymentBaseDaysCalendarMonth(
-  hasMonthlyRecord: boolean,
-  daysInMonth: number,
-): number {
-  return hasMonthlyRecord ? daysInMonth : 0;
 }

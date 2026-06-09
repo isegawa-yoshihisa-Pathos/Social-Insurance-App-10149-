@@ -74,6 +74,7 @@ export function getOptionalPaymentListColumns(
   return [
     { key: 'displayName', label: '氏名' },
     { key: 'employeeId', label: '社員番号' },
+    { key: 'paymentBaseDays', label: '支払基礎日数' },
     { key: 'basicSalary', label: '基本給与' },
     { key: 'fixedWage', label: '固定的賃金' },
     { key: 'variableWage', label: '非固定的賃金' },
@@ -143,6 +144,7 @@ export interface PaymentListRow {
   eid: string;
   employeeId: string;
   displayName: string;
+  paymentBaseDays: number;
   basicSalary: number;
   fixedWage: number | null;
   variableWage: number | null;

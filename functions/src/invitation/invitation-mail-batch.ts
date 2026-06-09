@@ -7,7 +7,7 @@ import {
   isValidEmail,
   loadInvitationMailContext,
 } from './invitation-mail-core';
-import { assertTenantAdmin, mapCoreErrorToHttpsError } from './core-functions';
+import { assertTenantAdmin, mapCoreErrorToHttpsError } from '../core-functions';
 
 if (admin.apps.length === 0) {
   admin.initializeApp();

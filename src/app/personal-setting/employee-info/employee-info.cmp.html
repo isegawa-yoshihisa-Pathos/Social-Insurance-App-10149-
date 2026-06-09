@@ -10,22 +10,22 @@
     </div>
     <div class="info-row">
         <span class="info-label">本名：
-            @if (dataService.isEmployeeRealNameMissing) {
+            @if (dataService.isPersonalRealNameMissing) {
                 <span class="required-badge"></span>
             }
         </span>
         <span class="info-value">
-            {{ dataService.employeeForm.realName.lastName }} {{ dataService.employeeForm.realName.firstName }}
+            {{ dataService.personalForm.realName.lastName }} {{ dataService.personalForm.realName.firstName }}
         </span>
     </div>
     <div class="info-row">
         <span class="info-label">本名(フリガナ)：
-            @if (dataService.isEmployeeRealNameKanaMissing) {
+            @if (dataService.isPersonalRealNameKanaMissing) {
                 <span class="required-badge"></span>
             }
         </span>
         <span class="info-value">
-            {{ dataService.employeeForm.realName.lastNameKana }} {{ dataService.employeeForm.realName.firstNameKana }}
+            {{ dataService.personalForm.realName.lastNameKana }} {{ dataService.personalForm.realName.firstNameKana }}
         </span>
     </div>
     <div class="info-row">
@@ -58,27 +58,27 @@
     </div>
     <div class="info-row">
         <span class="info-label">生年月日：
-            @if (dataService.isEmployeeBirthDateMissing) {
+            @if (dataService.isPersonalBirthDateMissing) {
                 <span class="required-badge"></span>
             }
         </span>
-        <span class="info-value">{{ formatDate(dataService.employeeForm.birthDate) }}</span>
+        <span class="info-value">{{ formatDate(dataService.personalForm.birthDate) }}</span>
     </div>
     <div class="info-row">
         <span class="info-label">マイナンバー：
-            @if (dataService.isEmployeeMyNumberMissing) {
+            @if (dataService.isPersonalMyNumberMissing) {
                 <span class="required-badge"></span>
             }
         </span>
-        <span class="info-value">{{ dataService.employeeForm.myNumber }}</span>
+        <span class="info-value">{{ dataService.personalForm.myNumber }}</span>
     </div>
     <div class="info-row">
         <span class="info-label">基礎年金番号：
-            @if (dataService.isEmployeeBasicPensionNumberMissing) {
+            @if (dataService.isPersonalBasicPensionNumberMissing) {
                 <span class="required-badge"></span>
             }
         </span>
-        <span class="info-value">{{ dataService.employeeForm.basicPensionNumber }}</span>
+        <span class="info-value">{{ dataService.personalForm.basicPensionNumber }}</span>
     </div>
     <div class="info-row">
         <span class="info-label">扶養家族の有無：</span>

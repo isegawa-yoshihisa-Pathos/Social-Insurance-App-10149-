@@ -18,7 +18,7 @@ import { MonthlyDocument } from '../../monthly-document';
 import { BulkColumnEditDialogCmp, BulkColumnEditDialogData } from './bulk-column-edit-dialog/bulk-column-edit-dialog.cmp';
 import { BulkEditableColumn, BulkEditValue, isEditableColumn } from './monthly-bulk-edit.types';
 import { MonthlyListBulkEditService } from './monthly-list-bulk-edit.service';
-import { formatMonthlyListCellValue, getMonthlyListEditValue, monthlyListSearchText, monthlyListSortValue, toMonthlyListRow } from './monthly-list-row.mapper';
+import { formatMonthlyListCellValue, getMonthlyListEditValue, isSummableMonthlyListColumn, monthlyListNumericValue, monthlyListSearchText, monthlyListSortValue, toMonthlyListRow } from './monthly-list-row.mapper';
 import { YEAR_OPTIONS, MONTH_OPTIONS } from '../../datePicker';
 import { ErrorDialogCmp, mapFirebaseError } from '../../error-dialog/error-dialog.cmp';
 import { SuccessDialogCmp } from '../../success-dialog/success-dialog.cmp';
@@ -29,6 +29,7 @@ import { HelpContentCmp } from '../../help-content/help-content.cmp';
 import { MonthlyPremiumCalculateFacade } from '../monthly-premium/monthly-premium-calculate.facade';
 import { PaymentManagementDataService } from '../../payment-management/payment-management-data.service';
 import { Router, ActivatedRoute } from '@angular/router';
+import { Format } from '../../format-number-jp';
 
 @Component({
   selector: 'app-monthly-list',
@@ -100,6 +101,23 @@ export class MonthlyListCmp implements OnInit {
 
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+
+  private getDisplayedRows(): MonthlyListRow[] {
+    return this.dataSource.filteredData;
+  }
+
+  formatFooterValue(col: MonthlyListColumnKey): string {
+    if (col === 'displayName') {
+      return `合計 (${this.getDisplayedRows().length}件)`;
+    }
+    if (col === 'employeeId') return '';
+    if (!isSummableMonthlyListColumn(col)) return '';
+    const total = this.getDisplayedRows().reduce(
+      (sum, row) => sum + (monthlyListNumericValue(row, col) ?? 0),
+      0,
+    );
+    return total === 0 ? '' : Format(total);
+  }
 
   ngOnInit(): void {
     this.route.queryParams.subscribe(params => {
@@ -274,7 +292,7 @@ export class MonthlyListCmp implements OnInit {
 
   onCellClick(row: MonthlyListRow, col: MonthlyListColumnKey): void {
     if (col === 'displayName' || col === 'employeeId') {
-      this.routesService.redirectToEmployeeEmployDetail(row.eid);
+      this.routesService.redirectToMonthlyDetail(row.eid);
       return;
     }
 

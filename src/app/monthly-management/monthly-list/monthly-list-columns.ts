@@ -24,6 +24,7 @@ export type MonthlyListColumnKey =
 export const BASE_MONTHLY_LIST_COLUMN_KEYS = [
   'displayName',
   'employeeId',
+  'paymentBaseDays',
   'basicSalary',
   'fixedWage',
   'variableWage',
@@ -35,12 +36,14 @@ export type BaseMonthlyListColumnKey = (typeof BASE_MONTHLY_LIST_COLUMN_KEYS)[nu
 export const DEFAULT_MONTHLY_LIST_COLUMNS: MonthlyListColumnKey[] = [
   'displayName',
   'employeeId',
+  'paymentBaseDays',
   'basicSalary',
 ];
 
 const STATIC_COLUMN_LABELS: Record<BaseMonthlyListColumnKey, string> = {
   displayName: '氏名',
   employeeId: '社員番号',
+  paymentBaseDays: '支払基礎日数',
   basicSalary: '基本給与',
   fixedWage: '固定的賃金',
   variableWage: '非固定的賃金',
@@ -68,6 +71,7 @@ export function getOptionalMonthlyListColumns(
   return [
     { key: 'displayName', label: '氏名' },
     { key: 'employeeId', label: '社員番号' },
+    { key: 'paymentBaseDays', label: '支払基礎日数' },
     { key: 'basicSalary', label: '基本給与' },
     { key: 'fixedWage', label: '固定的賃金' },
     { key: 'variableWage', label: '非固定的賃金' },
@@ -97,6 +101,7 @@ export interface MonthlyListRow {
   eid: string;
   employeeId: string;
   displayName: string;
+  paymentBaseDays: number;
   basicSalary: number;
   fixedWage: number | null;
   variableWage: number | null;

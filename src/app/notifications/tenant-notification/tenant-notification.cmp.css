@@ -16,3 +16,10 @@
   color: #666;
   margin-bottom: 24px;
 }
+
+.notification-item-read-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #673ab7;
+}

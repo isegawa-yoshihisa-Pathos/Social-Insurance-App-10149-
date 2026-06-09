@@ -208,10 +208,6 @@ async function tryTeiji(
   if (!licenseDate) return null;
   if (licenseDate.getFullYear() === year && licenseDate.getMonth() === 6) return null;
 
-  const history = await listStandardRemuneration(db, tid, eid);
-  const prior = history.find((item) => item.yyyyMm === yyyyMm);
-  if (prior && prior.doc.source === 'zuiji') return null;
-
   const monthKeys = [`${year}-04`, `${year}-05`, `${year}-06`];
   const sources = await loadMonthSources(db, tid, eid, monthKeys);
   if (sources.length === 0) return null;
@@ -220,7 +216,25 @@ async function tryTeiji(
     ctx.employmentType,
     sources.map((s) => toMonthPaymentBaseInput(s)),
   );
-  if (outcome.kind !== 'calculated') return null;
+  if (outcome.kind === 'invalid') return null;
+  if (outcome.kind === 'continue_previous') {
+    const history = await listStandardRemuneration(db, tid, eid);
+    const prior = history.find((item) => item.yyyyMm < yyyyMm);
+    if (!prior) {
+      const outcome = determineInitial(ctx.monthly.payrollData);
+      if (outcome.kind !== 'calculated') return null;
+      return gradesToPayload('initial', yyyyMm, outcome.grades);
+    }
+
+    return {
+      healthGrade: prior.doc.healthGrade,
+      pensionGrade: prior.doc.pensionGrade,
+      standardRemuneration: prior.doc.standardRemuneration,
+      source: 'teiji',
+      effectiveFrom: `${year}-09`,
+      remuneration: prior.doc.remuneration,
+    };
+  }
 
   return gradesToPayload('teiji', `${year}-09`, outcome.grades);
 }
@@ -319,6 +333,7 @@ async function loadMonthSources(
       hasMonthlyRecord: true,
       daysInMonth: daysInMonth(ym),
       payroll: monthly.payrollData,
+      paymentBaseDays: monthly.paymentBaseDays,
     });
   }
   return sources;

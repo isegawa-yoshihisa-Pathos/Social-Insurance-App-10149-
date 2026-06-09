@@ -56,9 +56,6 @@ export class NotificationService {
     if (notification.read) {
       return;
     }
-    if (notification.scope === 'tenant') {
-      return;
-    }
     if (!this.currentUid) {
       return;
     }

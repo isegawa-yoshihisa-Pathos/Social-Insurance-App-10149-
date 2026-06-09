@@ -33,7 +33,7 @@
     <div class="field-container">
         <label class="label-name">
             本名：
-            @if (dataService.isEmployeeRealNameMissing) {
+            @if (dataService.isPersonalRealNameMissing) {
                 <span class="required-badge"></span>
             }
         </label>
@@ -43,7 +43,7 @@
                 matInput 
                 type="text" 
                 placeholder="（例）山田" 
-                [(ngModel)]="employeeForm.realName.lastName"
+                [(ngModel)]="personalForm.realName.lastName"
                 name="lastName"
                 pattern="^[a-zA-Zぁ-んァ-ン一-龥\sー]+$"
             />
@@ -54,7 +54,7 @@
                 matInput 
                 type="text" 
                 placeholder="（例）太郎" 
-                [(ngModel)]="employeeForm.realName.firstName"
+                [(ngModel)]="personalForm.realName.firstName"
                 name="firstName"
                 pattern="^[a-zA-Zぁ-んァ-ン一-龥\sー]+$"
             />
@@ -63,7 +63,7 @@
     <div class="field-container">
         <label class="label-name">
             本名(フリガナ)：
-            @if (dataService.isEmployeeRealNameKanaMissing) {
+            @if (dataService.isPersonalRealNameKanaMissing) {
                 <span class="required-badge"></span>
             }
         </label>
@@ -73,7 +73,7 @@
                 matInput 
                 type="text" 
                 placeholder="（例）ヤマダ" 
-                [(ngModel)]="employeeForm.realName.lastNameKana"
+                [(ngModel)]="personalForm.realName.lastNameKana"
                 #employeeLastNameKanaRef="ngModel"
                 name="lastNameKana"
                 pattern="^[ァ-ヶー\s]+$"
@@ -90,7 +90,7 @@
                 matInput 
                 type="text" 
                 placeholder="（例）タロウ" 
-                [(ngModel)]="employeeForm.realName.firstNameKana"
+                [(ngModel)]="personalForm.realName.firstNameKana"
                 #employeeFirstNameKanaRef="ngModel"
                 name="firstNameKana"
                 pattern="^[ァ-ヶー\s]+$"
@@ -195,7 +195,7 @@
     <div class="field-container">
         <label class="label-name">
             生年月日：
-            @if (dataService.isEmployeeBirthDateMissing) {
+            @if (dataService.isPersonalBirthDateMissing) {
                 <span class="required-badge"></span>
             }
         </label>
@@ -204,7 +204,7 @@
             <input
                 matInput
                 [matDatepicker]="birthDatePicker"
-                [(ngModel)]="employeeForm.birthDate"
+                [(ngModel)]="personalForm.birthDate"
                 name="birthDate"
             />
             <mat-datepicker-toggle matIconSuffix [for]="birthDatePicker"></mat-datepicker-toggle>
@@ -214,7 +214,7 @@
     <div class="field-container">
         <label class="label-name">
             マイナンバー：
-            @if (dataService.isEmployeeMyNumberMissing) {
+            @if (dataService.isPersonalMyNumberMissing) {
                 <span class="required-badge"></span>
             }
         </label>
@@ -225,7 +225,7 @@
                 type="text"
                 inputmode="numeric"
                 placeholder="（例）123456789012"
-                [(ngModel)]="employeeForm.myNumber"
+                [(ngModel)]="personalForm.myNumber"
                 #employeeMyNumberRef="ngModel"
                 name="myNumber"
                 maxlength="12"
@@ -242,7 +242,7 @@
     <div class="field-container">
         <label class="label-name">
             基礎年金番号：
-            @if (dataService.isEmployeeBasicPensionNumberMissing) {
+            @if (dataService.isPersonalBasicPensionNumberMissing) {
                 <span class="required-badge"></span>
             }
         </label>
@@ -253,7 +253,7 @@
                 type="text"
                 inputmode="numeric"
                 placeholder="（例）1234-6789012"
-                [(ngModel)]="employeeForm.basicPensionNumber"
+                [(ngModel)]="personalForm.basicPensionNumber"
                 #employeeBasicPensionNumberRef="ngModel"
                 name="basicPensionNumber"
                 maxlength="11"

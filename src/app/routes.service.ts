@@ -85,6 +85,10 @@ export class RoutesService {
     void this.router.navigate(['/monthly-management']);
   }
 
+  redirectToMonthlyDetail(eid: string): void {
+    void this.router.navigate(['/monthly-management', 'detail', eid]);
+  }
+
   redirectToPaymentManagement(): void {
     void this.router.navigate(['/payment-management']);
   }

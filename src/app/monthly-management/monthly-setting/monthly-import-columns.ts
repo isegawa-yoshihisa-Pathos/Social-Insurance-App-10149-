@@ -5,6 +5,7 @@ export type StaticMonthlyImportFieldKey = keyof Pick<
   MonthlyFormData,
   | 'displayName'
   | 'employeeId'
+  | 'paymentBaseDays'
   | 'basicSalary'
   | 'retroactivePay'
 >;
@@ -31,8 +32,13 @@ export const STATIC_MONTHLY_IMPORT_COLUMNS: MonthlyImportColumnDef[] = [
     key: 'displayName',
     label: '氏名（照合用）',
     defaultHeader: 'displayName',
-    required: true,
     kind: 'string',
+  },
+  {
+    key: 'paymentBaseDays',
+    label: '支払基礎日数',
+    defaultHeader: 'paymentBaseDays',
+    kind: 'number',
   },
   {
     key: 'basicSalary',

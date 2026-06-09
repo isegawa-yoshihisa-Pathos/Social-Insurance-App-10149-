@@ -1,24 +1,28 @@
 <div class="notification-label">
     事業所通知
-  </div>
-  <div class="notification-content">
-    <div class="notification-content-description">
-      事業所通知を受け取ることができます。
+</div>
+    <div class="notification-content">
+        <div class="notification-content-description">
+        事業所通知を受け取ることができます。
+        </div>
+        <div class="notification-list">
+            @for (notification of notificationService.tenantNotifications(); track notification.id) {
+                <button (click)="notificationService.markAsRead(notification)" class="notification-item">
+                    <div class="notification-item-read">
+                        @if (!notification.read) {
+                            <div class="notification-item-read-dot"></div>
+                        }
+                    </div>
+                    <div class="notification-item-title">
+                        {{ notification.title }}
+                    </div>
+                    <div class="notification-item-body">
+                        {{ notification.body }}
+                    </div>
+                    <div class="notification-item-created-at">
+                        {{ notification.createdAt }}
+                    </div>
+                </button>
+            }
+        </div>
     </div>
-    <div class="notification-list">
-        @for (notification of notificationService.tenantNotifications(); track notification.id) {
-            <div class="notification-item">
-                <div class="notification-item-title">
-                    {{ notification.title }}
-                </div>
-                <div class="notification-item-body">
-                    {{ notification.body }}
-                </div>
-                <div class="notification-item-created-at">
-                    {{ notification.createdAt }}
-                </div>
-            </div>
-        }
-    </div>
-
-  </div>

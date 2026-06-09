@@ -67,7 +67,6 @@ export class AppHeaderCmp {
     await this.personalSettingDataService.reloadForTenantChange();
     await this.tenantSettingDataService.reloadForTenantChange();
     this.invitationDataService.reset();
-    this.notificationService.unsubscribe();
     this.routesService.redirectToMainPage();
   }
 

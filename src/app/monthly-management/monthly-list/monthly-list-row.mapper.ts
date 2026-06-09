@@ -18,6 +18,7 @@ export function toMonthlyListRow(
       eid,
       employeeId: '',
       displayName: data.displayName ?? '',
+      paymentBaseDays: data.paymentBaseDays ?? 0,
       basicSalary: payroll?.basicSalary ?? 0,
       fixedWage: payroll?.fixedWage ?? null,
       variableWage: payroll?.variableWage ?? null,
@@ -94,6 +95,20 @@ export function monthlyListSortValue(
 
   if (value == null) return '';
   return String(value);
+}
+
+export function monthlyListNumericValue(
+  row: MonthlyListRow,
+  column: MonthlyListColumnKey,
+): number | null {
+  const value = monthlyListSortValue(row, column);
+  return typeof value === 'number' ? value : null;
+}
+
+export function isSummableMonthlyListColumn(
+  column: MonthlyListColumnKey,
+): boolean {
+  return column !== 'displayName' && column !== 'employeeId';
 }
 
 export function monthlyListSearchText(

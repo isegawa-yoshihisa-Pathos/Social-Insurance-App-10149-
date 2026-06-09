@@ -152,6 +152,10 @@ export const routes: Routes = [
             loadComponent: () => import('./monthly-management/monthly-list/monthly-list.cmp').then(m => m.MonthlyListCmp),
           },
           {
+            path: 'detail/:eid',
+            loadComponent: () => import('./monthly-management/monthly-list/monthly-detail/monthly-detail.cmp').then(m => m.MonthlyDetailCmp),
+          },
+          {
             path: 'setting',
             loadComponent: () => import('./monthly-management/monthly-setting/monthly-setting.cmp').then(m => m.MonthlySettingCmp),
           },

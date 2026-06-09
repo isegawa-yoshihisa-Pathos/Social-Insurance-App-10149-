@@ -46,6 +46,7 @@ export class EmployeeInfoEditCmp {
   ).map(([value, label]) => ({ value, label }));
 
   get employeeForm() { return this.dataService.employeeForm; }
+  get personalForm() { return this.dataService.personalForm; }
 
   get employeeDisplayZipcode(): string {
     const z = this.employeeForm.zipcode;

@@ -4,7 +4,6 @@ import {
   type SplitPremiumResult,
 } from './rounding';
 import { EmployeeRateByInsurance, normalizeEmployeeRate, normalizeRoundingBy, RoundingByInsurance } from '../monthly/social-insurance-document';
-import { parseYyyyMm } from '../monthly/social-insurance-data.util';
 
 export interface InsuranceRatesInput {
   healthInsuranceRate: number;
@@ -42,9 +41,58 @@ export function isCareInsuranceTarget(
   if (!birthDate) {
     return false;
   }
-  const { year, month } = parseYyyyMm(yyyyMm);
-  const age = ageAtEndOfMonth(birthDate, year, month);
-  return age >= 40 && age < 65;
+
+  const birthday40 = new Date(birthDate.getTime());
+  birthday40.setFullYear(birthDate.getFullYear() + 40);
+  const start = reachedMonth(birthday40);
+  const startYyyyMm = `${start.yyyy}-${String(start.mm).padStart(2, '0')}`;
+
+  const birthday65 = new Date(birthDate.getTime());
+  birthday65.setFullYear(birthDate.getFullYear() + 65);
+  const end = reachedMonth(birthday65);
+  const endYyyyMm = `${end.yyyy}-${String(end.mm).padStart(2, '0')}`;
+
+  return startYyyyMm <= yyyyMm && yyyyMm < endYyyyMm;
+}
+
+export function isHealthInsuranceTarget(
+  birthDate: Date | null,
+  yyyyMm: string,
+): boolean {
+  if (!birthDate) {
+    return false;
+  }
+
+  const birthday75 = new Date(birthDate.getTime());
+  birthday75.setFullYear(birthDate.getFullYear() + 75);
+  const end = reachedMonth(birthday75);
+  const endYyyyMm = `${end.yyyy}-${String(end.mm).padStart(2, '0')}`;
+
+  return yyyyMm <= endYyyyMm;
+}
+
+export function isPensionInsuranceTarget(
+  birthDate: Date | null,
+  yyyyMm: string,
+): boolean {
+  if (!birthDate) {
+    return false;
+  }
+  
+  const birthday70 = new Date(birthDate.getTime());
+  birthday70.setFullYear(birthDate.getFullYear() + 70);
+  const end = reachedMonth(birthday70);
+  const endYyyyMm = `${end.yyyy}-${String(end.mm).padStart(2, '0')}`;
+
+  return yyyyMm <= endYyyyMm;
+}
+
+export function reachedMonth(date: Date): { yyyy: number; mm: number } {
+  const previousDay = new Date(date.getTime());
+  previousDay.setDate(previousDay.getDate() - 1);
+  const yyyy = previousDay.getFullYear();
+  const mm = previousDay.getMonth() + 1;
+  return {yyyy, mm};
 }
 
 function toPremiumPart(
@@ -81,23 +129,39 @@ export function calculateMonthlyPremium(input: PremiumCalculationInput): Premium
   const rate = normalizeEmployeeRate(input.employeeRate);
   const rounding = normalizeRoundingBy(input.roundingBy);
 
-  const health = premiumFromStandardRemuneration(
-    standardRemuneration.health,
-    rates.healthInsuranceRate,
-    { 
-      employeeRate: rate.healthInsurance,
-      roundingBy: rounding.healthInsurance,
-    },
-  );
+  let health: PremiumData['healthInsurance'] = {
+    employer: null,
+    employee: null,
+  };
 
-  const pension = premiumFromStandardRemuneration(
-    standardRemuneration.pension,
-    rates.pensionInsuranceRate,
-    { 
-      employeeRate: rate.pensionInsurance,
-      roundingBy: rounding.pensionInsurance,
-    },
-  );
+  if (isHealthInsuranceTarget(birthDate, yyyyMm)) {
+    const healthSplit = premiumFromStandardRemuneration(
+      standardRemuneration.health,
+      rates.healthInsuranceRate,
+      { 
+        employeeRate: rate.healthInsurance,
+        roundingBy: rounding.healthInsurance,
+      },
+    );
+    health = toPremiumPart(healthSplit);
+  }
+
+  let pension: PremiumData['pensionInsurance'] = {
+    employer: null,
+    employee: null,
+  };
+
+  if (isPensionInsuranceTarget(birthDate, yyyyMm)) {
+    const pensionSplit = premiumFromStandardRemuneration(
+      standardRemuneration.pension,
+      rates.pensionInsuranceRate,
+      { 
+        employeeRate: rate.pensionInsurance,
+        roundingBy: rounding.pensionInsurance,
+      },
+    );
+    pension = toPremiumPart(pensionSplit);
+  }
 
   let care: PremiumData['careInsurance'] = {
     employer: null,
@@ -117,8 +181,8 @@ export function calculateMonthlyPremium(input: PremiumCalculationInput): Premium
   }
 
   return {
-    healthInsurance: toPremiumPart(health),
+    healthInsurance: health,
     careInsurance: care,
-    pensionInsurance: toPremiumPart(pension),
+    pensionInsurance: pension,
   };
 }

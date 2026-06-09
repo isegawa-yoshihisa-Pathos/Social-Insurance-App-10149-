@@ -11,6 +11,58 @@ import {
 } from './personal-document';
 import { toFirestoreTimestamp, toFormDate } from './date-utils';
 
+export type SharedPersonalFields = Pick<
+  PersonalFormData,
+  'realName' | 'birthDate' | 'myNumber' | 'basicPensionNumber'
+>;
+
+export function isRealNameEmpty(realName: RealName): boolean {
+  return !realName.lastName?.trim() && !realName.firstName?.trim();
+}
+
+export function copySharedPersonalFieldsToEmployee(
+  source: SharedPersonalFields,
+  target: EmployeeFormData,
+): void {
+  target.realName = { ...source.realName };
+  target.birthDate = source.birthDate;
+  target.myNumber = source.myNumber;
+  target.basicPensionNumber = source.basicPensionNumber;
+}
+
+export function reconcileSharedPersonalFields(
+  personal: PersonalFormData,
+  employee: EmployeeFormData,
+): void {
+  if (isRealNameEmpty(personal.realName) && !isRealNameEmpty(employee.realName)) {
+    personal.realName = { ...employee.realName };
+  }
+  if (!personal.birthDate && employee.birthDate) {
+    personal.birthDate = employee.birthDate;
+  }
+  if (!personal.myNumber?.trim() && employee.myNumber?.trim()) {
+    personal.myNumber = employee.myNumber;
+  }
+  if (!personal.basicPensionNumber?.trim() && employee.basicPensionNumber?.trim()) {
+    personal.basicPensionNumber = employee.basicPensionNumber;
+  }
+  copySharedPersonalFieldsToEmployee(personal, employee);
+}
+
+export function sharedPersonalFieldsToFirestore(
+  form: SharedPersonalFields,
+): Pick<
+  AccountPersonalInfoSavePayload,
+  'realName' | 'birthDate' | 'myNumber' | 'basicPensionNumber'
+> {
+  return {
+    realName: form.realName,
+    myNumber: form.myNumber,
+    basicPensionNumber: form.basicPensionNumber,
+    birthDate: toFirestoreTimestamp(form.birthDate),
+  };
+}
+
 export interface PersonalFormData {
   realName: RealName;
   myNumber: string;
@@ -224,6 +276,29 @@ export function employeeFormToSavePayload(
     address: form.address,
     hasDependents: form.hasDependents,
     dependentsInfo: dependentsFormToSave(form.dependentsInfo, form.hasDependents),
+  };
+}
+
+export function buildEmployeePersonalInfoSavePayload(
+  personal: PersonalFormData,
+  employee: EmployeeFormData,
+): EmployeePersonalInfoSavePayload {
+  return {
+    ...employeeFormToSavePayload(employee),
+    ...sharedPersonalFieldsToFirestore(personal),
+  };
+}
+
+/** 単一事業所所属時: 共通項目は personal、連絡先は employee から保存 */
+export function buildSingleAffiliationPersonalInfoSavePayload(
+  personal: PersonalFormData,
+  employee: EmployeeFormData,
+): AccountPersonalInfoSavePayload {
+  return {
+    ...sharedPersonalFieldsToFirestore(personal),
+    phoneNumber: parsePhoneNumberRaw(employee.phoneNumberRaw),
+    zipcode: employee.zipcode,
+    address: employee.address,
   };
 }
 

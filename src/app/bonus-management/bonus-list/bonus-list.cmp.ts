@@ -19,7 +19,7 @@ import { BonusDocument } from '../../bonus-document';
 import { BulkColumnEditDialogCmp, BulkColumnEditDialogData } from './bulk-column-edit-dialog/bulk-column-edit-dialog.cmp';
 import { BulkEditableColumn, BulkEditValue, isEditableColumn } from './bonus-bulk-edit.types';
 import { BonusListBulkEditService } from './bonus-list-bulk-edit.service';
-import { formatBonusListCellValue, getBonusListEditValue, bonusListSearchText, bonusListSortValue, toBonusListRow } from './bonus-list-row.mapper';
+import { formatBonusListCellValue, getBonusListEditValue, isSummableBonusListColumn, bonusListNumericValue, bonusListSearchText, bonusListSortValue, toBonusListRow } from './bonus-list-row.mapper';
 import { YEAR_OPTIONS, MONTH_OPTIONS } from '../../datePicker';
 import { ErrorDialogCmp, mapFirebaseError } from '../../error-dialog/error-dialog.cmp';
 import { SuccessDialogCmp } from '../../success-dialog/success-dialog.cmp';
@@ -29,6 +29,7 @@ import { BonusListDataService } from './bonus-list-data.service';
 import { HelpContentCmp } from '../../help-content/help-content.cmp';
 import { BonusPremiumCalculateFacade } from '../bonus-premium/bonus-premium-calculate.facade';
 import { Router, ActivatedRoute } from '@angular/router';
+import { Format } from '../../format-number-jp';
 
 @Component({
   selector: 'app-bonus-list',
@@ -101,6 +102,24 @@ export class BonusListCmp implements OnInit {
 
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+
+  private getDisplayedRows(): BonusListRow[] {
+    return this.dataSource.filteredData;
+  }
+
+  formatFooterValue(col: BonusListColumnKey): string {
+    if (col === 'displayName') {
+      return `合計 (${this.getDisplayedRows().length}件)`;
+    }
+    if (col === 'employeeId') return '';
+    if (!isSummableBonusListColumn(col)) return '';
+
+    const total = this.getDisplayedRows().reduce(
+      (sum, row) => sum + (bonusListNumericValue(row, col) ?? 0),
+      0,
+    );
+    return total === 0 ? '' : Format(total);
+  }
 
   ngOnInit(): void {
     this.route.queryParams.subscribe(params => {

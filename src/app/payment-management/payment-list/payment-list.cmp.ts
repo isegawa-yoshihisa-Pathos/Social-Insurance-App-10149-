@@ -11,13 +11,14 @@ import { MatIconModule } from '@angular/material/icon';
 import { RoutesService } from '../../routes.service';
 import { CurrentTenantService } from '../../current-tenant.service';
 import { PaymentListColumnKey, PaymentListRow, getPaymentListColumnLabel } from './payment-list-columns';
-import { formatPaymentListCellValue, paymentListSearchText, paymentListSortValue } from './payment-list-row.mapper';
+import { formatPaymentListCellValue, isSummablePaymentListColumn, paymentListNumericValue, paymentListSearchText, paymentListSortValue } from './payment-list-row.mapper';
 import { YEAR_OPTIONS, MONTH_OPTIONS } from '../../datePicker';
 import { PaymentSettingDataService } from '../payment-setting/payment-setting-data.service';
 import { PaymentListDataService } from './payment-list-data.service';
 import { PaymentManagementDataService } from '../payment-management-data.service';
 import { BonusManagementDataService } from '../../bonus-management/bonus-management-data.service';
 import { Router, ActivatedRoute } from '@angular/router';
+import { Format } from '../../format-number-jp';
 
 @Component({
   selector: 'app-payment-list',
@@ -79,6 +80,24 @@ export class PaymentListCmp implements OnInit {
   
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+
+  private getDisplayedRows(): PaymentListRow[] {
+    return this.dataSource.filteredData;
+  }
+
+  formatFooterValue(col: PaymentListColumnKey): string {
+    if (col === 'displayName') {
+      return `合計 (${this.getDisplayedRows().length}件)`;
+    }
+    if (col === 'employeeId') return '';
+    if (!isSummablePaymentListColumn(col)) return '';
+
+    const total = this.getDisplayedRows().reduce(
+      (sum, row) => sum + (paymentListNumericValue(row, col, this.paymentManagementDataService.allowanceTypeDefinitions(), this.bonusManagementDataService.bonusTypeDefinitions()) ?? 0),
+      0,
+    );
+    return total === 0 ? '' : Format(total);
+  }
 
   ngOnInit(): void {
     this.route.queryParams.subscribe(params => {

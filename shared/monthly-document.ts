@@ -6,6 +6,8 @@ export interface MonthlyDocument {
     uid: string;
     displayName: string;
 
+    paymentBaseDays: number;
+
     payrollData: PayrollData;
     premiumData?: PremiumData;
     calculationSnapshot?: CalculationSnapshot;
@@ -53,15 +55,15 @@ export interface PayrollData {
 
 export interface PremiumData {
     healthInsurance: {
-        employer: number;
-        employee: number;
+        employer: number | null;
+        employee: number | null;
     };
     careInsurance: {
         employer: number | null;
         employee: number | null;
     };
     pensionInsurance: {
-        employer: number;
-        employee: number;
+        employer: number | null;
+        employee: number | null;
     };
 }

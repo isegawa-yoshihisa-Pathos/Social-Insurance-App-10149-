@@ -152,6 +152,10 @@ export class EmployeesListCmp {
       return;
     }
 
+    if (col === 'myNumber' || col === 'basicPensionNumber' || col === 'birthDate' || col === 'age' || col === 'hasDependents') {
+      return;
+    }
+
     const targetEids = this.resolveTargetEids(row.eid);
     if (targetEids.length === 1) {
       this.openBulkEditDialog(col as BulkEditableColumn, row[col], targetEids, row.displayName);
@@ -273,7 +277,9 @@ export class EmployeesListCmp {
       case 'resigned':
         return '退職';
       case 'monthly':
-        return '月給';
+        return '完全月給';
+      case 'daily-monthly':
+        return '日給月給';
       case 'weekly':
         return '週給';
       case 'daily':

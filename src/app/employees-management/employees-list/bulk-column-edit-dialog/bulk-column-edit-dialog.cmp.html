@@ -43,8 +43,8 @@
     <mat-form-field appearance="outline" style="width: 100%;">
       <mat-label>給与区分</mat-label>
       <mat-select [(ngModel)]="stringValue">
-        <mat-option value="">未設定</mat-option>
-        <mat-option value="monthly">月給</mat-option>
+        <mat-option value="monthly">完全月給</mat-option>
+        <mat-option value="daily-monthly">日給月給</mat-option>
         <mat-option value="weekly">週給</mat-option>
         <mat-option value="daily">日給</mat-option>
         <mat-option value="hourly">時給</mat-option>

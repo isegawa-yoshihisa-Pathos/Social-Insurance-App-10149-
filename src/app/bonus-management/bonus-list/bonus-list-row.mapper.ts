@@ -38,6 +38,20 @@ export function toBonusListRow(
   };
 }
 
+export function bonusListNumericValue(
+  row: BonusListRow,
+  column: BonusListColumnKey,
+): number | null {
+  const value = bonusListSortValue(row, column);
+  return typeof value === 'number' ? value : null;
+}
+
+export function isSummableBonusListColumn(
+  column: BonusListColumnKey,
+): boolean {
+  return column !== 'displayName' && column !== 'employeeId';
+}
+
 export function getBonusListEditValue(
   row: BonusListRow,
   column: BonusListColumnKey,

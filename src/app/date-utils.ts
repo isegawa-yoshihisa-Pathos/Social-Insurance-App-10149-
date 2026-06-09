@@ -25,6 +25,27 @@ export function toFormDate(value: unknown): Date | null {
   return null;
 }
 
+export function getAge(birthDate: Date | null | undefined): number {
+  if (!birthDate) {
+    return 0;
+  }
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+
+  const currentMonth = today.getMonth();
+  const birthMonth = birthDate.getMonth();
+  if (currentMonth < birthMonth) {
+    age -= 1;
+  } else if (currentMonth === birthMonth) {
+    const currentDay = today.getDate();
+    const birthDay = birthDate.getDate();
+    if (currentDay < birthDay) {
+      age -= 1;
+    }
+  }
+  return age;
+}
+
 export function toFirestoreTimestamp(date: Date | null | undefined): Timestamp | null {
   if (!date) {
     return null;

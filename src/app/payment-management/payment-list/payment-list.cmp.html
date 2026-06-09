@@ -72,11 +72,15 @@
               >
                 {{ formatCellValue(row, col) }}
               </td>
+              <td mat-footer-cell *matFooterCellDef>
+                {{ formatFooterValue(col) }}
+              </td>
             </ng-container>
           }
 
           <tr mat-header-row *matHeaderRowDef="tableColumns()"></tr>
           <tr mat-row *matRowDef="let row; columns: tableColumns()" class="payment-row"></tr>
+          <tr mat-footer-row *matFooterRowDef="tableColumns()" class="footer-row"></tr>
         </table>
       </div>
     }

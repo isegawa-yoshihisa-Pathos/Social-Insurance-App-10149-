@@ -95,3 +95,7 @@
 :host ::ng-deep .bonus-tooltip {
   white-space: pre-line;
 }
+
+.footer-row {
+  background-color: #d4d4d4;
+}

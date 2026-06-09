@@ -1,7 +1,6 @@
 import type { PayrollData } from '../../monthly-document';
 import { computeFixedWageFromPayroll } from './fixed-wage';
 import {
-  estimatePaymentBaseDaysCalendarMonth,
   type MonthPaymentBaseInput,
 } from './payment-base-days';
 
@@ -10,13 +9,11 @@ export interface MonthlyRemunerationSource {
   hasMonthlyRecord: boolean;
   daysInMonth: number;
   payroll: PayrollData;
-  paymentBaseDays?: number;
+  paymentBaseDays: number;
 }
 
 export function toMonthPaymentBaseInput(source: MonthlyRemunerationSource): MonthPaymentBaseInput {
-  const paymentBaseDays =
-    source.paymentBaseDays ??
-    estimatePaymentBaseDaysCalendarMonth(source.hasMonthlyRecord, source.daysInMonth);
+  const paymentBaseDays = source.paymentBaseDays;
   return {
     yyyyMm: source.yyyyMm,
     paymentBaseDays,

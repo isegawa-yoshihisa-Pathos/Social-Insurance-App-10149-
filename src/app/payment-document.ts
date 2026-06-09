@@ -5,6 +5,8 @@ export interface PaymentDocument {
     uid: string;
     displayName: string;
 
+    paymentBaseDays: number;
+
     payrollData: PayrollData;
     premiumData?: PremiumData;
     calculationSnapshot?: CalculationSnapshot;
@@ -37,6 +39,7 @@ export interface CalculationSnapshot {
 export interface PaymentFormData {
     displayName: string;
     employeeId: string;
+    paymentBaseDays: number;
     basicSalary: number;
     allowances: AllowanceData;
     retroactivePay: number | null;

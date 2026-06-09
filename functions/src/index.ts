@@ -8,15 +8,16 @@
  */
 
 import {setGlobalOptions} from "firebase-functions";
-export { registerAdminAndTenant } from './register-admin-tenant';
-export { registerTenantForExistingUser } from './register-tenant-existing-user';
-export { startInvitationMailBatch } from './invitation-mail-batch';
-export { deliverInvitationMailTask } from './invitation-mail-task';
-export { saveInvitationTemplate } from './invitation-functions';
-export { validateInvitationToken } from './invitation-accept-functions';
-export { acceptInvitation } from './invitation-accept-functions';
+export { registerAdminAndTenant } from './register/register-admin-tenant';
+export { registerTenantForExistingUser } from './register/register-tenant-existing-user';
+export { startInvitationMailBatch } from './invitation/invitation-mail-batch';
+export { deliverInvitationMailTask } from './invitation/invitation-mail-task';
+export { saveInvitationTemplate } from './invitation/invitation-functions';
+export { validateInvitationToken } from './invitation/invitation-accept-functions';
+export { acceptInvitation } from './invitation/invitation-accept-functions';
 export { startPremiumCalculationBatch } from './premium-calculation/batch';
 export { calculatePremiumTask } from './premium-calculation/task';
+export { checkAgeAttainmentAlerts } from './notification/age-alert';
 // import {onRequest} from "firebase-functions/https";
 // import * as logger from "firebase-functions/logger";
 

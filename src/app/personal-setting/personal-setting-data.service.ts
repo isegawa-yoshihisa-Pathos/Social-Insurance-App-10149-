@@ -1,12 +1,11 @@
 import { Injectable, inject } from '@angular/core';
-import { Auth, authState } from '@angular/fire/auth';
 import {
   Firestore,
   doc,
   getDoc,
   serverTimestamp,
-  updateDoc,
   writeBatch,
+  WriteBatch,
 } from '@angular/fire/firestore';
 import { CurrentTenantService } from '../current-tenant.service';
 import { ProfileCompletionService } from '../profile-completion.service';
@@ -14,11 +13,15 @@ import {
   EmployeeFormData,
   PersonalFormData,
   accountPersonalInfoToForm,
+  buildEmployeePersonalInfoSavePayload,
+  buildSingleAffiliationPersonalInfoSavePayload,
+  copySharedPersonalFieldsToEmployee,
   createEmptyEmployeeForm,
   createEmptyPersonalForm,
-  employeeFormToSavePayload,
   employeePersonalInfoToForm,
   personalFormToSavePayload,
+  reconcileSharedPersonalFields,
+  sharedPersonalFieldsToFirestore,
 } from '../personal-form-data';
 import { AuthService } from '../auth.service';
 import { EmployeeDocument } from '../employee-document';
@@ -65,20 +68,11 @@ export class PersonalSettingDataService {
 
 
   get isEmployeeDisplayNameMissing(): boolean { return !this.employeeForm.displayName?.trim(); }
-  get isEmployeeRealNameMissing(): boolean {
-    return !this.employeeForm.realName.lastName?.trim() || !this.employeeForm.realName.firstName?.trim();
-  }
-  get isEmployeeRealNameKanaMissing(): boolean {
-    return !this.employeeForm.realName.lastNameKana?.trim() || !this.employeeForm.realName.firstNameKana?.trim();
-  }
   get isEmployeeZipcodeMissing(): boolean { return !this.employeeForm.zipcode?.trim(); }
   get isEmployeeAddressMissing(): boolean {
     return !this.employeeForm.address.address1?.trim() || !this.employeeForm.address.address2?.trim();
   }
   get isEmployeePhoneNumberMissing(): boolean { return !this.employeeForm.phoneNumberRaw?.trim(); }
-  get isEmployeeBirthDateMissing(): boolean { return !this.employeeForm.birthDate; }
-  get isEmployeeMyNumberMissing(): boolean { return !this.employeeForm.myNumber?.trim(); }
-  get isEmployeeBasicPensionNumberMissing(): boolean { return !this.employeeForm.basicPensionNumber?.trim(); }
 
 
   async loadAll(): Promise<void> {
@@ -104,6 +98,8 @@ export class PersonalSettingDataService {
         this.employeeForm = employeePersonalInfoToForm(employee?.employeePersonalInfo);
       }
 
+      reconcileSharedPersonalFields(this.personalForm, this.employeeForm);
+
       this.profileCompletionService.updateFromPersonalForms(
         this.personalForm, this.employeeForm,
       );
@@ -121,10 +117,16 @@ export class PersonalSettingDataService {
   async savePersonal(): Promise<void> {
     const uid = this.authService.uid();
     if (!uid) throw new Error('ユーザーが見つかりません。');
-    await updateDoc(doc(this.firestore, 'accounts', uid), {
+    copySharedPersonalFieldsToEmployee(this.personalForm, this.employeeForm);
+
+    const batch = writeBatch(this.firestore);
+    batch.update(doc(this.firestore, 'accounts', uid), {
       personalInfo: personalFormToSavePayload(this.personalForm),
       updatedAt: serverTimestamp(),
     });
+    await this.appendSharedFieldsToAllEmployees(uid, batch);
+    await batch.commit();
+
     this.profileCompletionService.updateFromPersonalForms(
       this.personalForm, this.employeeForm,
     );
@@ -140,15 +142,30 @@ export class PersonalSettingDataService {
     const eid = account?.['affiliations']?.[tid];
     if (!eid) throw new Error('従業員情報が見つかりません。');
 
+    copySharedPersonalFieldsToEmployee(this.personalForm, this.employeeForm);
+
+    const currentPersonalInfo = account['personalInfo'] ?? {};
+
     const batch = writeBatch(this.firestore);
+    batch.update(doc(this.firestore, 'accounts', uid), {
+      personalInfo: {
+        ...currentPersonalInfo,
+        ...sharedPersonalFieldsToFirestore(this.personalForm),
+      },
+      updatedAt: serverTimestamp(),
+    });
     batch.update(doc(this.firestore, 'tenants', tid, 'employees', eid), {
-      employeePersonalInfo: employeeFormToSavePayload(this.employeeForm),
+      employeePersonalInfo: buildEmployeePersonalInfoSavePayload(
+        this.personalForm,
+        this.employeeForm,
+      ),
       updatedAt: serverTimestamp(),
     });
     batch.update(doc(this.firestore, 'affiliations', `${uid}_${tid}`), {
       displayName: this.employeeForm.displayName,
       updatedAt: serverTimestamp(),
     });
+    await this.appendSharedFieldsToOtherEmployees(uid, tid, batch);
     await batch.commit();
 
     this.tenantService.updateAffiliationDisplayName(
@@ -169,19 +186,28 @@ export class PersonalSettingDataService {
     const eid = account?.['affiliations']?.[tid];
     if (!eid) throw new Error('従業員情報が見つかりません。');
 
+    copySharedPersonalFieldsToEmployee(this.personalForm, this.employeeForm);
+
     const batch = writeBatch(this.firestore);
     batch.update(doc(this.firestore, 'accounts', uid), {
-      personalInfo: personalFormToSavePayload(this.employeeForm),
+      personalInfo: buildSingleAffiliationPersonalInfoSavePayload(
+        this.personalForm,
+        this.employeeForm,
+      ),
       updatedAt: serverTimestamp(),
     });
     batch.update(doc(this.firestore, 'tenants', tid, 'employees', eid), {
-      employeePersonalInfo: employeeFormToSavePayload(this.employeeForm),
+      employeePersonalInfo: buildEmployeePersonalInfoSavePayload(
+        this.personalForm,
+        this.employeeForm,
+      ),
       updatedAt: serverTimestamp(),
     });
     batch.update(doc(this.firestore, 'affiliations', `${uid}_${tid}`), {
       displayName: this.employeeForm.displayName,
       updatedAt: serverTimestamp(),
     });
+    await this.appendSharedFieldsToOtherEmployees(uid, tid, batch);
     await batch.commit();
 
     this.tenantService.updateAffiliationDisplayName(
@@ -193,16 +219,67 @@ export class PersonalSettingDataService {
   }
 
   applyPersonalToEmployee(): void {
+    copySharedPersonalFieldsToEmployee(this.personalForm, this.employeeForm);
     const displayName =
       `${this.personalForm.realName.lastName}${this.personalForm.realName.firstName}`.trim();
-    this.employeeForm.realName = { ...this.personalForm.realName };
     this.employeeForm.displayName = displayName;
     this.employeeForm.phoneNumberRaw = this.personalForm.phoneNumberRaw;
     this.employeeForm.zipcode = this.personalForm.zipcode;
     this.employeeForm.address = { ...this.personalForm.address };
-    this.employeeForm.myNumber = this.personalForm.myNumber;
-    this.employeeForm.basicPensionNumber = this.personalForm.basicPensionNumber;
-    this.employeeForm.birthDate = this.personalForm.birthDate;
+  }
+
+  private sharedFieldsEmployeeUpdate(): Record<string, unknown> {
+    const shared = sharedPersonalFieldsToFirestore(this.personalForm);
+    return {
+      'employeePersonalInfo.realName': shared.realName,
+      'employeePersonalInfo.myNumber': shared.myNumber,
+      'employeePersonalInfo.basicPensionNumber': shared.basicPensionNumber,
+      'employeePersonalInfo.birthDate': shared.birthDate,
+    };
+  }
+
+  private async appendSharedFieldsToAllEmployees(
+    uid: string,
+    batch: WriteBatch,
+  ): Promise<void> {
+    const accountSnap = await getDoc(doc(this.firestore, 'accounts', uid));
+    if (!accountSnap.exists()) return;
+
+    const affiliations = accountSnap.data()?.['affiliations'] as
+      | Record<string, string>
+      | undefined;
+    if (!affiliations) return;
+
+    const sharedUpdate = this.sharedFieldsEmployeeUpdate();
+    for (const [tid, eid] of Object.entries(affiliations)) {
+      batch.update(doc(this.firestore, 'tenants', tid, 'employees', eid), {
+        ...sharedUpdate,
+        updatedAt: serverTimestamp(),
+      });
+    }
+  }
+
+  private async appendSharedFieldsToOtherEmployees(
+    uid: string,
+    currentTid: string,
+    batch: WriteBatch,
+  ): Promise<void> {
+    const accountSnap = await getDoc(doc(this.firestore, 'accounts', uid));
+    if (!accountSnap.exists()) return;
+
+    const affiliations = accountSnap.data()?.['affiliations'] as
+      | Record<string, string>
+      | undefined;
+    if (!affiliations) return;
+
+    const sharedUpdate = this.sharedFieldsEmployeeUpdate();
+    for (const [tid, eid] of Object.entries(affiliations)) {
+      if (tid === currentTid) continue;
+      batch.update(doc(this.firestore, 'tenants', tid, 'employees', eid), {
+        ...sharedUpdate,
+        updatedAt: serverTimestamp(),
+      });
+    }
   }
 
   get hasPersonalMissingFields(): boolean {

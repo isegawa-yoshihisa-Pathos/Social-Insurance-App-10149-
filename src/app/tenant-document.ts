@@ -10,7 +10,7 @@ export interface SocialInsuranceSettings {
   pensionInsuranceTenantRecordNumber: string,
   closingDay: string,
   payrollBaseDaysStandard: 'closingDay' | 'calendarDay',
-  socialInsuranceCollectionMonth: string,
+  socialInsuranceCollectionMonth: 'currentMonth' | 'nextMonth' | 'nextNextMonth',
   specificInsuranceCollectionType: string,
 }
 

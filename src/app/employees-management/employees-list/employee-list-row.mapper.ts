@@ -1,6 +1,6 @@
 import { EmployeeDocument, EmployeeEmployInfo } from '../../employee-document';
 import { EmployeeListRow } from './employee-list-columns';
-import { toFormDate } from '../../date-utils';
+import { toFormDate, getAge } from '../../date-utils';
 
 function formatDate(value: unknown): string {
   const date = toFormDate(value);
@@ -36,6 +36,11 @@ export function toEmployeeListRow(
     licenseEndAt: formatDate(employ?.licenseEndAt),
     healthInsuranceRecordNumber: employ?.healthInsuranceRecordNumber ?? '',
     pensionInsuranceRecordNumber: employ?.pensionInsuranceRecordNumber ?? '',
+    myNumber: personal?.myNumber ?? '',
+    basicPensionNumber: personal?.basicPensionNumber ?? '',
+    birthDate: formatDate(personal?.birthDate),
+    age: getAge(toFormDate(personal?.birthDate)),
+    hasDependents: personal?.hasDependents ?? false,
   };
 }
 

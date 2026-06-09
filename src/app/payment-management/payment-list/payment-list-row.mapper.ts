@@ -33,6 +33,7 @@ export function toPaymentListRow(
     eid,
     employeeId: '',
     displayName: monthlyData?.displayName ?? bonusData?.displayName ?? '',
+    paymentBaseDays: monthlyData?.paymentBaseDays ?? 0,
     basicSalary: payroll?.basicSalary ?? 0,
     fixedWage: payroll?.fixedWage ?? null,
     variableWage: payroll?.variableWage ?? null,
@@ -62,6 +63,22 @@ export function toPaymentListRow(
     applyMonthlyPremiumFieldsToRow(baseRow, monthlyData ?? {}),
     bonusData ?? {},
   );
+}
+
+export function paymentListNumericValue(
+  row: PaymentListRow,
+  column: PaymentListColumnKey,
+  allowanceDefinitions: AllowanceTypeDefinition[],
+  bonusDefinitions: BonusTypeDefinition[],
+): number | null {
+  const value = paymentListSortValue(row, column, allowanceDefinitions, bonusDefinitions);
+  return typeof value === 'number' ? value : null;
+}
+
+export function isSummablePaymentListColumn(
+  column: PaymentListColumnKey,
+): boolean {
+  return column !== 'displayName' && column !== 'employeeId';
 }
 
 export function formatPaymentListCellValue(

@@ -4,7 +4,12 @@ export type EmployeeListColumnKey =
     | 'employeeId'
     | 'displayName' 
     | 'role' 
-    | keyof EmployeeEmployInfo;
+    | keyof EmployeeEmployInfo
+    | 'myNumber'
+    | 'basicPensionNumber'
+    | 'birthDate'
+    | 'age'
+    | 'hasDependents';
 
 export const DEFAULT_EMPLOYEE_LIST_COLUMNS: EmployeeListColumnKey[] = [
     'employeeId',
@@ -33,6 +38,12 @@ export const OPTIONAL_EMPLOYEE_LIST_COLUMNS: {
     { key: 'licenseEndAt', label: '資格喪失日' },
     { key: 'healthInsuranceRecordNumber', label: '健康保険整理番号' },
     { key: 'pensionInsuranceRecordNumber', label: '厚生年金整理番号' },
+    { key: 'myNumber', label: 'マイナンバー' },
+    { key: 'basicPensionNumber', label: '基礎年金番号' },
+    { key: 'birthDate', label: '生年月日' },
+    { key: 'age', label: '年齢' },
+    { key: 'hasDependents', label: '扶養家族' },
+
 ];
 
 export const EMPLOYEE_LIST_COLUMN_LABELS: Record<EmployeeListColumnKey, string> = {
@@ -52,6 +63,11 @@ export const EMPLOYEE_LIST_COLUMN_LABELS: Record<EmployeeListColumnKey, string> 
     licenseEndAt: '資格喪失日',
     healthInsuranceRecordNumber: '健康保険整理番号',
     pensionInsuranceRecordNumber: '厚生年金整理番号',
+    myNumber: 'マイナンバー',
+    basicPensionNumber: '基礎年金番号',
+    birthDate: '生年月日',
+    age: '年齢',
+    hasDependents: '扶養家族',
 };
 
 export interface EmployeeListRow {
@@ -72,4 +88,9 @@ export interface EmployeeListRow {
     licenseEndAt: string;
     healthInsuranceRecordNumber: string;
     pensionInsuranceRecordNumber: string;
+    myNumber: string;
+    basicPensionNumber: string;
+    birthDate: string;
+    age: number;
+    hasDependents: boolean;
   }

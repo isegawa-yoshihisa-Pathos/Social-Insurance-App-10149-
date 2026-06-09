@@ -49,7 +49,7 @@ export function createDefaultSocialInsuranceSettings(): SocialInsuranceSettings 
     pensionInsuranceTenantNumber: '',
     pensionInsuranceTenantRecordNumber: '',
     closingDay: '',
-    payrollBaseDaysStandard: 'closingDay',
+    payrollBaseDaysStandard: 'calendarDay',
     socialInsuranceCollectionMonth: 'nextMonth',
     specificInsuranceCollectionType: 'false',
   };

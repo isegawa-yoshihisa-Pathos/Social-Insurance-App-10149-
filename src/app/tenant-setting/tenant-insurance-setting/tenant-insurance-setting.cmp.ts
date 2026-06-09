@@ -42,8 +42,4 @@ export class TenantInsuranceSettingCmp {
   get isPensionInsuranceTenantRecordNumberMissing(): boolean {
     return !this.form.socialInsuranceSettings.pensionInsuranceTenantRecordNumber?.trim();
   }
-
-  get isClosingDayMissing(): boolean {
-    return !this.form.socialInsuranceSettings.closingDay?.trim();
-  }
 }
