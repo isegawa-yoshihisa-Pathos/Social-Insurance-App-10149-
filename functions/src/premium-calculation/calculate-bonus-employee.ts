@@ -44,6 +44,8 @@ export async function calculateBonusEmployee(
   const premiumData = calculateBonusPremium({
     yyyyMm,
     birthDate: ctx.birthDate,
+    licenceStartAt: toFormDate(ctx.employee.employeeEmployInfo?.licenseStartAt),
+    resignAt: toFormDate(ctx.employee.employeeEmployInfo?.resignAt),
     standardBonus: standardBonus.standardBonus,
     rates: rate.rates,
     employeeRate: rate.employeeRate,

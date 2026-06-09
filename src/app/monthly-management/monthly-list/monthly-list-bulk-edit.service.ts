@@ -29,6 +29,7 @@ import {
 import { allowanceTypeFromColumnKey } from '../../payment-management/payment-list/allowance-display.util';
 import { PaymentManagementDataService } from '../../payment-management/payment-management-data.service';
 import { buildPayrollWageFields } from '../../payment-management/payment-list/payroll-wage-update.util';
+import { MonthlyListDataService } from './monthly-list-data.service';
 
 @Injectable({
   providedIn: 'root',
@@ -37,6 +38,7 @@ export class MonthlyListBulkEditService {
   private readonly firestore = inject(Firestore);
   private readonly standardRemunerationDataService = inject(StandardRemunerationDataService);
   private readonly paymentManagementDataService = inject(PaymentManagementDataService);
+  private readonly listDataService = inject(MonthlyListDataService);
 
   async applyBulkEdit(
     tid: string,
@@ -46,6 +48,10 @@ export class MonthlyListBulkEditService {
     value: BulkEditValue,
   ): Promise<void> {
     if (targets.length === 0) return;
+
+    if (await this.listDataService.isPeriodLocked(tid, yyyyMm)) {
+      throw new Error('この月は締切済みのため、編集できません。');
+    }
 
     if (isBulkEditableStandardRemunerationColumn(column)) {
       await this.applyStandardRemunerationBulkEdit(tid, yyyyMm, targets, column, value);

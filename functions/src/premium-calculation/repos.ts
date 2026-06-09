@@ -1,7 +1,7 @@
 import * as admin from 'firebase-admin';
 import type { BonusDocument } from '../../../shared/bonus-document';
 import type { EmployeeDocument } from '../../../shared/employee-document';
-import type { MonthlyDocument } from '../../../shared/monthly-document';
+import type { MonthlyDocument, MonthlyPeriodDocument } from '../../../shared/monthly-document';
 import { lastDayOfYyyyMm } from '../../../shared/social-insurance/monthly/social-insurance-data.util';
 
 export type StandardRemunerationSource =
@@ -111,6 +111,32 @@ export async function getEmployee(
   const snap = await db.collection('tenants').doc(tid).collection('employees').doc(eid).get();
   if (!snap.exists) throw new Error('従業員が見つかりません。');
   return snap.data() as EmployeeDocument;
+}
+
+export async function getMonthlyPeriod(
+  db: admin.firestore.Firestore,
+  tid: string,
+  yyyyMm: string,
+): Promise<MonthlyPeriodDocument | null> {
+  const snap = await db
+    .collection('tenants')
+    .doc(tid)
+    .collection('monthly-records')
+    .doc(yyyyMm)
+    .get();
+  if (!snap.exists) return null;
+  return snap.data() as MonthlyPeriodDocument;
+}
+
+export async function assertMonthlyPeriodNotLocked(
+  db: admin.firestore.Firestore,
+  tid: string,
+  yyyyMm: string,
+): Promise<void> {
+  const period = await getMonthlyPeriod(db, tid, yyyyMm);
+  if (period?.locked) {
+    throw new Error(`${yyyyMm} は締切済みのため、保険料を再計算できません。`);
+  }
 }
 
 export async function getMonthlyDocument(

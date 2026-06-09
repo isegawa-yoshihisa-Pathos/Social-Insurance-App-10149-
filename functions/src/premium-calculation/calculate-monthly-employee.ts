@@ -18,6 +18,7 @@ import {
 } from '../../../shared/social-insurance/monthly/social-insurance-data.util';
 import { toFormDate } from '../../../shared/date-utils';
 import {
+  assertMonthlyPeriodNotLocked,
   getEmployee,
   getLatestStandardRemuneration,
   getMonthlyDocument,
@@ -27,7 +28,11 @@ import {
   resolveInsuranceRateForMonth,
   type StandardRemunerationSavePayload,
   type StandardRemunerationSource,
+  type StandardRemunerationListItem,
 } from './repos';
+import { screenAnnualAverageCandidate, type AnnualAverageMonthInput, buildAnnualAveragePeriodMonthKeys } from '../../../shared/social-insurance/remuneration/annual-average-determination';
+import type { TeijiDeterminationOutcome } from '../../../shared/social-insurance/remuneration/teiji-determination';
+import { screenZuijiAnnualAverageCandidate, buildZuijiAnnualAverageLoadKeys } from '../../../shared/social-insurance/remuneration/annual-average-determination';
 
 interface CalculationContext {
   employee: EmployeeDocument;
@@ -42,10 +47,8 @@ export async function calculateMonthlyEmployee(
   eid: string,
   yyyyMm: string,
 ): Promise<void> {
+  await assertMonthlyPeriodNotLocked(db, tid, yyyyMm);
   const ctx = await loadContext(db, tid, eid, yyyyMm);
-  if (!ctx.employee.employeeEmployInfo?.licenseStartAt) {
-    throw new Error('社会保険の資格取得日が設定されていません。');
-  }
 
   const rawStandardRemuneration = await resolveStandardRemuneration(db, tid, eid, yyyyMm, ctx);
 
@@ -68,6 +71,8 @@ export async function calculateMonthlyEmployee(
   const premiumData = calculateMonthlyPremium({
     yyyyMm,
     birthDate: ctx.birthDate,
+    licenceStartAt: toFormDate(ctx.employee.employeeEmployInfo?.licenseStartAt),
+    resignAt: toFormDate(ctx.employee.employeeEmployInfo?.resignAt),
     standardRemuneration: standardRemuneration.standardRemuneration,
     rates: rate.rates,
     employeeRate: rate.employeeRate,
@@ -178,17 +183,25 @@ async function tryZuiji(
   ];
   const sources = await loadMonthSources(db, tid, eid, monthKeys);
   if (sources.length !== 4) return null;
-
   const previousPayroll = sources[0].payroll.fixedWage ?? sources[0].payroll.basicSalary;
   const currentPayroll = sources[1].payroll.fixedWage ?? sources[1].payroll.basicSalary;
   if (previousPayroll === currentPayroll) return null;
-
+  const changeMonthYyyyMm = sources[1].yyyyMm; // 昇給（降給）月 M
   const previous = await getPreviousGrades(db, tid, eid, addMonths(yyyyMm, -3));
   if (!previous) return null;
-
   const outcome = determineStandardZuiji(ctx.employmentType, sources.slice(1), previous);
   if (outcome.kind !== 'applicable') return null;
-
+  // 年間平均スクリーニング（通知のみ。適用は同意後）
+  await notifyZuijiAnnualAverageIfNeeded(
+    db,
+    tid,
+    eid,
+    yyyyMm,
+    ctx,
+    previous,
+    outcome.grades,
+    changeMonthYyyyMm,
+  );
   return gradesToPayload('zuiji', addMonths(yyyyMm, 1), outcome.grades);
 }
 
@@ -201,6 +214,12 @@ async function tryTeiji(
 ): Promise<StandardRemunerationSavePayload | null> {
   const { year, month } = parseYyyyMm(yyyyMm);
   if (month !== 7) return null;
+
+  const history = await listStandardRemuneration(db, tid, eid);
+  const exactPrior = history.find((item) => item.yyyyMm === yyyyMm);
+  if (exactPrior && exactPrior.doc.source === 'zuiji') return null;
+
+  const prior = history.find((item) => item.yyyyMm < yyyyMm);
 
   const licenseStartAt = ctx.employee.employeeEmployInfo?.licenseStartAt;
   if (!licenseStartAt) return null;
@@ -216,10 +235,11 @@ async function tryTeiji(
     ctx.employmentType,
     sources.map((s) => toMonthPaymentBaseInput(s)),
   );
+  if (outcome.kind !== 'invalid') {
+    await notifyAnnualAverageIfNeeded(db, tid, eid, yyyyMm, year, ctx, outcome, prior ?? null);
+  }
   if (outcome.kind === 'invalid') return null;
   if (outcome.kind === 'continue_previous') {
-    const history = await listStandardRemuneration(db, tid, eid);
-    const prior = history.find((item) => item.yyyyMm < yyyyMm);
     if (!prior) {
       const outcome = determineInitial(ctx.monthly.payrollData);
       if (outcome.kind !== 'calculated') return null;
@@ -337,4 +357,190 @@ async function loadMonthSources(
     });
   }
   return sources;
+}
+
+function teijiGradesFromOutcome(
+  outcome: TeijiDeterminationOutcome,
+  prior: StandardRemunerationListItem | null,
+): { teijiHealthGrade: number; teijiPensionGrade: number } | null {
+  if (outcome.kind === 'calculated') {
+    return {
+      teijiHealthGrade: outcome.grades.health.grade,
+      teijiPensionGrade: outcome.grades.pension.grade,
+    };
+  }
+  if (outcome.kind === 'continue_previous') {
+    if (!prior) return null;
+    return {
+      teijiHealthGrade: prior.doc.healthGrade,
+      teijiPensionGrade: prior.doc.pensionGrade,
+    };
+  }
+  return null;
+}
+
+function toAnnualAverageMonthInputs(
+  sources: MonthlyRemunerationSource[],
+): AnnualAverageMonthInput[] {
+  return sources.map((s) => ({
+    yyyyMm: s.yyyyMm,
+    paymentBaseDays: s.paymentBaseDays,
+    payroll: s.payroll,
+  }));
+}
+
+async function notifyAnnualAverageIfNeeded(
+  db: admin.firestore.Firestore,
+  tid: string,
+  eid: string,
+  yyyyMm: string,
+  year: number,
+  ctx: CalculationContext,
+  teijiOutcome: TeijiDeterminationOutcome,
+  prior: StandardRemunerationListItem | null,
+): Promise<void> {
+  try {
+    const teijiGrades = teijiGradesFromOutcome(teijiOutcome, prior);
+    if (!teijiGrades) return;
+
+    const periodKeys = buildAnnualAveragePeriodMonthKeys(yyyyMm);
+    const annualSources = await loadMonthSources(db, tid, eid, periodKeys);
+    const screening = screenAnnualAverageCandidate(
+      ctx.employmentType,
+      teijiGrades,
+      toAnnualAverageMonthInputs(annualSources),
+    );
+
+    if (screening.kind !== 'candidate') return;
+
+    const employeeName = ctx.employee.employeePersonalInfo?.displayName ?? '対象従業員';
+    const teijiTypeStr =
+      teijiOutcome.kind === 'continue_previous'
+        ? '4〜6月の支払基礎日数不足による「従前等級の据え置き」'
+        : '4〜6月の「通常算定による試算」';
+
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    const notifDoc = {
+      scope: 'tenant' as const,
+      type: 'annualAverageSuggestion',
+      title: `【年間平均算定の推奨】${employeeName}様 が対象候補です`,
+      body: `${employeeName}様において、${teijiTypeStr}の等級と、` +
+  `前年7月〜当年6月の${screening.annualAverage.divisor}ヶ月平均` +
+  `（報酬総額 ${screening.annualAverage.totalRemuneration.toLocaleString()}円 ÷ ${screening.annualAverage.divisor}）` +
+  `による等級との間に、年間平均採択基準を満たす等級差` +
+  `（健康保険: ${screening.healthDiff}等級差 / 厚生年金: ${screening.pensionDiff}等級差）` +
+  `が検出されました。本人の同意のもと、年間平均での申告を推奨します。`,
+      targetEid: eid,
+      targetYear: year,
+      status: 'pending_review',
+      read: false,
+      tid,
+      createdAt: now,
+    };
+
+    const admins = await db
+      .collection('tenants')
+      .doc(tid)
+      .collection('employees')
+      .where('role', '==', 'admin')
+      .get();
+
+    for (const adminDoc of admins.docs) {
+      const uid = adminDoc.data()?.uid as string | undefined;
+      if (!uid) continue;
+      await db.collection('accounts').doc(uid).collection('notifications').add(notifDoc);
+    }
+
+    if (ctx.employee.uid) {
+      await db.collection('accounts').doc(ctx.employee.uid).collection('notifications').add({
+        scope: 'personal',
+        type: 'annual_average_consent',
+        title: '【社会保険】定時決定における年間平均適用の同意確認',
+        body: '4〜6月の勤務日数不足、または季節的な給与変動に基づき、通常の定時決定ではなく直近1年間の給与平均（年間平均算定）を適用する候補となっています。保険料の変動内容を確認し、回答を行ってください。',
+        targetEid: eid,
+        targetYear: year,
+        status: 'assigned',
+        read: false,
+        createdAt: now,
+      });
+    }
+  } catch (err) {
+    console.error('[annual-average] notification failed', { tid, eid, yyyyMm, err });
+  }
+}
+
+async function notifyZuijiAnnualAverageIfNeeded(
+  db: admin.firestore.Firestore,
+  tid: string,
+  eid: string,
+  yyyyMm: string,
+  ctx: CalculationContext,
+  currentGrades: PreviousGrades,
+  normalZuijiGrades: ResolvedStandardRemuneration,
+  changeMonthYyyyMm: string,
+): Promise<void> {
+  try {
+    const loadKeys = buildZuijiAnnualAverageLoadKeys(changeMonthYyyyMm);
+    const annualSources = await loadMonthSources(db, tid, eid, loadKeys);
+    const screening = screenZuijiAnnualAverageCandidate(
+      ctx.employmentType,
+      currentGrades,
+      normalZuijiGrades,
+      changeMonthYyyyMm,
+      toAnnualAverageMonthInputs(annualSources),
+    );
+    if (screening.kind !== 'candidate') return;
+    const employeeName = ctx.employee.employeePersonalInfo?.displayName ?? '対象従業員';
+    const { annualAverage, diffs } = screening;
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    const notifDoc = {
+      scope: 'tenant' as const,
+      type: 'zuijiAnnualAverageSuggestion',
+      title: `【随時改定・年間平均算定の推奨】${employeeName}様`,
+      body:
+        `${employeeName}様において、通常の随時改定（${normalZuijiGrades.health.grade}/${normalZuijiGrades.pension.grade}等級）` +
+        `と年間平均試算（${annualAverage.grades.health.grade}/${annualAverage.grades.pension.grade}等級）` +
+        `の双方が現在の等級（${currentGrades.healthGrade}/${currentGrades.pensionGrade}等級）` +
+        `と所定の等級差基準を満たしました。` +
+        `年間平均報酬月額: ${Math.round(annualAverage.averageRemuneration).toLocaleString()}円` +
+        `（固定平均 ${Math.round(annualAverage.fixedAfterAverage.average).toLocaleString()}円 + ` +
+        `非固定平均 ${Math.round(annualAverage.variableWindowAverage.average).toLocaleString()}円）。` +
+        `差: 現在↔通常 ${diffs.currentVsNormal.health}/${diffs.currentVsNormal.pension}、` +
+        `通常↔年間平均 ${diffs.normalVsAnnual.health}/${diffs.normalVsAnnual.pension}、` +
+        `現在↔年間平均 ${diffs.currentVsAnnual.health}/${diffs.currentVsAnnual.pension}（健保/厚年）。` +
+        `本人同意のうえ年間平均での届出を検討してください。`,
+      targetEid: eid,
+      changeMonthYyyyMm,
+      status: 'pending_review',
+      read: false,
+      tid,
+      createdAt: now,
+    };
+    const admins = await db
+      .collection('tenants')
+      .doc(tid)
+      .collection('employees')
+      .where('role', '==', 'admin')
+      .get();
+    for (const adminDoc of admins.docs) {
+      const uid = adminDoc.data()?.uid as string | undefined;
+      if (!uid) continue;
+      await db.collection('accounts').doc(uid).collection('notifications').add(notifDoc);
+    }
+    if (ctx.employee.uid) {
+      await db.collection('accounts').doc(ctx.employee.uid).collection('notifications').add({
+        scope: 'personal',
+        type: 'zuiji_annual_average_consent',
+        title: '【社会保険】随時改定における年間平均適用の同意確認',
+        body: '固定的賃金の変動に伴い通常の随時改定が該当しますが、年間平均算定の適用候補でもあります。内容を確認のうえ回答してください。',
+        targetEid: eid,
+        changeMonthYyyyMm,
+        status: 'assigned',
+        read: false,
+        createdAt: now,
+      });
+    }
+  } catch (err) {
+    console.error('[zuiji-annual-average] notification failed', { tid, eid, yyyyMm, err });
+  }
 }

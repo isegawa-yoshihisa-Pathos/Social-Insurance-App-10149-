@@ -14,3 +14,59 @@
   box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
   border-radius: 10px;
 }
+
+.monthly-detail-header {
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.employee-meta-card {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+}
+
+.meta-value-name {
+  font-weight: 600;
+  color: #333;
+  font-size: 18px;
+}
+
+.meta-item {
+  display: flex;
+  gap: 4px;
+  font-size: 14px;
+  color: #666;
+}
+
+.meta-label {
+  color: #888;
+}
+
+.loading-message,
+.empty-message {
+  margin: 16px 0;
+  color: #666;
+}
+
+.table-scroll-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.monthly-table {
+  width: max-content;
+  min-width: 100%;
+}
+
+.monthly-table th,
+.monthly-table td {
+  white-space: nowrap;
+}
+
+.numeric-cell {
+  text-align: right;
+}

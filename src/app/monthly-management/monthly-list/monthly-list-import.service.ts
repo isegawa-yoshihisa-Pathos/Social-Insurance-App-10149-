@@ -49,6 +49,10 @@ export class MonthlyListImportService {
     file: File,
     options: MonthlyCsvImportOptions,
   ): Promise<MonthlyCsvImportResult> {
+    if (await this.listDataService.isPeriodLocked(tid, options.yyyyMm)) {
+      throw new Error('この月は締切済みのため、インポートできません。');
+    }
+
     await Promise.all([
       this.monthlySettingDataService.loadSettings(tid),
       this.paymentManagementDataService.loadPaymentSettings(tid),
@@ -151,6 +155,8 @@ export class MonthlyListImportService {
         result.created++;
       }
     }
+
+    this.listDataService.touchPeriodInBatch(batch, tid, options.yyyyMm);
 
     await batch.commit();
     return result;

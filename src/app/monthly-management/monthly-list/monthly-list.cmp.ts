@@ -90,6 +90,8 @@ export class MonthlyListCmp implements OnInit {
 
   selectedEids = new Set<string>();
 
+  readonly locked = signal(false);
+
   readonly selectedYear = signal(new Date().getFullYear());
   readonly selectedMonth = signal(new Date().getMonth() + 1);
 
@@ -128,6 +130,26 @@ export class MonthlyListCmp implements OnInit {
         this.updateUrlQuery(this.yyyyMm());
       }
     });
+  }
+
+  async lockPeriod(): Promise<void> {
+    const tid = this.currentTenantService.currentTid();
+    const ym = this.yyyyMm();
+    if (!tid || !ym || this.locked() || !this.monthlyRecordExists()) return;
+
+    const confirmed = confirm(
+      `${ym} の月次データを締切しますか？\n締切後は給与データの変更・インポート・保険料の再計算ができなくなります。`,
+    );
+    if (!confirmed) return;
+
+    try {
+      await this.listDataService.lockPeriod(tid, ym);
+      this.locked.set(true);
+    } catch (error) {
+      this.dialog.open(ErrorDialogCmp, {
+        data: { message: mapFirebaseError(error) },
+      });
+    }
   }
 
   private updateUrlQuery(yyyyMm: string): void {
@@ -228,11 +250,14 @@ export class MonthlyListCmp implements OnInit {
       yyyyMm,
       'employees',
     );
-    const [monthly, employeeLookup] = await Promise.all([
+    const [monthly, employeeLookup, period] = await Promise.all([
       getDocs(monthlyRef),
       this.listDataService.loadEmployeeLookup(tid),
+      this.listDataService.getPeriod(tid, yyyyMm),
     ]);
     if (token !== undefined && token !== this.loadToken) return;
+
+    this.locked.set(period?.locked === true);
 
     const data = await this.listDataService.enrichWithStandardRemuneration(
       tid,
@@ -246,6 +271,9 @@ export class MonthlyListCmp implements OnInit {
       }),
     );
     this.monthlyRecordExists.set(data.length > 0);
+    if (data.length > 0) {
+      await this.listDataService.ensurePeriodDocument(tid, yyyyMm);
+    }
     this.dataSource.data = data;
     const alive = new Set(data.map((r) => r.eid));
     this.selectedEids = new Set([...this.selectedEids].filter((eid) => alive.has(eid)));
@@ -295,6 +323,8 @@ export class MonthlyListCmp implements OnInit {
       this.routesService.redirectToMonthlyDetail(row.eid);
       return;
     }
+
+    if (this.locked()) return;
 
     if (col === 'fixedWage' || col === 'variableWage') {
       return;
@@ -400,6 +430,14 @@ export class MonthlyListCmp implements OnInit {
     const file = input.files?.[0];
     if (!file) return;
 
+    if (this.locked()) {
+      this.dialog.open(ErrorDialogCmp, {
+        data: { message: 'この月は締切済みのため、インポートできません。' },
+      });
+      input.value = '';
+      return;
+    }
+
     const tid = this.currentTenantService.currentTid();
     const ym = this.yyyyMm();
     if (!tid || !ym) {
@@ -444,6 +482,12 @@ export class MonthlyListCmp implements OnInit {
     const tid = this.currentTenantService.currentTid();
     const ym = this.yyyyMm();
     if (!tid || !ym || !this.monthlyRecordExists()) return;
+    if (this.locked()) {
+      this.dialog.open(ErrorDialogCmp, {
+        data: { message: 'この月は締切済みのため、保険料を再計算できません。' },
+      });
+      return;
+    }
     this.premiumRecalculating = true;
     try {
       await this.premiumCalculateFacade.calculateMonth(tid, ym, () =>

@@ -1,11 +1,12 @@
 import { Component, inject } from '@angular/core';
 import { RoutesService } from '../routes.service';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [MatButtonModule],
+  imports: [MatButtonModule, MatIconModule],
   templateUrl: './home.cmp.html',
   styleUrl: './home.cmp.css',
 })

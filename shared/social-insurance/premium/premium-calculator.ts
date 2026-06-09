@@ -14,6 +14,8 @@ export interface InsuranceRatesInput {
 export interface PremiumCalculationInput {
   yyyyMm: string;
   birthDate: Date | null;
+  licenceStartAt: Date | null | undefined;
+  resignAt: Date | null | undefined;
   standardRemuneration: {
     health: number;
     pension: number;
@@ -21,6 +23,35 @@ export interface PremiumCalculationInput {
   rates: InsuranceRatesInput;
   employeeRate?: EmployeeRateByInsurance;
   roundingBy?: RoundingByInsurance;
+}
+
+export function isInsurancePeriodTarget(
+  licenceStartAt: Date | null | undefined,
+  resignAt: Date | null | undefined,
+  yyyyMm: string
+): boolean {
+  if (!licenceStartAt) {
+    return false;
+  }
+
+  const licenceStartYyyyMm = `${licenceStartAt.getFullYear()}-${String(licenceStartAt.getMonth() + 1).padStart(2, '0')}`;
+  if (yyyyMm < licenceStartYyyyMm) {
+    return false;
+  }
+
+  if (resignAt) {
+    const licenceEndAt = new Date(resignAt.getTime());
+    licenceEndAt.setDate(licenceEndAt.getDate() + 1);
+
+    const isSameMonthLicenceStartAndEnd =
+      licenceStartAt.getFullYear() === licenceEndAt.getFullYear() &&
+      licenceStartAt.getMonth() === licenceEndAt.getMonth();
+
+    if (isSameMonthLicenceStartAndEnd) {
+      return yyyyMm === licenceStartYyyyMm;
+    }
+  }
+  return true;
 }
 
 export function ageAtEndOfMonth(birthDate: Date, year: number, month: number): number {
@@ -68,7 +99,7 @@ export function isHealthInsuranceTarget(
   const end = reachedMonth(birthday75);
   const endYyyyMm = `${end.yyyy}-${String(end.mm).padStart(2, '0')}`;
 
-  return yyyyMm <= endYyyyMm;
+  return yyyyMm < endYyyyMm;
 }
 
 export function isPensionInsuranceTarget(
@@ -84,7 +115,7 @@ export function isPensionInsuranceTarget(
   const end = reachedMonth(birthday70);
   const endYyyyMm = `${end.yyyy}-${String(end.mm).padStart(2, '0')}`;
 
-  return yyyyMm <= endYyyyMm;
+  return yyyyMm < endYyyyMm;
 }
 
 export function reachedMonth(date: Date): { yyyy: number; mm: number } {
@@ -104,6 +135,8 @@ function toPremiumPart(
 export interface BonusPremiumCalculationInput {
   yyyyMm: string;
   birthDate: Date | null;
+  licenceStartAt: Date | null | undefined;
+  resignAt: Date | null | undefined;
   standardBonus: {
     health: number;
     pension: number;
@@ -117,6 +150,8 @@ export function calculateBonusPremium(input: BonusPremiumCalculationInput): Prem
   return calculateMonthlyPremium({
     yyyyMm: input.yyyyMm,
     birthDate: input.birthDate,
+    licenceStartAt: input.licenceStartAt,
+    resignAt: input.resignAt,
     standardRemuneration: input.standardBonus,
     rates: input.rates,
     employeeRate: input.employeeRate,
@@ -125,7 +160,7 @@ export function calculateBonusPremium(input: BonusPremiumCalculationInput): Prem
 }
 
 export function calculateMonthlyPremium(input: PremiumCalculationInput): PremiumData {
-  const { rates, standardRemuneration, yyyyMm, birthDate } = input;
+  const { rates, standardRemuneration, yyyyMm, birthDate, licenceStartAt, resignAt } = input;
   const rate = normalizeEmployeeRate(input.employeeRate);
   const rounding = normalizeRoundingBy(input.roundingBy);
 
@@ -134,50 +169,52 @@ export function calculateMonthlyPremium(input: PremiumCalculationInput): Premium
     employee: null,
   };
 
-  if (isHealthInsuranceTarget(birthDate, yyyyMm)) {
-    const healthSplit = premiumFromStandardRemuneration(
-      standardRemuneration.health,
-      rates.healthInsuranceRate,
-      { 
-        employeeRate: rate.healthInsurance,
-        roundingBy: rounding.healthInsurance,
-      },
-    );
-    health = toPremiumPart(healthSplit);
-  }
-
   let pension: PremiumData['pensionInsurance'] = {
     employer: null,
     employee: null,
   };
-
-  if (isPensionInsuranceTarget(birthDate, yyyyMm)) {
-    const pensionSplit = premiumFromStandardRemuneration(
-      standardRemuneration.pension,
-      rates.pensionInsuranceRate,
-      { 
-        employeeRate: rate.pensionInsurance,
-        roundingBy: rounding.pensionInsurance,
-      },
-    );
-    pension = toPremiumPart(pensionSplit);
-  }
 
   let care: PremiumData['careInsurance'] = {
     employer: null,
     employee: null,
   };
 
-  if (isCareInsuranceTarget(birthDate, yyyyMm)) {
-    const careSplit = premiumFromStandardRemuneration(
-      standardRemuneration.health,
-      rates.careInsuranceRate,
-      { 
-        employeeRate: rate.careInsurance,
-        roundingBy: rounding.careInsurance,
-      },
-    );
-    care = toPremiumPart(careSplit);
+  if (isInsurancePeriodTarget(licenceStartAt, resignAt, yyyyMm)) {
+    if (isHealthInsuranceTarget(birthDate, yyyyMm)) {
+      const healthSplit = premiumFromStandardRemuneration(
+        standardRemuneration.health,
+        rates.healthInsuranceRate,
+        { 
+          employeeRate: rate.healthInsurance,
+          roundingBy: rounding.healthInsurance,
+        },
+      );
+      health = toPremiumPart(healthSplit);
+    }
+
+    if (isPensionInsuranceTarget(birthDate, yyyyMm)) {
+      const pensionSplit = premiumFromStandardRemuneration(
+        standardRemuneration.pension,
+        rates.pensionInsuranceRate,
+        { 
+          employeeRate: rate.pensionInsurance,
+          roundingBy: rounding.pensionInsurance,
+        },
+      );
+      pension = toPremiumPart(pensionSplit);
+    }
+
+    if (isCareInsuranceTarget(birthDate, yyyyMm)) {
+      const careSplit = premiumFromStandardRemuneration(
+        standardRemuneration.health,
+        rates.careInsuranceRate,
+        { 
+          employeeRate: rate.careInsurance,
+          roundingBy: rounding.careInsurance,
+        },
+      );
+      care = toPremiumPart(careSplit);
+    }
   }
 
   return {
