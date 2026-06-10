@@ -103,6 +103,8 @@ export interface StandardBonusDocument {
   bonusAmount: number;
   /** 1,000円未満切り捨て後・上限適用前の標準賞与額 */
   rawStandardBonus: number;
+  /** 都度徴収をスキップした場合の理由 */
+  skipReason?: string;
   createdAt: FirestoreTimestamp;
   updatedAt: FirestoreTimestamp;
 }

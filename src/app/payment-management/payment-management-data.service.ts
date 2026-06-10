@@ -17,7 +17,7 @@ export class PaymentManagementDataService {
   ]);
 
   async loadPaymentSettings(tid: string): Promise<void> {
-    const settingsRef = doc(this.firestore, 'tenants', tid, 'settings', 'paymentSetting');
+    const settingsRef = doc(this.firestore, 'tenants', tid, 'settings', 'allowanceKindSetting');
     const settingsSnap = await getDoc(settingsRef);
     if (!settingsSnap.exists()) {
       this.allowanceTypeDefinitions.set([...DEFAULT_ALLOWANCE_TYPE_DEFINITIONS]);
@@ -30,7 +30,7 @@ export class PaymentManagementDataService {
   }
 
   async savePaymentSettings(tid: string): Promise<void> {
-    const settingsRef = doc(this.firestore, 'tenants', tid, 'settings', 'paymentSetting');
+    const settingsRef = doc(this.firestore, 'tenants', tid, 'settings', 'allowanceKindSetting');
     await setDoc(
       settingsRef,
       {

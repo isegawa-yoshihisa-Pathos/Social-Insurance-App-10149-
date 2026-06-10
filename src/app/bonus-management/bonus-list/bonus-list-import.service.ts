@@ -21,7 +21,7 @@ import { BonusListDataService, EmployeeLookupEntry } from './bonus-list-data.ser
 
 export interface BonusCsvImportOptions {
   yyyyMm: string;
-  allRows: BonusListRow[];
+  allRows?: BonusListRow[];
   scopeEids?: Set<string>;
 }
 
@@ -51,6 +51,10 @@ export class BonusListImportService {
     file: File,
     options: BonusCsvImportOptions,
   ): Promise<BonusCsvImportResult> {
+    if (await this.listDataService.isPeriodLocked(tid, options.yyyyMm)) {
+      throw new Error(`${options.yyyyMm} は締切済みのため、インポートできません。`);
+    }
+
     await this.bonusManagementDataService.loadBonusSettings(tid);
     const bonusDefinitions = this.bonusManagementDataService.bonusTypeDefinitions();
     await this.bonusSettingDataService.loadSettings(tid, bonusDefinitions);
@@ -71,8 +75,8 @@ export class BonusListImportService {
       throw new Error('CSVに社員番号または氏名の列がありません。');
     }
 
-    const scopeEids =
-      options.scopeEids ?? new Set(options.allRows.map((r) => r.eid));
+    const allRows = options.allRows ?? [];
+    const scopeEids = options.scopeEids;
 
     const employeeLookup = await this.listDataService.loadEmployeeLookup(tid);
     const { eidByEmployeeId, eidsByDisplayName } =
@@ -111,8 +115,8 @@ export class BonusListImportService {
         continue;
       }
 
-      const existingRow = options.allRows.find((r) => r.eid === matched);
-      if (existingRow && !scopeEids.has(matched)) {
+      const existingRow = allRows.find((r) => r.eid === matched);
+      if (scopeEids && existingRow && !scopeEids.has(matched)) {
         result.skippedOutOfScope++;
         continue;
       }
@@ -152,6 +156,8 @@ export class BonusListImportService {
         result.created++;
       }
     }
+
+    this.listDataService.touchPeriodInBatch(batch, tid, options.yyyyMm);
 
     await batch.commit();
     return result;

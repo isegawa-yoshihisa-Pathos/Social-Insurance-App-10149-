@@ -102,6 +102,7 @@ export interface StandardRemunerationDocument {
   source: StandardRemunerationSource;
   effectiveFrom: string;
   remuneration?: number;
+  bonusRemunerationMonthlyAddition?: number;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

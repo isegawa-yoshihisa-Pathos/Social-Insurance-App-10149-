@@ -97,6 +97,10 @@ export class RoutesService {
     void this.router.navigate(['/bonus-management']);
   }
 
+  redirectToBonusDetail(eid: string): void {
+    void this.router.navigate(['/bonus-management', 'detail', eid]);
+  }
+
   redirectToVirtualMailChecker(): void {
     void this.router.navigate(['/virtual-mail-checker']);
   }

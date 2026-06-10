@@ -37,6 +37,12 @@
   gap: 12px;
 }
 
+.lock-button.locked {
+  color: #fff;
+  background-color: #cf4141;
+  border-color: #cf4141;
+}
+
 .calculate-premiums-button {
   color: #fff;
   background-color: #673ab7;
@@ -80,6 +86,14 @@
 
 .monthly-row:hover {
   background-color: #f0f0f0;
+}
+
+.table-scroll-container.is-locked .monthly-row {
+  cursor: default;
+}
+
+.table-scroll-container.is-locked .monthly-row:hover {
+  background-color: transparent;
 }
 
 .check-col {

@@ -2,7 +2,10 @@ import * as admin from 'firebase-admin';
 import type { BonusDocument } from '../../../shared/bonus-document';
 import type { EmployeeDocument } from '../../../shared/employee-document';
 import { calculateBonusPremium } from '../../../shared/social-insurance/premium/premium-calculator';
-import { determineStandardBonus } from '../../../shared/social-insurance/bonus/standard-bonus-determination';
+import {
+  determineStandardBonus,
+  evaluateBonusPremiumEligibility,
+} from '../../../shared/social-insurance/bonus/standard-bonus-determination';
 import {
   fiscalYearStartYyyyMm,
   isYyyyMmInFiscalYear,
@@ -10,12 +13,22 @@ import {
 } from '../../../shared/social-insurance/bonus/social-insurance-data.util';
 import { toFormDate } from '../../../shared/date-utils';
 import {
+  getTeijiEligibleBonusTypes,
+  teijiBonusLookbackRange,
+  teijiYearFromEffectiveFrom,
+} from '../../../shared/social-insurance/remuneration/bonus-remuneration-addition';
+import {
+  assertBonusPeriodNotLocked,
   getBonusDocument,
   getEmployee,
+  getLatestStandardRemuneration,
   getStandardBonus,
+  listBonusRecordsInRange,
   listStandardBonus,
   resolveInsuranceRateForBonus,
   saveStandardBonus,
+  getBonusTypeDefinitions,
+  omitUndefinedFields,
   type StandardBonusDocument,
   type StandardBonusSavePayload,
 } from './repos';
@@ -32,6 +45,7 @@ export async function calculateBonusEmployee(
   eid: string,
   yyyyMm: string,
 ): Promise<void> {
+  await assertBonusPeriodNotLocked(db, tid, yyyyMm);
   const ctx = await loadContext(db, tid, eid, yyyyMm);
   const standardBonus = await resolveStandardBonus(db, tid, eid, yyyyMm, ctx);
   await saveStandardBonus(db, tid, eid, yyyyMm, standardBonus);
@@ -52,7 +66,7 @@ export async function calculateBonusEmployee(
     roundingBy: rate.roundingBy,
   });
 
-  const calculationSnapshot = {
+  const calculationSnapshot = omitUndefinedFields({
     rateId: rate.rateId,
     effectiveFrom: rate.effectiveFrom,
     rates: {
@@ -74,8 +88,9 @@ export async function calculateBonusEmployee(
     bonusAmount: standardBonus.bonusAmount,
     rawStandardBonus: standardBonus.rawStandardBonus,
     source: standardBonus.source,
+    skipReason: standardBonus.skipReason,
     calculatedAt: admin.firestore.FieldValue.serverTimestamp(),
-  };
+  });
 
   await db
     .collection('tenants')
@@ -84,11 +99,13 @@ export async function calculateBonusEmployee(
     .doc(yyyyMm)
     .collection('employees')
     .doc(eid)
-    .update({
-      premiumData,
-      calculationSnapshot,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    .update(
+      omitUndefinedFields({
+        premiumData,
+        calculationSnapshot,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }),
+    );
 }
 
 async function resolveStandardBonus(
@@ -106,6 +123,18 @@ async function resolveStandardBonus(
     throw new Error(`${yyyyMm} の賞与支給額がありません。`);
   }
 
+  const bonusDefs = await getBonusTypeDefinitions(db, tid);
+  const teijiIncludedBonusTypes = await resolveTeijiIncludedBonusTypes(
+    db,
+    tid,
+    eid,
+    yyyyMm,
+    bonusDefs,
+  );
+  const eligibility = evaluateBonusPremiumEligibility(ctx.bonus.bonusData!, bonusDefs, {
+    teijiIncludedBonusTypes,
+  });
+
   const fiscalYearHealthStandardSum = await sumFiscalYearHealthStandard(
     db,
     tid,
@@ -116,15 +145,35 @@ async function resolveStandardBonus(
   const determined = determineStandardBonus({
     bonusAmount,
     fiscalYearHealthStandardSum,
+    eligibility,
   });
 
-  return {
+  return omitUndefinedFields({
     standardBonus: determined.standardBonus,
-    source: 'calculated',
+    source: 'calculated' as const,
     effectiveFrom: lastDayOfYyyyMm(yyyyMm),
     bonusAmount: determined.bonusAmount,
     rawStandardBonus: determined.rawStandardBonus,
-  };
+    skipReason: eligibility.reason,
+  });
+}
+
+async function resolveTeijiIncludedBonusTypes(
+  db: admin.firestore.Firestore,
+  tid: string,
+  eid: string,
+  yyyyMm: string,
+  bonusDefs: Awaited<ReturnType<typeof getBonusTypeDefinitions>>,
+): Promise<ReadonlySet<string>> {
+  const latestRemuneration = await getLatestStandardRemuneration(db, tid, eid, yyyyMm);
+  if ((latestRemuneration?.bonusRemunerationMonthlyAddition ?? 0) <= 0) {
+    return new Set();
+  }
+
+  const teijiYear = teijiYearFromEffectiveFrom(latestRemuneration!.effectiveFrom);
+  const { from, to } = teijiBonusLookbackRange(teijiYear);
+  const lookbackRecords = await listBonusRecordsInRange(db, tid, eid, from, to);
+  return getTeijiEligibleBonusTypes(lookbackRecords, bonusDefs);
 }
 
 async function sumFiscalYearHealthStandard(
@@ -144,13 +193,14 @@ async function sumFiscalYearHealthStandard(
 }
 
 function toSavePayload(doc: StandardBonusDocument): StandardBonusSavePayload {
-  return {
+  return omitUndefinedFields({
     standardBonus: doc.standardBonus,
     source: doc.source,
     effectiveFrom: doc.effectiveFrom,
     bonusAmount: doc.bonusAmount,
     rawStandardBonus: doc.rawStandardBonus,
-  };
+    skipReason: doc.skipReason,
+  });
 }
 
 async function loadContext(

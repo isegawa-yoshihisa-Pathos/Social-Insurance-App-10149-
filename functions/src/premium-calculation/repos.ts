@@ -1,8 +1,10 @@
 import * as admin from 'firebase-admin';
-import type { BonusDocument } from '../../../shared/bonus-document';
+import type { BonusDocument, BonusPeriodDocument } from '../../../shared/bonus-document';
 import type { EmployeeDocument } from '../../../shared/employee-document';
 import type { MonthlyDocument, MonthlyPeriodDocument } from '../../../shared/monthly-document';
 import { lastDayOfYyyyMm } from '../../../shared/social-insurance/monthly/social-insurance-data.util';
+import { DEFAULT_BONUS_TYPE_DEFINITIONS, type BonusTypeDefinition } from '../../../shared/bonus-document';
+import type { BonusRecordInPeriod } from '../../../shared/social-insurance/remuneration/bonus-remuneration-addition';
 
 export type StandardRemunerationSource =
   | 'initial'
@@ -18,9 +20,21 @@ export interface StandardRemunerationDocument {
   source: StandardRemunerationSource;
   effectiveFrom: string;
   remuneration?: number;
+  bonusRemunerationMonthlyAddition?: number;
 }
 
 export type StandardRemunerationSavePayload = StandardRemunerationDocument;
+
+/** Firestore は undefined を受け付けないため、書き込み前に除去する */
+export function omitUndefinedFields<T extends Record<string, unknown>>(obj: T): T {
+  const result = { ...obj };
+  for (const key of Object.keys(result)) {
+    if (result[key] === undefined) {
+      delete result[key];
+    }
+  }
+  return result;
+}
 
 export interface StandardRemunerationListItem {
   yyyyMm: string;
@@ -35,6 +49,7 @@ export interface StandardBonusDocument {
   effectiveFrom: string;
   bonusAmount: number;
   rawStandardBonus: number;
+  skipReason?: string;
 }
 
 export type StandardBonusSavePayload = StandardBonusDocument;
@@ -157,6 +172,32 @@ export async function getMonthlyDocument(
   return snap.data() as MonthlyDocument;
 }
 
+export async function getBonusPeriod(
+  db: admin.firestore.Firestore,
+  tid: string,
+  yyyyMm: string,
+): Promise<BonusPeriodDocument | null> {
+  const snap = await db
+    .collection('tenants')
+    .doc(tid)
+    .collection('bonus-records')
+    .doc(yyyyMm)
+    .get();
+  if (!snap.exists) return null;
+  return snap.data() as BonusPeriodDocument;
+}
+
+export async function assertBonusPeriodNotLocked(
+  db: admin.firestore.Firestore,
+  tid: string,
+  yyyyMm: string,
+): Promise<void> {
+  const period = await getBonusPeriod(db, tid, yyyyMm);
+  if (period?.locked) {
+    throw new Error(`${yyyyMm} は締切済みのため、保険料を再計算できません。`);
+  }
+}
+
 export async function getBonusDocument(
   db: admin.firestore.Firestore,
   tid: string,
@@ -224,13 +265,13 @@ export async function saveStandardRemuneration(
   const ref = standardRemunerationRef(db, tid, eid, yyyyMm);
   const existing = await ref.get();
   await ref.set(
-    {
+    omitUndefinedFields({
       ...payload,
       createdAt: existing.exists
         ? existing.data()?.createdAt
         : admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    },
+    }),
     { merge: true },
   );
 }
@@ -273,13 +314,13 @@ export async function saveStandardBonus(
   const ref = standardBonusRef(db, tid, eid, yyyyMm);
   const existing = await ref.get();
   await ref.set(
-    {
+    omitUndefinedFields({
       ...payload,
       createdAt: existing.exists
         ? existing.data()?.createdAt
         : admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    },
+    }),
     { merge: true },
   );
 }
@@ -324,4 +365,36 @@ export async function resolveInsuranceRateForBonus(
   yyyyMm: string,
 ): Promise<ResolvedInsuranceRate | null> {
   return resolveInsuranceRate(db, tid, lastDayOfYyyyMm(yyyyMm));
+}
+
+export async function getBonusTypeDefinitions(
+  db: admin.firestore.Firestore,
+  tid: string,
+): Promise<BonusTypeDefinition[]> {
+  const snap = await db.collection('tenants').doc(tid)
+    .collection('settings').doc('bonusSetting').get();
+  const types = snap.data()?.types as BonusTypeDefinition[] | undefined;
+  return types?.length ? types : [...DEFAULT_BONUS_TYPE_DEFINITIONS];
+}
+export async function listBonusRecordsInRange(
+  db: admin.firestore.Firestore,
+  tid: string,
+  eid: string,
+  fromYyyyMm: string,
+  toYyyyMm: string,
+): Promise<BonusRecordInPeriod[]> {
+  const snap = await db.collection('tenants').doc(tid)
+    .collection('bonus-records').get();
+  const results: BonusRecordInPeriod[] = [];
+  for (const periodDoc of snap.docs) {
+    const yyyyMm = periodDoc.id;
+    if (yyyyMm < fromYyyyMm || yyyyMm > toYyyyMm) continue;
+    const empSnap = await periodDoc.ref.collection('employees').doc(eid).get();
+    if (!empSnap.exists) continue;
+    const bonus = empSnap.data() as BonusDocument;
+    if (bonus.bonusData?.total) {
+      results.push({ yyyyMm, bonusData: bonus.bonusData });
+    }
+  }
+  return results.sort((a, b) => a.yyyyMm.localeCompare(b.yyyyMm));
 }

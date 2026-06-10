@@ -169,7 +169,7 @@ export class PaymentSettingDataService {
 
   private async loadPaymentDocument(tid: string): Promise<PaymentSettingDocument | null> {
     return runInInjectionContext(this.injector, async () => {
-      const ref = doc(this.firestore, 'tenants', tid, 'settings', 'paymentSetting');
+      const ref = doc(this.firestore, 'tenants', tid, 'settings', 'allowanceKindSetting');
       const snap = await getDoc(ref);
       if (!snap.exists()) {
         return null;

@@ -172,6 +172,10 @@ export const routes: Routes = [
             loadComponent: () => import('./bonus-management/bonus-list/bonus-list.cmp').then(m => m.BonusListCmp),
           },
           {
+            path: 'detail/:eid',
+            loadComponent: () => import('./bonus-management/bonus-list/bonus-detail/bonus-detail.cmp').then(m => m.BonusDetailCmp),
+          },
+          {
             path: 'setting',
             loadComponent: () => import('./bonus-management/bonus-setting/bonus-setting.cmp').then(m => m.BonusSettingCmp),
           },

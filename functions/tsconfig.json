@@ -15,18 +15,6 @@
   "compileOnSave": true,
   "include": [
     "src/**/*.ts",
-    "../shared/social-insurance/premium/**/*.ts",
-    "../shared/social-insurance/remuneration/**/*.ts",
-    "../shared/social-insurance/monthly/social-insurance-data.util.ts",
-    "../shared/social-insurance/bonus/social-insurance-data.util.ts",
-    "../shared/social-insurance/bonus/standard-bonus-determination.ts",
-    "../shared/monthly-document.ts",
-    "../shared/bonus-document.ts",
-    "../shared/employee-document.ts",
-    "../shared/payment-document.ts",
-    "../shared/personal-document.ts",
-    "../shared/payment-document.ts",
-    "../shared/firestore-types.ts",
-    "../shared/date-utils.ts"
+    "../shared/**/*.ts"
   ]
 }

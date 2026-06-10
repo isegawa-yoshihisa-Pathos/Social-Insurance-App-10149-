@@ -29,6 +29,17 @@
           </button>
         </div>
         <div class="action-buttons">
+          <button
+            mat-icon-button
+            type="button"
+            (click)="lockPeriod()"
+            [disabled]="locked() || !bonusRecordExists() || bulkSaving"
+            [matTooltip]="locked() ? '締切済み（変更不可）' : '締切（変更不可にする）'"
+            class="lock-button"
+            [class.locked]="locked()"
+          >
+            <mat-icon>{{ locked() ? 'lock' : 'lock_open' }}</mat-icon>
+          </button>
           <app-help-content key="monthlyImport"></app-help-content>
           <input
             #csvFileInput
@@ -36,33 +47,55 @@
             accept=".csv,text/csv"
             hidden
             (change)="onCsvSelected($event)">
-          <button 
-            mat-icon-button 
-            type="button"
-            class="import-csv-button"
-            [disabled]="bulkSaving"
-            (click)="csvFileInput.click()"
-            matTooltip="CSVファイルからインポート">
+          <input
+            #multipleCsvFileInput
+            type="file"
+            accept=".csv,text/csv"
+            multiple
+            hidden
+            (change)="onMultipleCsvSelected($event)">
+          <button mat-icon-button [matMenuTriggerFor]="importMenu" matTooltip="CSVファイルからインポート">
             <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=csv" />
             <mat-icon>
               <span class="material-symbols-outlined">
                 csv
               </span>
             </mat-icon>
+            <mat-menu #importMenu="matMenu">
+              <button
+                mat-menu-item
+                type="button"
+                class="import-csv-button"
+                [disabled]="bulkSaving || locked()"
+                (click)="csvFileInput.click()"
+              >
+                今月のデータをインポート
+              </button>
+              <button
+                mat-menu-item
+                type="button"
+                class="import-csv-button"
+                [disabled]="bulkSaving"
+                (click)="multipleCsvFileInput.click()"
+              >
+                複数月のデータをインポート
+              </button>
+            </mat-menu>
           </button>
           <button
             mat-icon-button
             type="button"
             class="calculate-premiums-button"
-            [disabled]="bulkSaving || premiumRecalculating || !bonusRecordExists()"
-            [class.disabled]="bulkSaving || premiumRecalculating || !bonusRecordExists()"
+            [disabled]="bulkSaving || premiumRecalculating || !bonusRecordExists() || locked()"
+            [class.disabled]="bulkSaving || premiumRecalculating || !bonusRecordExists() || locked()"
             (click)="calculatePremiums()"
-            matTooltip="保険料を計算">
+            [matTooltip]="locked() ? '締切済みのため再計算できません' : '保険料を計算'"
+          >
             <mat-icon>calculate</mat-icon>
           </button>
         </div>
       </div>
-  
+
       <div class="search-container">
         <mat-form-field appearance="outline">
           <mat-label>検索項目</mat-label>
@@ -82,13 +115,13 @@
           />
         </mat-form-field>
       </div>
-  
+
       @if (loading) {
-        <p class="loading-message">月次データを読み込んでいます...</p>
+        <p class="loading-message">賞与データを読み込んでいます...</p>
       } @else if (isFilterActive() && !hasFilteredResults()) {
         <p class="empty-message">検索結果がありません。</p>
       } @else {
-        <div class="table-scroll-container">
+        <div class="table-scroll-container" [class.is-locked]="locked()">
           <table mat-table [dataSource]="dataSource" matSort class="monthly-table">
             <ng-container matColumnDef="selected">
               <th mat-header-cell *matHeaderCellDef class="check-col">
@@ -105,7 +138,7 @@
               </td>
               <td mat-footer-cell *matFooterCellDef></td>
             </ng-container>
-  
+
             @for (col of visibleColumns(); track col) {
               <ng-container matColumnDef="{{ col }}">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>
@@ -123,7 +156,7 @@
                 </td>
               </ng-container>
             }
-  
+
             <tr mat-header-row *matHeaderRowDef="tableColumns()"></tr>
             <tr mat-row *matRowDef="let row; columns: tableColumns()" class="monthly-row"></tr>
             <tr mat-footer-row *matFooterRowDef="tableColumns()" class="footer-row"></tr>
@@ -132,4 +165,3 @@
       }
     </div>
   </div>
-  

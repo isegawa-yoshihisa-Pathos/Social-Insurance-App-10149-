@@ -1,7 +1,29 @@
 import { Injectable, inject } from '@angular/core';
-import { Firestore, collection, getDocs } from '@angular/fire/firestore';
+import {
+  Firestore,
+  WriteBatch,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  serverTimestamp,
+  setDoc,
+} from '@angular/fire/firestore';
 import { EmployeeDocument } from '../../employee-document';
+import { BonusDocument, BonusPeriodDocument } from '../../bonus-document';
 import { BonusListRow } from './bonus-list-columns';
+import { toBonusListRow } from './bonus-list-row.mapper';
+import { BonusManagementDataService } from '../bonus-management-data.service';
+
+export interface BonusDetailRow extends BonusListRow {
+  yyyyMm: string;
+}
+
+export interface EmployeeBonusHistoryResult {
+  rows: BonusDetailRow[];
+  displayName: string;
+  employeeId: string;
+}
 
 export interface EmployeeLookupEntry {
   uid: string;
@@ -15,6 +37,57 @@ export interface EmployeeLookupEntry {
 })
 export class BonusListDataService {
   private readonly firestore = inject(Firestore);
+  private readonly bonusManagementDataService = inject(BonusManagementDataService);
+
+  periodRef(tid: string, yyyyMm: string) {
+    return doc(this.firestore, 'tenants', tid, 'bonus-records', yyyyMm);
+  }
+
+  async getPeriod(tid: string, yyyyMm: string): Promise<BonusPeriodDocument | null> {
+    const snap = await getDoc(this.periodRef(tid, yyyyMm));
+    if (!snap.exists()) return null;
+    return snap.data() as BonusPeriodDocument;
+  }
+
+  async isPeriodLocked(tid: string, yyyyMm: string): Promise<boolean> {
+    const period = await this.getPeriod(tid, yyyyMm);
+    return period?.locked === true;
+  }
+
+  async lockPeriod(tid: string, yyyyMm: string): Promise<void> {
+    await setDoc(
+      this.periodRef(tid, yyyyMm),
+      {
+        yyyyMm,
+        locked: true,
+        lockedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true },
+    );
+  }
+
+  /** 期間ドキュメントが無い場合のみ作成する（既存の locked は変更しない） */
+  async ensurePeriodDocument(tid: string, yyyyMm: string): Promise<void> {
+    const existing = await this.getPeriod(tid, yyyyMm);
+    if (existing) return;
+    await setDoc(this.periodRef(tid, yyyyMm), {
+      yyyyMm,
+      locked: false,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  touchPeriodInBatch(batch: WriteBatch, tid: string, yyyyMm: string): void {
+    batch.set(
+      this.periodRef(tid, yyyyMm),
+      {
+        yyyyMm,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true },
+    );
+  }
 
   async loadEmployeeLookup(tid: string): Promise<Map<string, EmployeeLookupEntry>> {
     const employeesRef = collection(this.firestore, 'tenants', tid, 'employees');
@@ -32,6 +105,48 @@ export class BonusListDataService {
     }
 
     return lookup;
+  }
+
+  async loadEmployeeBonusHistory(
+    tid: string,
+    eid: string,
+  ): Promise<EmployeeBonusHistoryResult> {
+    await this.bonusManagementDataService.loadBonusSettings(tid);
+    const bonusTypeDefinitions = this.bonusManagementDataService.bonusTypeDefinitions();
+
+    const employeeLookup = await this.loadEmployeeLookup(tid);
+    const empMeta = employeeLookup.get(eid);
+
+    const recordsRef = collection(this.firestore, 'tenants', tid, 'bonus-records');
+    const recordsSnap = await getDocs(recordsRef);
+
+    const detailRows = (
+      await Promise.all(
+        recordsSnap.docs.map(async (periodDoc) => {
+          const yyyyMm = periodDoc.id;
+          const empSnap = await getDoc(
+            doc(this.firestore, 'tenants', tid, 'bonus-records', yyyyMm, 'employees', eid),
+          );
+          if (!empSnap.exists()) return null;
+
+          const baseRow = toBonusListRow(
+            eid,
+            empSnap.data() as Partial<BonusDocument>,
+            bonusTypeDefinitions,
+          );
+          const enrichedRow = this.mergeEmployeeMeta(baseRow, employeeLookup);
+          return { ...enrichedRow, yyyyMm };
+        }),
+      )
+    ).filter((row): row is BonusDetailRow => row !== null);
+
+    detailRows.sort((a, b) => b.yyyyMm.localeCompare(a.yyyyMm));
+
+    return {
+      rows: detailRows,
+      displayName: empMeta?.displayName || detailRows[0]?.displayName || '',
+      employeeId: empMeta?.employeeId || detailRows[0]?.employeeId || '',
+    };
   }
 
   mergeEmployeeMeta(

@@ -102,6 +102,8 @@ export interface StandardRemunerationDocument {
   source: StandardRemunerationSource;
   effectiveFrom: string;
   remuneration?: number;
+  /** 定時決定で賞与を12等分して加算した月額（0より大きい場合は都度徴収をスキップ） */
+  bonusRemunerationMonthlyAddition?: number;
   createdAt: FirestoreTimestamp;
   updatedAt: FirestoreTimestamp;
 }

@@ -62,7 +62,7 @@ export class BonusKindSettingCmp implements OnInit {
 
   addType(): void {
     const type = generateNextBonusType(this.types.map((item) => item.type));
-    this.types.push({ label: '', type, bonusFrequency: 'low' });
+    this.types.push({ label: '', type, bonusFrequency: 'low', target: 'labor' });
     this.validationError = null;
   }
 

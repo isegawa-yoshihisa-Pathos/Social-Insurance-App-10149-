@@ -26,6 +26,13 @@
                 <mat-option value="high">年4回以上</mat-option>
               </mat-select>  
             </mat-form-field>
+            <mat-form-field appearance="outline" class="category-field">
+              <mat-label>対象区分</mat-label>
+              <mat-select [(ngModel)]="item.target">
+                <mat-option value="labor">労働</mat-option>
+                <mat-option value="non-labor">非労働</mat-option>
+              </mat-select>
+            </mat-form-field>
           </div>
         }
     

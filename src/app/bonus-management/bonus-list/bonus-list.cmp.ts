@@ -11,6 +11,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { RoutesService } from '../../routes.service';
 import { CurrentTenantService } from '../../current-tenant.service';
 import { BonusManagementDataService } from '../bonus-management-data.service';
@@ -45,6 +46,7 @@ import { Format } from '../../format-number-jp';
     MatIconModule,
     MatButtonModule,
     HelpContentCmp,
+    MatMenuModule,
   ],
   templateUrl: './bonus-list.cmp.html',
   styleUrl: './bonus-list.cmp.css',
@@ -91,6 +93,8 @@ export class BonusListCmp implements OnInit {
 
   selectedEids = new Set<string>();
 
+  readonly locked = signal(false);
+
   readonly selectedYear = signal(new Date().getFullYear());
   readonly selectedMonth = signal(new Date().getMonth() + 1);
 
@@ -132,6 +136,26 @@ export class BonusListCmp implements OnInit {
     });
   }
 
+  async lockPeriod(): Promise<void> {
+    const tid = this.currentTenantService.currentTid();
+    const ym = this.yyyyMm();
+    if (!tid || !ym || this.locked() || !this.bonusRecordExists()) return;
+
+    const confirmed = confirm(
+      `${ym} の賞与データを締切しますか？\n締切後は賞与データの変更・インポート・保険料の再計算ができなくなります。`,
+    );
+    if (!confirmed) return;
+
+    try {
+      await this.listDataService.lockPeriod(tid, ym);
+      this.locked.set(true);
+    } catch (error) {
+      this.dialog.open(ErrorDialogCmp, {
+        data: { message: mapFirebaseError(error) },
+      });
+    }
+  }
+
   private updateUrlQuery(yyyyMm: string): void {
     this.router.navigate([], {
       relativeTo: this.route,
@@ -147,6 +171,7 @@ export class BonusListCmp implements OnInit {
     } else {
       this.selectedMonth.set(this.selectedMonth() - 1);
     }
+    this.updateUrlQuery(this.yyyyMm());
   }
 
   nextMonth(): void {
@@ -156,11 +181,13 @@ export class BonusListCmp implements OnInit {
     } else {
       this.selectedMonth.set(this.selectedMonth() + 1);
     }
+    this.updateUrlQuery(this.yyyyMm());
   }
 
   setThisMonth(): void {
     this.selectedYear.set(new Date().getFullYear());
     this.selectedMonth.set(new Date().getMonth() + 1);
+    this.updateUrlQuery(this.yyyyMm());
   }
 
   constructor() {
@@ -224,11 +251,14 @@ export class BonusListCmp implements OnInit {
       yyyyMm,
       'employees',
     );
-    const [bonus, employeeLookup] = await Promise.all([
+    const [bonus, employeeLookup, period] = await Promise.all([
       getDocs(bonusRef),
       this.listDataService.loadEmployeeLookup(tid),
+      this.listDataService.getPeriod(tid, yyyyMm),
     ]);
     if (token !== undefined && token !== this.loadToken) return;
+
+    this.locked.set(period?.locked === true);
 
     const data = bonus.docs.map((snap) => {
       const row = toBonusListRow(
@@ -239,6 +269,9 @@ export class BonusListCmp implements OnInit {
       return this.listDataService.mergeEmployeeMeta(row, employeeLookup);
     });
     this.bonusRecordExists.set(data.length > 0);
+    if (data.length > 0) {
+      await this.listDataService.ensurePeriodDocument(tid, yyyyMm);
+    }
     this.dataSource.data = data;
     const alive = new Set(data.map((r) => r.eid));
     this.selectedEids = new Set([...this.selectedEids].filter((eid) => alive.has(eid)));
@@ -285,9 +318,11 @@ export class BonusListCmp implements OnInit {
 
   onCellClick(row: BonusListRow, col: BonusListColumnKey): void {
     if (col === 'displayName' || col === 'employeeId') {
-      this.routesService.redirectToEmployeeEmployDetail(row.eid);
+      this.routesService.redirectToBonusDetail(row.eid);
       return;
     }
+    if (this.locked()) return;
+
     if (col === 'bonus' || !isEditableColumn(col)) {
       return;
     }
@@ -383,6 +418,14 @@ export class BonusListCmp implements OnInit {
     const file = input.files?.[0];
     if (!file) return;
 
+    if (this.locked()) {
+      this.dialog.open(ErrorDialogCmp, {
+        data: { message: 'この月は締切済みのため、インポートできません。' },
+      });
+      input.value = '';
+      return;
+    }
+
     const tid = this.currentTenantService.currentTid();
     const ym = this.yyyyMm();
     if (!tid || !ym) {
@@ -429,10 +472,78 @@ export class BonusListCmp implements OnInit {
     }
   }
 
+  async onMultipleCsvSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) {
+      return;
+    }
+
+    const files: File[] = Array.from(input.files);
+
+    const tid = this.currentTenantService.currentTid();
+    if (!tid) {
+      this.dialog.open(ErrorDialogCmp, {
+        data: { message: '事業所が選択されていません。' },
+      });
+      input.value = '';
+      return;
+    }
+
+    this.bulkSaving = true;
+    try {
+      let updated = 0;
+      let created = 0;
+      let skippedNoMatch = 0;
+      let skippedOutOfScope = 0;
+      let skippedAmbiguous = 0;
+      let skippedEmpty = 0;
+      const currentYm = this.yyyyMm();
+      for (const file of files) {
+        const ym = file.name.split('.').slice(0, -1).join('.');
+        const result = await this.importService.importFromCsv(tid, file, {
+          yyyyMm: ym,
+        });
+        updated += result.updated;
+        created += result.created;
+        skippedNoMatch += result.skippedNoMatch;
+        skippedOutOfScope += result.skippedOutOfScope;
+        skippedAmbiguous += result.skippedAmbiguous;
+        skippedEmpty += result.skippedEmpty;
+      }
+      await this.loadBonusRecords(tid, currentYm);
+
+      this.dialog.open(SuccessDialogCmp, {
+        data: {
+          title: 'CSVインポート結果',
+          message:
+            `更新: ${updated}件 / ` +
+            `新規作成: ${created}件 / ` +
+            `未一致: ${skippedNoMatch}件 / ` +
+            `範囲外: ${skippedOutOfScope}件 / ` +
+            `氏名重複: ${skippedAmbiguous}件 / ` +
+            `空欄のみ: ${skippedEmpty}件`,
+        },
+      });
+    } catch (error) {
+      this.dialog.open(ErrorDialogCmp, {
+        data: { message: mapFirebaseError(error) },
+      });
+    } finally {
+      this.bulkSaving = false;
+      input.value = '';
+    }
+  }
+
   async calculatePremiums(): Promise<void> {
     const tid = this.currentTenantService.currentTid();
     const ym = this.yyyyMm();
     if (!tid || !ym || !this.bonusRecordExists()) return;
+    if (this.locked()) {
+      this.dialog.open(ErrorDialogCmp, {
+        data: { message: 'この月は締切済みのため、保険料を再計算できません。' },
+      });
+      return;
+    }
     this.premiumRecalculating = true;
     try {
       await this.premiumCalculateFacade.calculateMonth(tid, ym, () =>

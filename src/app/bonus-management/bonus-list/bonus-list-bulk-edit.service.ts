@@ -12,12 +12,14 @@ import { buildBonusData } from './bonus-data.util';
 import { bonusTypeFromColumnKey } from './bonus-display.util';
 import { BulkEditableColumn, BulkEditTarget, BulkEditValue } from './bonus-bulk-edit.types';
 import { BonusAmountMap } from '../../bonus-document';
+import { BonusListDataService } from './bonus-list-data.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class BonusListBulkEditService {
   private readonly firestore = inject(Firestore);
+  private readonly listDataService = inject(BonusListDataService);
 
   async applyBulkEdit(
     tid: string,
@@ -27,6 +29,10 @@ export class BonusListBulkEditService {
     value: BulkEditValue,
   ): Promise<void> {
     if (targets.length === 0) return;
+
+    if (await this.listDataService.isPeriodLocked(tid, yyyyMm)) {
+      throw new Error('この月は締切済みのため、編集できません。');
+    }
 
     const bonusType = bonusTypeFromColumnKey(column);
     const batch = writeBatch(this.firestore);
@@ -46,6 +52,8 @@ export class BonusListBulkEditService {
         : this.buildUpdatePayload(column, value);
       batch.update(employeeRef, payload);
     }
+
+    this.listDataService.touchPeriodInBatch(batch, tid, yyyyMm);
 
     await batch.commit();
   }
