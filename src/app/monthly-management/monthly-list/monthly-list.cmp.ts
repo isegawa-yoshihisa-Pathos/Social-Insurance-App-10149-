@@ -11,6 +11,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { RoutesService } from '../../routes.service';
 import { CurrentTenantService } from '../../current-tenant.service';
 import { MonthlyListColumnKey, MonthlyListRow, getMonthlyListColumnLabel } from './monthly-list-columns';
@@ -45,6 +46,7 @@ import { Format } from '../../format-number-jp';
     MatIconModule,
     MatButtonModule,
     HelpContentCmp,
+    MatMenuModule,
   ],
   templateUrl: './monthly-list.cmp.html',
   styleUrl: './monthly-list.cmp.css',
@@ -452,7 +454,6 @@ export class MonthlyListCmp implements OnInit {
     try {
       const result = await this.importService.importFromCsv(tid, file, {
         yyyyMm: ym,
-        allRows: this.dataSource.data,
       });
 
       await this.loadMonthlyRecords(tid, ym);
@@ -466,6 +467,64 @@ export class MonthlyListCmp implements OnInit {
             `未一致: ${result.skippedNoMatch}件 / ` +
             `氏名重複: ${result.skippedAmbiguous}件 / ` +
             `空欄のみ: ${result.skippedEmpty}件`,
+        },
+      });
+    } catch (error) {
+      this.dialog.open(ErrorDialogCmp, {
+        data: { message: mapFirebaseError(error) },
+      });
+    } finally {
+      this.bulkSaving = false;
+      input.value = '';
+    }
+  }
+
+  async onMultipleCsvSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) {
+      return;
+    }
+
+    const files: File[] = Array.from(input.files);
+
+    const tid = this.currentTenantService.currentTid();
+    if (!tid) {
+      this.dialog.open(ErrorDialogCmp, {
+        data: { message: '事業所が選択されていません。' },
+      });
+      input.value = '';
+      return;
+    }
+
+    this.bulkSaving = true;
+    try {
+      let updated = 0;
+      let created = 0;
+      let skippedNoMatch = 0;
+      let skippedAmbiguous = 0;
+      let skippedEmpty = 0;
+      for (const file of files) {
+        const ym = file.name.split('.').slice(0, -1).join('.');
+        const result = await this.importService.importFromCsv(tid, file, {
+          yyyyMm: ym,
+        });
+        updated += result.updated;
+        created += result.created;
+        skippedNoMatch += result.skippedNoMatch;
+        skippedAmbiguous += result.skippedAmbiguous;
+        skippedEmpty += result.skippedEmpty;
+        await this.loadMonthlyRecords(tid, ym);
+      }
+
+      this.dialog.open(SuccessDialogCmp, {
+        data: {
+          title: 'CSVインポート結果',
+          message:
+            `更新: ${updated}件 / ` +
+            `新規作成: ${created}件 / ` +
+            `未一致: ${skippedNoMatch}件 / ` +
+            `氏名重複: ${skippedAmbiguous}件 / ` +
+            `空欄のみ: ${skippedEmpty}件`,
         },
       });
     } catch (error) {

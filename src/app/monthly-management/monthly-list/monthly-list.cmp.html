@@ -47,20 +47,40 @@
           accept=".csv,text/csv"
           hidden
           (change)="onCsvSelected($event)">
-        <button 
-          mat-icon-button 
-          type="button"
-          class="import-csv-button"
-          [disabled]="bulkSaving || locked()"
-          (click)="csvFileInput.click()"
-          [matTooltip]="locked() ? '締切済みのためインポートできません' : 'CSVファイルからインポート'"
-        >
+        <input
+          #multipleCsvFileInput
+          type="file"
+          accept=".csv,text/csv"
+          multiple
+          hidden
+          (change)="onMultipleCsvSelected($event)">
+        <button mat-icon-button [matMenuTriggerFor]="tenantMenu" matTooltip="CSVファイルからインポート">
           <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=csv" />
           <mat-icon>
             <span class="material-symbols-outlined">
               csv
             </span>
           </mat-icon>
+          <mat-menu #tenantMenu="matMenu">
+            <button 
+            mat-menu-item 
+            type="button"
+            class="import-csv-button"
+            [disabled]="bulkSaving || locked()"
+            (click)="csvFileInput.click()"
+          >
+            今月のデータをインポート
+          </button>
+          <button 
+            mat-menu-item 
+            type="button"
+            class="import-csv-button"
+            [disabled]="bulkSaving || locked()"
+            (click)="multipleCsvFileInput.click()"
+          >
+            複数月のデータをインポート
+          </button>
+          </mat-menu>
         </button>
         <button
           mat-icon-button

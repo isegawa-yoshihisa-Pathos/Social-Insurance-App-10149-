@@ -26,7 +26,7 @@ export class NotificationsCmp {
         this.notificationService.unsubscribe();
         return;
       }
-      this.notificationService.subscribe({ uid, tid, isAdmin });
+      this.notificationService.subscribeAll({ uid, tid, isAdmin });
     });
   }
 }

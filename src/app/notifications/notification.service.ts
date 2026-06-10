@@ -52,6 +52,17 @@ export class NotificationService {
     }
   }
 
+  subscribeAll(params: { uid: string; tid: string; isAdmin: boolean }): void {
+    this.unsubscribe();
+    this.currentUid = params.uid;
+    this.currentTid = params.tid;
+
+    this.subscribePersonalAllNotifications(params.uid);
+    if (params.isAdmin) {
+      this.subscribeTenantAllNotifications(params.uid, params.tid);
+    }
+  }
+
   async markAsRead(notification: AppNotification): Promise<void> {
     if (notification.read) {
       return;
@@ -95,6 +106,28 @@ export class NotificationService {
   private subscribePersonalNotifications(uid: string): void {
     const ref = collection(this.firestore, 'accounts', uid, 'notifications');
     const q = query(ref, where('scope', '==', 'personal'), orderBy('createdAt', 'desc'), limit(30));
+    this.personalUnsub = onSnapshot(q, (snap) => {
+      const items = snap.docs.map((d) =>
+        this.mapNotificationDoc(d.id, d.data()),
+      );
+      this.personalNotifications.set(items);
+    });
+  }
+
+  private subscribeTenantAllNotifications(uid: string, tid: string): void {
+    const ref = collection(this.firestore, 'accounts', uid, 'notifications');
+    const q = query(ref, where('scope', '==', 'tenant'), where('tid', '==', tid), orderBy('createdAt', 'desc'));
+    this.tenantUnsub = onSnapshot(q, (snap) => {
+      const items = snap.docs.map((d) =>
+        this.mapNotificationDoc(d.id, d.data()),
+      );
+      this.tenantNotifications.set(items);
+    });
+  }
+
+  private subscribePersonalAllNotifications(uid: string): void {
+    const ref = collection(this.firestore, 'accounts', uid, 'notifications');
+    const q = query(ref, where('scope', '==', 'personal'), orderBy('createdAt', 'desc'));
     this.personalUnsub = onSnapshot(q, (snap) => {
       const items = snap.docs.map((d) =>
         this.mapNotificationDoc(d.id, d.data()),
