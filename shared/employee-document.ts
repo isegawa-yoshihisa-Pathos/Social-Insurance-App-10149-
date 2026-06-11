@@ -5,7 +5,7 @@ export interface EmployeeDocument {
   uid: string;
   employeePersonalInfo: EmployeePersonalInfo;
   employeeEmployInfo: EmployeeEmployInfo;
-
+  leaveInfo?: EmployeeLeaveRecord[];
   role: 'admin' | 'member';
   updatedAt?: FirestoreTimestamp;
 }
@@ -18,13 +18,29 @@ export interface EmployeeEmployInfo {
   employmentType: 'full-time' | 'short-time-worker' | 'short-time-labor';
   status: 'active' | 'leave' | 'resigned';
   joinedAt: FirestoreTimestamp | null;
-  leaveAt: FirestoreTimestamp | null;
-  returnAt: FirestoreTimestamp | null;
   resignAt: FirestoreTimestamp | null;
   licenseStartAt: FirestoreTimestamp | null;
   licenseEndAt: FirestoreTimestamp | null;
   healthInsuranceRecordNumber: string;
   pensionInsuranceRecordNumber: string;
+}
+
+export type EmployeeLeaveType = 'maternity' | 'childcare';
+
+export interface EmployeeLeaveRecord {
+  type: EmployeeLeaveType;
+  startAt: FirestoreTimestamp | null;
+  endAt: FirestoreTimestamp | null;
+  reason?: string;
+  applicationId?: string;
+  createdAt?: FirestoreTimestamp;
+}
+
+export interface EmployeeLeaveFormData {
+  type: EmployeeLeaveType;
+  startAt: Date | null;
+  endAt: Date | null;
+  reason: string;
 }
 
 export interface EmployeeEmployFormData {
@@ -35,8 +51,6 @@ export interface EmployeeEmployFormData {
   employmentType: 'full-time' | 'short-time-worker' | 'short-time-labor';
   status: 'active' | 'leave' | 'resigned';
   joinedAt: Date | null;
-  leaveAt: Date | null;
-  returnAt: Date | null;
   resignAt: Date | null;
   licenseStartAt: Date | null;
   licenseEndAt: Date | null;

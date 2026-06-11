@@ -90,9 +90,6 @@ export interface BonusListRow {
   employeeId: string;
   displayName: string;
   bonus: BonusAmountMap;
-  bonusDisplay: string;
-  bonusTooltip: string;
-  bonusTotal: number;
   standardBonusHealth: number | null;
   standardBonusPension: number | null;
   healthInsuranceEmployee: number | null;

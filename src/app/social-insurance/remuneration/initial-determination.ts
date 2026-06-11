@@ -19,9 +19,10 @@ export type InitialDeterminationOutcome =
  */
 export function determineInitial(
   payroll: PayrollData,
+  bonusRelatedRemuneration = 0,
   gradeTable: RemunerationGradeTableSet = CURRENT_GRADE_TABLE,
 ): InitialDeterminationOutcome {
-  const remuneration = computeFixedWageFromPayroll(payroll);
+  const remuneration = computeFixedWageFromPayroll(payroll) + bonusRelatedRemuneration;
   const grades = resolveGradesFromRemuneration(gradeTable, remuneration);
 
   if (!grades) {

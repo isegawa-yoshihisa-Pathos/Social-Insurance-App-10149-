@@ -1,1 +1,68 @@
-<p>leave-application works!</p>
+<div class="application-page">
+  <h2>休暇申請</h2>
+
+  <form class="input-container" (ngSubmit)="submit()">
+    <div class="field-container">
+      <label class="label-name">休暇種別：</label>
+      <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+        <mat-label>休暇種別</mat-label>
+        <mat-select [(ngModel)]="form.type" name="type" required>
+          <mat-option value="maternity">{{ leaveTypeLabels.maternity }}</mat-option>
+          <mat-option value="childcare">{{ leaveTypeLabels.childcare }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <div class="field-container">
+      <label class="label-name">開始日：</label>
+      <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+        <mat-label>開始日</mat-label>
+        <input
+          matInput
+          [matDatepicker]="startPicker"
+          [(ngModel)]="form.startAt"
+          name="startAt"
+          required
+        />
+        <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
+        <mat-datepicker #startPicker></mat-datepicker>
+      </mat-form-field>
+    </div>
+
+    <div class="field-container">
+      <label class="label-name">終了予定日：</label>
+      <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+        <mat-label>終了予定日</mat-label>
+        <input
+          matInput
+          [matDatepicker]="endPicker"
+          [(ngModel)]="form.endAt"
+          name="endAt"
+        />
+        <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
+        <mat-datepicker #endPicker></mat-datepicker>
+      </mat-form-field>
+    </div>
+
+    <div class="field-container">
+      <label class="label-name">備考：</label>
+      <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+        <mat-label>備考</mat-label>
+        <textarea matInput rows="3" [(ngModel)]="form.reason" name="reason"></textarea>
+      </mat-form-field>
+    </div>
+
+    <div class="button-container">
+      <button mat-flat-button color="primary" type="submit" [disabled]="submitBusy">
+        @if (submitBusy) {
+          <mat-spinner diameter="24" strokeWidth="3"></mat-spinner>
+        } @else {
+          申請する
+        }
+      </button>
+      <button mat-button type="button" [disabled]="submitBusy" (click)="cancel()">
+        キャンセル
+      </button>
+    </div>
+  </form>
+</div>

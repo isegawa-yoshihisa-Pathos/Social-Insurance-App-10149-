@@ -220,7 +220,7 @@ export class EmployeesListImportService {
     });
 
     for (const key of [
-      'joinedAt', 'leaveAt', 'returnAt', 'resignAt', 'licenseStartAt', 'licenseEndAt',
+      'joinedAt', 'resignAt', 'licenseStartAt', 'licenseEndAt',
     ] as EmployeesImportFieldKey[]) {
       setIfPresent(key, (v) => {
         const date = new Date(v);

@@ -1,1 +1,92 @@
-<p>accept-application works!</p>
+<div class="accept-application">
+  <h3>休暇申請の承認</h3>
+
+  @if (loading) {
+    <p>申請一覧を読み込んでいます...</p>
+  } @else if (leaveApplications.length === 0) {
+    <p class="empty-message">承認待ちの休暇申請はありません。</p>
+  } @else {
+    <div class="application-list">
+      @for (application of leaveApplications; track application.id) {
+        <div class="application-card">
+          <div class="application-header">
+            <strong>{{ application.displayName }}</strong>
+            <span class="employee-id">社員番号：{{ application.employeeId }}</span>
+          </div>
+          <div class="application-body">
+            <p>種別：{{ application.leaveDetails ? leaveTypeLabel(application.leaveDetails.type) : '' }}</p>
+            <p>期間：{{ leavePeriod(application) }}</p>
+            @if (application.leaveDetails?.reason) {
+              <p>備考：{{ application.leaveDetails?.reason }}</p>
+            }
+            <p class="applied-at">申請日：{{ appliedAt(application) }}</p>
+          </div>
+          <div class="application-actions">
+            <button
+              mat-flat-button
+              color="primary"
+              type="button"
+              [disabled]="busyId === application.id"
+              (click)="approve(application)"
+            >
+              承認
+            </button>
+            <button
+              mat-button
+              type="button"
+              [disabled]="busyId === application.id"
+              (click)="reject(application)"
+            >
+              却下
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <h3 class="section-title">退職申請の承認</h3>
+
+  @if (loading) {
+    <p>申請一覧を読み込んでいます...</p>
+  } @else if (resignApplications.length === 0) {
+    <p class="empty-message">承認待ちの退職申請はありません。</p>
+  } @else {
+    <div class="application-list">
+      @for (application of resignApplications; track application.id) {
+        <div class="application-card">
+          <div class="application-header">
+            <strong>{{ application.displayName }}</strong>
+            <span class="employee-id">社員番号：{{ application.employeeId }}</span>
+          </div>
+          <div class="application-body">
+            <p>退職日：{{ resignDate(application) }}</p>
+            @if (application.resignDetails?.reason) {
+              <p>備考：{{ application.resignDetails?.reason }}</p>
+            }
+            <p class="applied-at">申請日：{{ appliedAt(application) }}</p>
+          </div>
+          <div class="application-actions">
+            <button
+              mat-flat-button
+              color="primary"
+              type="button"
+              [disabled]="busyId === application.id"
+              (click)="approve(application)"
+            >
+              承認
+            </button>
+            <button
+              mat-button
+              type="button"
+              [disabled]="busyId === application.id"
+              (click)="reject(application)"
+            >
+              却下
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

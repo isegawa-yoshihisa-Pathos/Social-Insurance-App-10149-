@@ -3,6 +3,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { formatJapaneseDate } from '../../../../date-utils';
 import { EmployeeDetailDataService } from '../employee-detail-data.service';
 import { RoutesService } from '../../../../routes.service';
+import { Router } from '@angular/router';
+import { formatEmployeeListValue } from '../../employee-list-data.util';
 
 @Component({
   selector: 'app-employee-employ-detail',
@@ -16,13 +18,19 @@ import { RoutesService } from '../../../../routes.service';
 export class EmployeeEmployDetailCmp {
   readonly dataService = inject(EmployeeDetailDataService);
   private readonly routesService = inject(RoutesService);
+  private readonly router = inject(Router);
 
   readonly formatDate = formatJapaneseDate;
-  readonly statusLabel = (status: 'active' | 'leave' | 'resigned') => {
-    return status === 'active' ? '在職' : status === 'leave' ? '休職' : '退職';
-  };
 
   edit(): void {
     this.routesService.redirectToEmployeeEmployDetailEdit(this.dataService.eid);
+  }
+
+  isManagement(): boolean {
+    return this.router.url.startsWith('/employees-management');
+  }
+
+  formatValue(value: string): string {
+    return formatEmployeeListValue(value);
   }
 }

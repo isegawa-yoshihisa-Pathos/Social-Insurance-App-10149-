@@ -9,4 +9,8 @@ import { NotificationService } from '../notification.service';
 })
 export class TenantNotificationCmp {
   readonly notificationService = inject(NotificationService);
+
+  deleteNotification(notificationId: string): void {
+    this.notificationService.deleteNotification(notificationId);
+  }
 }

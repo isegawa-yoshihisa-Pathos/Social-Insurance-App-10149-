@@ -35,6 +35,7 @@ export interface MonthlyCsvImportResult {
 interface PayrollImportPatch {
   basicSalary?: number;
   paymentBaseDays?: number;
+  bonusRelatedRemuneration?: number;
   allowances?: Record<string, number>;
   retroactivePay?: number | null;
 }
@@ -96,6 +97,10 @@ export class MonthlyListImportService {
       collection(this.firestore, 'tenants', tid, 'monthly-records', options.yyyyMm, 'employees')
     );
     const existingRows = existingRecordsSnapshot.docs.map(doc => ({ ...doc.data() as MonthlyListRow }));
+    const previousBonusMap = await this.listDataService.loadPreviousBonusRelatedRemunerationMap(
+      tid,
+      options.yyyyMm,
+    );
 
     for (let i = 1; i < rows.length; i++) {
       const cols = rows[i];
@@ -157,7 +162,12 @@ export class MonthlyListImportService {
         }
         batch.set(
           employeeRef,
-          this.buildMonthlyDocument(employee, payrollPatch, definitions),
+          this.buildMonthlyDocument(
+            employee,
+            payrollPatch,
+            definitions,
+            previousBonusMap.get(matched) ?? 0,
+          ),
         );
         result.created++;
       }
@@ -220,6 +230,7 @@ export class MonthlyListImportService {
     const current = {
       basicSalary: existingRow?.basicSalary ?? 0,
       paymentBaseDays: existingRow?.paymentBaseDays ?? 0,
+      bonusRelatedRemuneration: existingRow?.bonusRelatedRemuneration ?? 0,
       allowances: { ...(existingRow?.allowances ?? {}) },
       retroactivePay: existingRow?.retroactivePay ?? null,
     };
@@ -247,6 +258,9 @@ export class MonthlyListImportService {
         hasUpdate = true;
       } else if (col.key === 'paymentBaseDays') {
         patch.paymentBaseDays = num;
+        hasUpdate = true;
+      } else if (col.key === 'bonusRelatedRemuneration') {
+        patch.bonusRelatedRemuneration = num;
         hasUpdate = true;
       } else {
         const allowances = { ...(patch.allowances ?? current.allowances) };
@@ -283,6 +297,9 @@ export class MonthlyListImportService {
     if (payrollPatch.paymentBaseDays !== undefined) {
       update['payrollData.paymentBaseDays'] = payrollPatch.paymentBaseDays;
     }
+    if (payrollPatch.bonusRelatedRemuneration !== undefined) {
+      update['bonusRelatedRemuneration'] = payrollPatch.bonusRelatedRemuneration;
+    }
     if (payrollPatch.retroactivePay !== undefined) {
       update['payrollData.retroactivePay'] = payrollPatch.retroactivePay;
     }
@@ -299,10 +316,12 @@ export class MonthlyListImportService {
     employee: EmployeeLookupEntry,
     payrollPatch: PayrollImportPatch,
     definitions: ReturnType<PaymentManagementDataService['allowanceTypeDefinitions']>,
+    carriedBonusRelatedRemuneration: number,
   ): {
     uid: string;
     displayName: string;
     paymentBaseDays: number;
+    bonusRelatedRemuneration: number;
     payrollData: PayrollData;
     updatedAt: ReturnType<typeof serverTimestamp>;
   } {
@@ -327,6 +346,8 @@ export class MonthlyListImportService {
       uid: employee.uid,
       displayName: employee.displayName,
       paymentBaseDays: payrollPatch.paymentBaseDays ?? 0,
+      bonusRelatedRemuneration:
+        payrollPatch.bonusRelatedRemuneration ?? carriedBonusRelatedRemuneration,
       payrollData,
       updatedAt: serverTimestamp(),
     };

@@ -115,6 +115,7 @@ export class MonthlyListCmp implements OnInit {
       return `合計 (${this.getDisplayedRows().length}件)`;
     }
     if (col === 'employeeId') return '';
+    if (col === 'paymentBaseDays') return '';
     if (!isSummableMonthlyListColumn(col)) return '';
     const total = this.getDisplayedRows().reduce(
       (sum, row) => sum + (monthlyListNumericValue(row, col) ?? 0),

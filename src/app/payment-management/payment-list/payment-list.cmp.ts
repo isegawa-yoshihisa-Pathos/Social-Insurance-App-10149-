@@ -90,6 +90,7 @@ export class PaymentListCmp implements OnInit {
       return `合計 (${this.getDisplayedRows().length}件)`;
     }
     if (col === 'employeeId') return '';
+    if (col === 'paymentBaseDays') return '';
     if (!isSummablePaymentListColumn(col)) return '';
 
     const total = this.getDisplayedRows().reduce(

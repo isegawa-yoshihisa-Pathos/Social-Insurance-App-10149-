@@ -1,5 +1,5 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { collection, doc, Firestore, limit, onSnapshot, orderBy, query, Unsubscribe, updateDoc, where } from '@angular/fire/firestore';
+import { collection, doc, deleteDoc, Firestore, limit, onSnapshot, orderBy, query, Unsubscribe, updateDoc, where } from '@angular/fire/firestore';
 
 export type NotificationScope = 'tenant' | 'personal';
 
@@ -153,5 +153,13 @@ export class NotificationService {
       totals: raw?.totals,
       createdAt: raw?.createdAt?.toDate?.() ?? null,
     };
+  }
+
+  deleteNotification(notificationId: string): void {
+    if (!this.currentUid) {
+      return;
+    }
+    const ref = doc(this.firestore, 'accounts', this.currentUid, 'notifications', notificationId);
+    deleteDoc(ref);
   }
 }

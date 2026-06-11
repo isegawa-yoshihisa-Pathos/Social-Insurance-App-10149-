@@ -15,6 +15,7 @@ export interface MonthlyDocument {
     displayName: string;
 
     paymentBaseDays: number;
+    bonusRelatedRemuneration?: number;
 
     payrollData: PayrollData;
     premiumData?: PremiumData;
@@ -48,7 +49,9 @@ export interface CalculationSnapshot {
 export interface MonthlyFormData {
     displayName: string;
     employeeId: string;
+    paymentBaseDays: number;
     basicSalary: number;
+    bonusRelatedRemuneration: number;
     allowances: AllowanceData;
     retroactivePay: number | null;
 }

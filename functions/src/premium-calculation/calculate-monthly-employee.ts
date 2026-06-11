@@ -2,6 +2,14 @@ import * as admin from 'firebase-admin';
 import type { MonthlyDocument } from '../../../shared/monthly-document';
 import type { EmployeeDocument } from '../../../shared/employee-document';
 import { calculateMonthlyPremium } from '../../../shared/social-insurance/premium/premium-calculator';
+import { employeeLeaveRecordsToPeriodInputs } from '../../../shared/social-insurance/premium/leave-premium-exemption';
+import {
+  buildLeaveReturnRemunerationDedupeKey,
+  buildLeaveReturnRemunerationNotificationBody,
+  determineLeaveReturnRemuneration,
+  findLeaveReturnScreeningTargets,
+  leaveTypeLabel,
+} from '../../../shared/social-insurance/remuneration/leave-return-remuneration-determination';
 import { determineInitial } from '../../../shared/social-insurance/remuneration/initial-determination';
 import { determineTeiji } from '../../../shared/social-insurance/remuneration/teiji-determination';
 import { determineStandardZuiji } from '../../../shared/social-insurance/remuneration/zuiji-determination';
@@ -22,6 +30,8 @@ import {
   getEmployee,
   getLatestStandardRemuneration,
   getMonthlyDocument,
+  getMonthlyPeriod,
+  updateMonthlyBonusRelatedRemuneration,
   getStandardRemuneration,
   listStandardRemuneration,
   saveStandardRemuneration,
@@ -35,7 +45,7 @@ import {
 import { screenAnnualAverageCandidate, type AnnualAverageMonthInput, buildAnnualAveragePeriodMonthKeys } from '../../../shared/social-insurance/remuneration/annual-average-determination';
 import type { TeijiDeterminationOutcome } from '../../../shared/social-insurance/remuneration/teiji-determination';
 import { screenZuijiAnnualAverageCandidate, buildZuijiAnnualAverageLoadKeys } from '../../../shared/social-insurance/remuneration/annual-average-determination';
-import { teijiBonusLookbackRange, calculateBonusRemunerationAddition, applyBonusRemunerationAddition } from '../../../shared/social-insurance/remuneration/bonus-remuneration-addition';
+import { teijiBonusLookbackRange, calculateBonusRemunerationAddition, buildTeijiApplicationMonthKeys } from '../../../shared/social-insurance/remuneration/bonus-remuneration-addition';
 import {
   addYyyyMm,
   buildMayJuneZuijiPendingNotificationBody,
@@ -84,6 +94,7 @@ export async function calculateMonthlyEmployee(
     birthDate: ctx.birthDate,
     licenceStartAt: toFormDate(ctx.employee.employeeEmployInfo?.licenseStartAt),
     resignAt: toFormDate(ctx.employee.employeeEmployInfo?.resignAt),
+    leaveRecords: employeeLeaveRecordsToPeriodInputs(ctx.employee.leaveInfo),
     standardRemuneration: standardRemuneration.standardRemuneration,
     rates: rate.rates,
     employeeRate: rate.employeeRate,
@@ -129,6 +140,8 @@ export async function calculateMonthlyEmployee(
       calculationSnapshot,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
+
+  await tryLeaveReturnRemunerationScreening(db, tid, eid, yyyyMm, ctx);
 }
 
 async function loadContext(
@@ -396,10 +409,7 @@ async function tryTeiji(
   const bonusDefs = await getBonusTypeDefinitions(db, tid);
 
   const addition = calculateBonusRemunerationAddition(bonusRecords, bonusDefs);
-  const monthInputs = applyBonusRemunerationAddition(
-    sources.map((s) => toMonthPaymentBaseInput(s)),
-    addition,
-  );
+  const monthInputs = sources.map((s) => toMonthPaymentBaseInput(s));
 
   const outcome = determineTeiji(
     ctx.employmentType,
@@ -409,11 +419,23 @@ async function tryTeiji(
     await notifyAnnualAverageIfNeeded(db, tid, eid, yyyyMm, year, ctx, outcome, prior ?? null);
   }
   if (outcome.kind === 'invalid') return null;
+
+  await applyTeijiBonusRelatedRemunerationToMonthlyRecords(
+    db,
+    tid,
+    eid,
+    year,
+    addition,
+  );
+
   if (outcome.kind === 'continue_previous') {
     if (!prior) {
-      const outcome = determineInitial(ctx.monthly.payrollData);
-      if (outcome.kind !== 'calculated') return null;
-      return gradesToPayload('initial', yyyyMm, outcome.grades);
+      const initialOutcome = determineInitial(
+        ctx.monthly.payrollData,
+        ctx.monthly.bonusRelatedRemuneration ?? 0,
+      );
+      if (initialOutcome.kind !== 'calculated') return null;
+      return gradesToPayload('initial', yyyyMm, initialOutcome.grades);
     }
 
     return {
@@ -443,7 +465,10 @@ async function tryInitial(
   const history = await listStandardRemuneration(db, tid, eid);
   if (history.some((item) => item.yyyyMm < yyyyMm)) return null;
 
-  const outcome = determineInitial(ctx.monthly.payrollData);
+  const outcome = determineInitial(
+    ctx.monthly.payrollData,
+    ctx.monthly.bonusRelatedRemuneration ?? 0,
+  );
   if (outcome.kind !== 'calculated') return null;
 
   return gradesToPayload('initial', yyyyMm, outcome.grades);
@@ -460,7 +485,10 @@ async function carryForwardPrevious(
   const prior = history.find((item) => item.yyyyMm < yyyyMm);
 
   if (!prior) {
-    const outcome = determineInitial(ctx.monthly.payrollData);
+    const outcome = determineInitial(
+      ctx.monthly.payrollData,
+      ctx.monthly.bonusRelatedRemuneration ?? 0,
+    );
     if (outcome.kind !== 'calculated') return null;
     return gradesToPayload('initial', yyyyMm, outcome.grades);
   }
@@ -528,6 +556,7 @@ async function loadMonthSources(
       daysInMonth: daysInMonth(ym),
       payroll: monthly.payrollData,
       paymentBaseDays: monthly.paymentBaseDays,
+      bonusRelatedRemuneration: monthly.bonusRelatedRemuneration ?? 0,
     });
   }
   return sources;
@@ -560,7 +589,29 @@ function toAnnualAverageMonthInputs(
     yyyyMm: s.yyyyMm,
     paymentBaseDays: s.paymentBaseDays,
     payroll: s.payroll,
+    bonusRelatedRemuneration: s.bonusRelatedRemuneration,
   }));
+}
+
+async function applyTeijiBonusRelatedRemunerationToMonthlyRecords(
+  db: admin.firestore.Firestore,
+  tid: string,
+  eid: string,
+  teijiYear: number,
+  addition: number,
+): Promise<void> {
+  const monthKeys = buildTeijiApplicationMonthKeys(teijiYear);
+  await Promise.all(
+    monthKeys.map(async (ym) => {
+      const period = await getMonthlyPeriod(db, tid, ym);
+      if (period?.locked) return;
+
+      const monthly = await getMonthlyDocument(db, tid, eid, ym);
+      if (!monthly) return;
+
+      await updateMonthlyBonusRelatedRemuneration(db, tid, eid, ym, addition);
+    }),
+  );
 }
 
 async function notifyAnnualAverageIfNeeded(
@@ -641,6 +692,121 @@ async function notifyAnnualAverageIfNeeded(
   } catch (err) {
     console.error('[annual-average] notification failed', { tid, eid, yyyyMm, err });
   }
+}
+
+async function tryLeaveReturnRemunerationScreening(
+  db: admin.firestore.Firestore,
+  tid: string,
+  eid: string,
+  yyyyMm: string,
+  ctx: CalculationContext,
+): Promise<void> {
+  try {
+    const leaveRecords = employeeLeaveRecordsToPeriodInputs(ctx.employee.leaveInfo);
+    const targets = findLeaveReturnScreeningTargets(yyyyMm, leaveRecords);
+    if (targets.length === 0) return;
+
+    for (const target of targets) {
+      const sources = await loadMonthSources(db, tid, eid, target.measurementMonthKeys);
+      if (sources.length !== target.measurementMonthKeys.length) continue;
+
+      const previous = await getPreviousGrades(db, tid, eid, yyyyMm);
+      if (!previous) continue;
+
+      const outcome = determineLeaveReturnRemuneration(
+        ctx.employmentType,
+        sources,
+        previous,
+      );
+      if (outcome.kind !== 'applicable') continue;
+
+      const dedupeKey = buildLeaveReturnRemunerationDedupeKey(eid, target.leaveEndYyyyMm);
+      const employeeName = ctx.employee.employeePersonalInfo?.displayName ?? '対象従業員';
+      const body = buildLeaveReturnRemunerationNotificationBody({
+        employeeName,
+        leaveType: target.leaveType,
+        leaveEndYyyyMm: target.leaveEndYyyyMm,
+        effectiveYyyyMm: target.effectiveYyyyMm,
+        currentGrades: previous,
+        proposedGrades: outcome.grades,
+        averageRemuneration: outcome.average.averageRemuneration,
+        healthDiff: outcome.healthDiff,
+        pensionDiff: outcome.pensionDiff,
+        employmentType: ctx.employmentType,
+      });
+      const now = admin.firestore.FieldValue.serverTimestamp();
+      const notifDoc = {
+        scope: 'tenant' as const,
+        type: 'leaveReturnRemunerationSuggestion',
+        title: `【休業明け標準報酬月額調整】${employeeName}様（${leaveTypeLabel(target.leaveType)}）`,
+        body,
+        targetEid: eid,
+        leaveType: target.leaveType,
+        leaveEndYyyyMm: target.leaveEndYyyyMm,
+        returnStartYyyyMm: target.returnStartYyyyMm,
+        effectiveYyyyMm: target.effectiveYyyyMm,
+        screeningYyyyMm: target.screeningYyyyMm,
+        proposedHealthGrade: outcome.grades.health.grade,
+        proposedPensionGrade: outcome.grades.pension.grade,
+        dedupeKey,
+        status: 'pending_review',
+        read: false,
+        tid,
+        createdAt: now,
+      };
+
+      const admins = await db
+        .collection('tenants')
+        .doc(tid)
+        .collection('employees')
+        .where('role', '==', 'admin')
+        .get();
+
+      for (const adminDoc of admins.docs) {
+        const uid = adminDoc.data()?.uid as string | undefined;
+        if (!uid) continue;
+        if (await hasNotificationWithDedupeKey(db, uid, dedupeKey)) continue;
+        await db.collection('accounts').doc(uid).collection('notifications').add(notifDoc);
+      }
+
+      if (ctx.employee.uid) {
+        const personalDedupeKey = `${dedupeKey}_personal`;
+        if (!(await hasNotificationWithDedupeKey(db, ctx.employee.uid, personalDedupeKey))) {
+          await db.collection('accounts').doc(ctx.employee.uid).collection('notifications').add({
+            scope: 'personal',
+            type: 'leave_return_remuneration_consent',
+            title: '【社会保険】休業明けの標準報酬月額調整の同意確認',
+            body,
+            targetEid: eid,
+            leaveType: target.leaveType,
+            leaveEndYyyyMm: target.leaveEndYyyyMm,
+            effectiveYyyyMm: target.effectiveYyyyMm,
+            dedupeKey: personalDedupeKey,
+            status: 'assigned',
+            read: false,
+            createdAt: now,
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[leave-return-remuneration] screening failed', { tid, eid, yyyyMm, err });
+  }
+}
+
+async function hasNotificationWithDedupeKey(
+  db: admin.firestore.Firestore,
+  uid: string,
+  dedupeKey: string,
+): Promise<boolean> {
+  const snap = await db
+    .collection('accounts')
+    .doc(uid)
+    .collection('notifications')
+    .where('dedupeKey', '==', dedupeKey)
+    .limit(1)
+    .get();
+  return !snap.empty;
 }
 
 async function notifyZuijiAnnualAverageIfNeeded(

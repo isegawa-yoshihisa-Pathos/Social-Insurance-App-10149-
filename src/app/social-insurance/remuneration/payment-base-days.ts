@@ -154,13 +154,10 @@ function buildPayrollAverage(
   usedMonths: readonly MonthlyRemunerationSource[],
   tier: PaymentBaseDaysTier,
 ): RemunerationAverageSelectionResult {
-  const total = usedMonths.reduce((s, m) => {
-    const fixed = m.payroll.fixedWage ?? m.payroll.basicSalary;
-    const variable = m.payroll.variableWage ?? 0;
-    return s + fixed + variable;
-  }, 0);
+  const inputs = usedMonths.map((m) => toMonthPaymentBaseInput(m, { includeVariable: true }));
+  const total = inputs.reduce((s, m) => s + m.remuneration, 0);
   return {
-    usedMonths: usedMonths.map((m) => toMonthPaymentBaseInput(m)),
+    usedMonths: inputs,
     tier,
     averageRemuneration: total / usedMonths.length,
   };

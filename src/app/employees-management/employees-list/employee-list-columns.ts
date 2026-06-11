@@ -31,8 +31,6 @@ export const OPTIONAL_EMPLOYEE_LIST_COLUMNS: {
     { key: 'employmentType', label: '雇用形態' },
     { key: 'status', label: '勤務状況' },
     { key: 'joinedAt', label: '入社日' },
-    { key: 'leaveAt', label: '休職日' },
-    { key: 'returnAt', label: '復職日' },
     { key: 'resignAt', label: '退職日' },
     { key: 'licenseStartAt', label: '資格取得日' },
     { key: 'licenseEndAt', label: '資格喪失日' },
@@ -56,8 +54,6 @@ export const EMPLOYEE_LIST_COLUMN_LABELS: Record<EmployeeListColumnKey, string> 
     employmentType: '雇用形態',
     status: '勤務状況',
     joinedAt: '入社日',
-    leaveAt: '休職日',
-    returnAt: '復職日',
     resignAt: '退職日',
     licenseStartAt: '資格取得日',
     licenseEndAt: '資格喪失日',
@@ -81,8 +77,6 @@ export interface EmployeeListRow {
     employmentType: string;
     status: string;
     joinedAt: string;
-    leaveAt: string;
-    returnAt: string;
     resignAt: string;
     licenseStartAt: string;
     licenseEndAt: string;

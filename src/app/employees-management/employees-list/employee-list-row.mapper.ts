@@ -29,8 +29,6 @@ export function toEmployeeListRow(
     employmentType: employ?.employmentType ?? '',
     status: employ?.status ?? 'active',
     joinedAt: formatDate(employ?.joinedAt),
-    leaveAt: formatDate(employ?.leaveAt),
-    returnAt: formatDate(employ?.returnAt),
     resignAt: formatDate(employ?.resignAt),
     licenseStartAt: formatDate(employ?.licenseStartAt),
     licenseEndAt: formatDate(employ?.licenseEndAt),
@@ -50,8 +48,6 @@ export function getEmployeeListCellInitialValue(
 ): unknown {
   if (
     column === 'joinedAt' ||
-    column === 'leaveAt' ||
-    column === 'returnAt' ||
     column === 'resignAt' ||
     column === 'licenseStartAt' ||
     column === 'licenseEndAt'

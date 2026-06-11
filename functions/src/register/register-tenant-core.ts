@@ -69,14 +69,13 @@ export function buildTenantRegistrationBatch(
             employmentType: '',
             status: 'active',
             joinedAt: admin.firestore.FieldValue.serverTimestamp(),
-            leaveAt: null,
-            returnAt: null,
             resignAt: null,
             licenseStartAt: null,
             licenseEndAt: null,
             healthInsuranceRecordNumber: '',
             pensionInsuranceRecordNumber: '',
         },
+        leaveInfo: [],
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
     const affiliationRef = db.collection('affiliations').doc(`${uid}_${tid}`);

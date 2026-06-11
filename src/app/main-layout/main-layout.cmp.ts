@@ -10,6 +10,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { Auth } from '@angular/fire/auth';
 import { filter, map, startWith } from 'rxjs';
 import { AuthService } from '../auth.service';
+import { NotificationService } from '../notifications/notification.service';
 
 @Component({
   selector: 'app-main-layout',
@@ -24,7 +25,7 @@ export class MainLayoutCmp {
   readonly router = inject(Router);
   readonly routesService = inject(RoutesService);
   readonly authService = inject(AuthService);
-  
+  readonly notificationService = inject(NotificationService);
   readonly currentAffiliation = this.tenant.currentAffiliation;
   readonly isAdmin = this.tenant.isAdmin;
   readonly completion = this.profile.state;

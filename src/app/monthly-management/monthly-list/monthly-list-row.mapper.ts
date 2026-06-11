@@ -20,6 +20,7 @@ export function toMonthlyListRow(
       displayName: data.displayName ?? '',
       paymentBaseDays: data.paymentBaseDays ?? 0,
       basicSalary: payroll?.basicSalary ?? 0,
+      bonusRelatedRemuneration: data.bonusRelatedRemuneration ?? 0,
       fixedWage: payroll?.fixedWage ?? null,
       variableWage: payroll?.variableWage ?? null,
       allowances: payroll?.allowances ?? {},

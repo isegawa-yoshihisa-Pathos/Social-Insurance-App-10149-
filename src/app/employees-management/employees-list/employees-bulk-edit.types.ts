@@ -5,8 +5,6 @@ export type BulkEditValue = string | Date | null;
 
 const DATE_BULK_COLUMNS: readonly BulkEditableColumn[] = [
   'joinedAt',
-  'leaveAt',
-  'returnAt',
   'resignAt',
   'licenseStartAt',
   'licenseEndAt',

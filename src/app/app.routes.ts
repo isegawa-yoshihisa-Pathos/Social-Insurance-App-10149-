@@ -121,6 +121,10 @@ export const routes: Routes = [
                 path: 'employ/edit',
                 loadComponent: () => import('./employees-management/employees-list/employee-detail/employee-employ-detail-edit/employee-employ-detail-edit.cmp').then(m => m.EmployeeEmployDetailEditCmp),
               },
+              {
+                path: 'status',
+                loadComponent: () => import('./employees-management/employees-list/employee-detail/employee-status/employee-status.cmp').then(m => m.EmployeeStatusCmp),
+              },
             ]
           },
         ],

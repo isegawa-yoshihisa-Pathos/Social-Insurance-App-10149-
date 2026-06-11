@@ -22,6 +22,9 @@
                     <div class="notification-item-created-at">
                         {{ notification.createdAt }}
                     </div>
+                    <button mat-button (click)="deleteNotification(notification.id)">
+                        ✕
+                    </button>
                 </button>
             }
         </div>

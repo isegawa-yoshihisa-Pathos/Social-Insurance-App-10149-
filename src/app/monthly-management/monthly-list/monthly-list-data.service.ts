@@ -14,6 +14,7 @@ import { MonthlyDocument, MonthlyPeriodDocument } from '../../monthly-document';
 import { MonthlyListRow } from './monthly-list-columns';
 import { toMonthlyListRow } from './monthly-list-row.mapper';
 import { StandardRemunerationDataService } from '../../social-insurance/monthly/standard-remuneration-data.service';
+import { addMonths } from '../../social-insurance/monthly/social-insurance-data.util';
 
 export interface MonthlyDetailRow extends MonthlyListRow {
   yyyyMm: string;
@@ -107,6 +108,28 @@ export class MonthlyListDataService {
     return lookup;
   }
 
+  async loadPreviousBonusRelatedRemunerationMap(
+    tid: string,
+    yyyyMm: string,
+  ): Promise<Map<string, number>> {
+    const previousYyyyMm = addMonths(yyyyMm, -1);
+    const previousRef = collection(
+      this.firestore,
+      'tenants',
+      tid,
+      'monthly-records',
+      previousYyyyMm,
+      'employees',
+    );
+    const snap = await getDocs(previousRef);
+    const map = new Map<string, number>();
+    for (const docSnap of snap.docs) {
+      const data = docSnap.data() as Partial<MonthlyDocument>;
+      map.set(docSnap.id, data.bonusRelatedRemuneration ?? 0);
+    }
+    return map;
+  }
+
   async enrichWithStandardRemuneration(
     tid: string,
     yyyyMm: string,
@@ -114,14 +137,20 @@ export class MonthlyListDataService {
   ): Promise<MonthlyListRow[]> {
     return Promise.all(
       rows.map(async (row) => {
+        const doc = await this.standardRemunerationDataService.get(tid, row.eid, yyyyMm);
+        if (doc?.source === 'manual') {
+          return {
+            ...row,
+            standardRemunerationHealth: doc.standardRemuneration.health,
+            standardRemunerationPension: doc.standardRemuneration.pension,
+          };
+        }
         if (
           row.standardRemunerationHealth != null &&
           row.standardRemunerationPension != null
         ) {
           return row;
         }
-
-        const doc = await this.standardRemunerationDataService.get(tid, row.eid, yyyyMm);
         if (!doc) return row;
 
         return {

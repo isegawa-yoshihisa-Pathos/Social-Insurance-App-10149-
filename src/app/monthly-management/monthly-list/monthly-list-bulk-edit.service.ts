@@ -25,6 +25,7 @@ import { StandardRemunerationDocument } from '../../social-insurance/monthly/soc
 import {
   CURRENT_GRADE_TABLE,
   resolveGradeFromStandardAmount,
+  resolveStandardRemunerationFromRemuneration,
 } from '../../social-insurance/remuneration/grade-table';
 import { allowanceTypeFromColumnKey } from '../../payment-management/payment-list/allowance-display.util';
 import { PaymentManagementDataService } from '../../payment-management/payment-management-data.service';
@@ -104,18 +105,8 @@ export class MonthlyListBulkEditService {
     value: number,
     yyyyMm: string,
   ): StandardRemunerationSavePayload {
-    const healthAmount =
-      column === 'standardRemunerationHealth'
-        ? value
-        : existing
-        ? existing.standardRemuneration.health
-        : 58000;
-    const pensionAmount =
-      column === 'standardRemunerationPension'
-        ? value
-        : existing
-        ? existing.standardRemuneration.pension
-        : 88000;
+    const healthAmount = resolveStandardRemunerationFromRemuneration(CURRENT_GRADE_TABLE.health, value);
+    const pensionAmount = resolveStandardRemunerationFromRemuneration(CURRENT_GRADE_TABLE.pension, value);
 
     const healthGrade = resolveGradeFromStandardAmount(
       CURRENT_GRADE_TABLE.health,
@@ -134,7 +125,7 @@ export class MonthlyListBulkEditService {
       pensionGrade,
       standardRemuneration: { health: healthAmount, pension: pensionAmount },
       source: 'manual',
-      effectiveFrom: `${yyyyMm}-01`,
+      effectiveFrom: yyyyMm,
       remuneration: value,
     };
   }
@@ -150,6 +141,7 @@ export class MonthlyListBulkEditService {
       basicSalary?: number;
       allowances?: Record<string, number>;
       retroactivePay?: number | null;
+      bonusRelatedRemuneration?: number;
     } = {};
 
     if (allowanceType) {
@@ -164,6 +156,8 @@ export class MonthlyListBulkEditService {
       patch.basicSalary = value === null ? 0 : value;
     } else if (column === 'retroactivePay') {
       patch.retroactivePay = value;
+    } else if (column === 'bonusRelatedRemuneration') {
+      patch.bonusRelatedRemuneration = value === null ? 0 : value;
     }
 
     const wages = buildPayrollWageFields(target, patch, definitions);
@@ -179,6 +173,9 @@ export class MonthlyListBulkEditService {
     if (patch.retroactivePay !== undefined) {
       update['payrollData.retroactivePay'] =
         patch.retroactivePay === null ? deleteField() : patch.retroactivePay;
+    }
+    if (patch.bonusRelatedRemuneration !== undefined) {
+      update['bonusRelatedRemuneration'] = patch.bonusRelatedRemuneration === null ? 0 : patch.bonusRelatedRemuneration;
     }
     if (patch.allowances !== undefined) {
       if (Object.keys(patch.allowances).length === 0) {

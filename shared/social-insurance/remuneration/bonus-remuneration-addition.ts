@@ -126,8 +126,21 @@ export function calculateBonusRemunerationAddition(
   defs: readonly BonusTypeDefinition[],
 ): number {
   const total = sumTeijiEligibleLaborBonusAmount(records, defs);
+  const times = records.length;
   if (total <= 0) return 0;
   return Math.floor(total / 12);
+}
+
+/** 定時決定の適用期間（当年9月〜翌年6月）の月キー */
+export function buildTeijiApplicationMonthKeys(teijiYear: number): string[] {
+  const keys: string[] = [];
+  for (let month = 7; month <= 12; month++) {
+    keys.push(`${teijiYear}-${String(month).padStart(2, '0')}`);
+  }
+  for (let month = 1; month <= 6; month++) {
+    keys.push(`${teijiYear + 1}-${String(month).padStart(2, '0')}`);
+  }
+  return keys;
 }
 
 export function applyBonusRemunerationAddition(

@@ -37,5 +37,8 @@ export function isEditableColumn(column: MonthlyListColumnKey): column is BulkEd
   if (column === 'fixedWage' || column === 'variableWage') {
     return false;
   }
-  return column === 'basicSalary' || column === 'paymentBaseDays' || column === 'retroactivePay';
+  return column === 'basicSalary' ||
+    column === 'paymentBaseDays' ||
+    column === 'bonusRelatedRemuneration' ||
+    column === 'retroactivePay';
 }

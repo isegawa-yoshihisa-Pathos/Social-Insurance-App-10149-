@@ -4,6 +4,11 @@ import {
   type SplitPremiumResult,
 } from './rounding';
 import { EmployeeRateByInsurance, normalizeEmployeeRate, normalizeRoundingBy, RoundingByInsurance } from '../monthly/social-insurance-document';
+import {
+  isBonusPremiumExemptForChildcareLeave,
+  isMonthlyPremiumExemptForLeave,
+  type LeavePeriodInput,
+} from './leave-premium-exemption';
 
 export interface InsuranceRatesInput {
   healthInsuranceRate: number;
@@ -16,6 +21,8 @@ export interface PremiumCalculationInput {
   birthDate: Date | null;
   licenceStartAt: Date | null | undefined;
   resignAt: Date | null | undefined;
+  leaveRecords?: readonly LeavePeriodInput[];
+  applyLeavePremiumExemption?: boolean;
   standardRemuneration: {
     health: number;
     pension: number;
@@ -137,6 +144,7 @@ export interface BonusPremiumCalculationInput {
   birthDate: Date | null;
   licenceStartAt: Date | null | undefined;
   resignAt: Date | null | undefined;
+  leaveRecords?: readonly LeavePeriodInput[];
   standardBonus: {
     health: number;
     pension: number;
@@ -146,12 +154,25 @@ export interface BonusPremiumCalculationInput {
   roundingBy?: RoundingByInsurance;
 }
 
+function emptyPremiumData(): PremiumData {
+  return {
+    healthInsurance: { employer: null, employee: null },
+    careInsurance: { employer: null, employee: null },
+    pensionInsurance: { employer: null, employee: null },
+  };
+}
+
 export function calculateBonusPremium(input: BonusPremiumCalculationInput): PremiumData {
+  if (isBonusPremiumExemptForChildcareLeave(input.yyyyMm, input.leaveRecords)) {
+    return emptyPremiumData();
+  }
+
   return calculateMonthlyPremium({
     yyyyMm: input.yyyyMm,
     birthDate: input.birthDate,
     licenceStartAt: input.licenceStartAt,
     resignAt: input.resignAt,
+    applyLeavePremiumExemption: false,
     standardRemuneration: input.standardBonus,
     rates: input.rates,
     employeeRate: input.employeeRate,
@@ -178,6 +199,13 @@ export function calculateMonthlyPremium(input: PremiumCalculationInput): Premium
     employer: null,
     employee: null,
   };
+
+  if (
+    input.applyLeavePremiumExemption !== false &&
+    isMonthlyPremiumExemptForLeave(yyyyMm, input.leaveRecords)
+  ) {
+    return emptyPremiumData();
+  }
 
   if (isInsurancePeriodTarget(licenceStartAt, resignAt, yyyyMm)) {
     if (isHealthInsuranceTarget(birthDate, yyyyMm)) {

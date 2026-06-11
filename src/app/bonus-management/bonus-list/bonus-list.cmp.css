@@ -100,16 +100,6 @@
   width: 48px;
 }
 
-.bonus-cell {
-  max-width: 280px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-:host ::ng-deep .bonus-tooltip {
-  white-space: pre-line;
-}
-
 .footer-row {
   background-color: #d4d4d4;
 }

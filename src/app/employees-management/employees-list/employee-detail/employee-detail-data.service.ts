@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {
   Firestore,
   doc,
@@ -13,12 +13,13 @@ import {
   createEmptyEmployeeForm,
   employeePersonalInfoToForm,
 } from '../../../personal-form-data';
-import { EmployeeDocument, EmployeeEmployFormData } from '../../../employee-document';
+import { EmployeeDocument, EmployeeEmployFormData, EmployeeLeaveRecord } from '../../../employee-document';
 import {
   createEmptyEmployForm,
   employFormToSavePayload,
   employeeEmployInfoToForm,
 } from '../../../employee-employ-form-data';
+import { employeeLeaveRecordsToForm } from '../../../employee-leave.util';
 
 @Injectable({
   providedIn: 'root',
@@ -34,6 +35,7 @@ export class EmployeeDetailDataService {
 
   personalForm: EmployeeFormData = createEmptyEmployeeForm();
   employForm: EmployeeEmployFormData = createEmptyEmployForm();
+  leaveRecords: EmployeeLeaveRecord[] = [];
   role: 'admin' | 'member' = 'member';
 
   async load(eid: string, force = false): Promise<void> {
@@ -53,6 +55,7 @@ export class EmployeeDetailDataService {
 
       this.personalForm = employeePersonalInfoToForm(data.employeePersonalInfo);
       this.employForm = employeeEmployInfoToForm(data.employeeEmployInfo);
+      this.leaveRecords = employeeLeaveRecordsToForm(data.leaveInfo);
       this.role = data.role ?? 'member';
       this.loaded = true;
     } finally {
@@ -70,6 +73,7 @@ export class EmployeeDetailDataService {
     this.loaded = false;
     this.personalForm = createEmptyEmployeeForm();
     this.employForm = createEmptyEmployForm();
+    this.leaveRecords = [];
     this.role = 'member';
   }
 

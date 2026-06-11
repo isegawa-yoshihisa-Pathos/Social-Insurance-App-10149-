@@ -99,6 +99,44 @@ export function selectMonthsForZuijiAverage(
 }
 
 /**
+ * 産休・育休明けの標準報酬月額調整用。
+ * - 復職後3カ月のうち、支払基礎日数が基準未満の月は平均から除外する。
+ * - 3カ月いずれも基準未満の短時間就労者は、15日以上17日未満の月で平均する。
+ */
+export function selectMonthsForLeaveReturnAverage(
+  category: EmploymentType,
+  months: readonly MonthlyRemunerationSource[],
+): RemunerationAverageSelectionOutcome {
+  if (months.length !== 3) {
+    return { kind: 'continue_previous', reason: 'all_months_below_secondary' };
+  }
+
+  const primary = months.filter(
+    (m) => classifyPaymentBaseDaysTier(category, m.paymentBaseDays) === 'primary',
+  );
+  if (primary.length > 0) {
+    return {
+      kind: 'calculated',
+      result: buildPayrollAverage(primary, 'primary'),
+    };
+  }
+
+  if (category === 'short-time-worker') {
+    const secondary = months.filter(
+      (m) => classifyPaymentBaseDaysTier(category, m.paymentBaseDays) === 'secondary',
+    );
+    if (secondary.length > 0) {
+      return {
+        kind: 'calculated',
+        result: buildPayrollAverage(secondary, 'secondary'),
+      };
+    }
+  }
+
+  return { kind: 'continue_previous', reason: 'all_months_below_secondary' };
+}
+
+/**
  * 定時決定用: 条件を満たす月が1ヶ月でもあればその月（複数ならそれら）で平均。months は通常 4・5・6 月。
  */
 export function selectMonthsForRemunerationAverageSelection(
@@ -154,13 +192,10 @@ function buildPayrollAverage(
   usedMonths: readonly MonthlyRemunerationSource[],
   tier: PaymentBaseDaysTier,
 ): RemunerationAverageSelectionResult {
-  const total = usedMonths.reduce((s, m) => {
-    const fixed = m.payroll.fixedWage ?? m.payroll.basicSalary;
-    const variable = m.payroll.variableWage ?? 0;
-    return s + fixed + variable;
-  }, 0);
+  const inputs = usedMonths.map((m) => toMonthPaymentBaseInput(m, { includeVariable: true }));
+  const total = inputs.reduce((s, m) => s + m.remuneration, 0);
   return {
-    usedMonths: usedMonths.map((m) => toMonthPaymentBaseInput(m)),
+    usedMonths: inputs,
     tier,
     averageRemuneration: total / usedMonths.length,
   };

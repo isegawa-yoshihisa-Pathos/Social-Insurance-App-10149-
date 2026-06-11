@@ -335,14 +335,6 @@ export class BonusListCmp implements OnInit {
     return formatBonusListCellValue(row, col);
   }
 
-  bonusTooltip(row: BonusListRow): string {
-    return row.bonusTooltip;
-  }
-
-  isBonusSummaryColumn(col: BonusListColumnKey): boolean {
-    return col === 'bonus';
-  }
-
   private resolveTargetEids(eid: string): string[] {
     if (this.selectedEids.size === 0) {
       return [eid];

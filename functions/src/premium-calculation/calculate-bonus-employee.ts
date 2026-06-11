@@ -2,6 +2,7 @@ import * as admin from 'firebase-admin';
 import type { BonusDocument } from '../../../shared/bonus-document';
 import type { EmployeeDocument } from '../../../shared/employee-document';
 import { calculateBonusPremium } from '../../../shared/social-insurance/premium/premium-calculator';
+import { employeeLeaveRecordsToPeriodInputs } from '../../../shared/social-insurance/premium/leave-premium-exemption';
 import {
   determineStandardBonus,
   evaluateBonusPremiumEligibility,
@@ -22,6 +23,7 @@ import {
   getBonusDocument,
   getEmployee,
   getLatestStandardRemuneration,
+  getMonthlyDocument,
   getStandardBonus,
   listBonusRecordsInRange,
   listStandardBonus,
@@ -60,6 +62,7 @@ export async function calculateBonusEmployee(
     birthDate: ctx.birthDate,
     licenceStartAt: toFormDate(ctx.employee.employeeEmployInfo?.licenseStartAt),
     resignAt: toFormDate(ctx.employee.employeeEmployInfo?.resignAt),
+    leaveRecords: employeeLeaveRecordsToPeriodInputs(ctx.employee.leaveInfo),
     standardBonus: standardBonus.standardBonus,
     rates: rate.rates,
     employeeRate: rate.employeeRate,
@@ -165,12 +168,17 @@ async function resolveTeijiIncludedBonusTypes(
   yyyyMm: string,
   bonusDefs: Awaited<ReturnType<typeof getBonusTypeDefinitions>>,
 ): Promise<ReadonlySet<string>> {
-  const latestRemuneration = await getLatestStandardRemuneration(db, tid, eid, yyyyMm);
-  if ((latestRemuneration?.bonusRemunerationMonthlyAddition ?? 0) <= 0) {
+  const monthly = await getMonthlyDocument(db, tid, eid, yyyyMm);
+  if ((monthly?.bonusRelatedRemuneration ?? 0) <= 0) {
     return new Set();
   }
 
-  const teijiYear = teijiYearFromEffectiveFrom(latestRemuneration!.effectiveFrom);
+  const latestRemuneration = await getLatestStandardRemuneration(db, tid, eid, yyyyMm);
+  if (!latestRemuneration || latestRemuneration.source !== 'teiji') {
+    return new Set();
+  }
+
+  const teijiYear = teijiYearFromEffectiveFrom(latestRemuneration.effectiveFrom);
   const { from, to } = teijiBonusLookbackRange(teijiYear);
   const lookbackRecords = await listBonusRecordsInRange(db, tid, eid, from, to);
   return getTeijiEligibleBonusTypes(lookbackRecords, bonusDefs);

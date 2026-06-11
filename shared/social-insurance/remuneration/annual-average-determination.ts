@@ -21,6 +21,7 @@ export interface AnnualAverageMonthInput {
   yyyyMm: string;
   paymentBaseDays: number;
   payroll: PayrollData;
+  bonusRelatedRemuneration: number;
 }
 
 export interface AnnualAverageCalculationResult {
@@ -66,7 +67,8 @@ export function calculateAnnualAverageRemuneration(
     .map((m) => ({
       yyyyMm: m.yyyyMm,
       paymentBaseDays: m.paymentBaseDays,
-      remuneration: computeTotalRemunerationFromPayroll(m.payroll),
+      remuneration:
+        computeTotalRemunerationFromPayroll(m.payroll) + m.bonusRelatedRemuneration,
     }));
 
   if (usedMonths.length === 0) {
@@ -223,7 +225,7 @@ function averageEligibleMonths(
   employmentType: EmploymentType,
   months: readonly AnnualAverageMonthInput[],
   targetKeys: readonly string[],
-  pickAmount: (payroll: PayrollData) => number,
+  pickAmount: (month: AnnualAverageMonthInput) => number,
 ): { usedMonths: EligibleMonthAmount[]; average: number } | null {
   const minDays = getPaymentBaseDaysThresholds(employmentType).primaryMinDays;
   const byKey = new Map(months.map((m) => [m.yyyyMm, m]));
@@ -235,7 +237,7 @@ function averageEligibleMonths(
     usedMonths.push({
       yyyyMm: key,
       paymentBaseDays: month.paymentBaseDays,
-      amount: pickAmount(month.payroll),
+      amount: pickAmount(month),
     });
   }
 
@@ -280,7 +282,8 @@ export function calculateZuijiAnnualAverageRemuneration(
     employmentType,
     months,
     windows.fixedAfterKeys,
-    computeFixedWageFromPayroll,
+    (month) =>
+      computeFixedWageFromPayroll(month.payroll) + month.bonusRelatedRemuneration,
   );
   if (!fixedAfterAverage) {
     return { kind: 'invalid', reason: 'no_eligible_fixed_months' };
@@ -290,7 +293,7 @@ export function calculateZuijiAnnualAverageRemuneration(
     employmentType,
     months,
     windows.variableWindowKeys,
-    computeVariableWageFromPayroll,
+    (month) => computeVariableWageFromPayroll(month.payroll),
   );
   if (!variableWindowAverage) {
     return { kind: 'invalid', reason: 'no_eligible_variable_months' };

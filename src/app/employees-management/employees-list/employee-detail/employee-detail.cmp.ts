@@ -24,7 +24,7 @@ export class EmployeeDetailCmp implements OnInit {
   private readonly routesService = inject(RoutesService);
 
   eid = '';
-  isPersonalActive = false;
+  isActive = 'employ';
 
   async ngOnInit(): Promise<void> {
     this.eid = this.route.snapshot.paramMap.get('eid') ?? '';
@@ -50,6 +50,6 @@ export class EmployeeDetailCmp implements OnInit {
   }
 
   private updateTabActive(url: string): void {
-    this.isPersonalActive = url.includes('/personal');
+    this.isActive = url.includes('/personal') ? 'personal' : url.includes('/status') ? 'status' : 'employ';
   }
 }

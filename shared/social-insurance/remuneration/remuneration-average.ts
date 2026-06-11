@@ -1,6 +1,7 @@
 import { resolveGradesFromRemuneration } from './grade-table';
 import type { RemunerationGradeTableSet, ResolvedStandardRemuneration } from './grade-table';
 import {
+    selectMonthsForLeaveReturnAverage,
     selectMonthsForRemunerationAverageSelection,
     selectMonthsForZuijiAverage,
     type EmploymentType,
@@ -55,5 +56,14 @@ export function calculateGradesForZuiji(
     gradeTable: RemunerationGradeTableSet,
 ): GradesFromMonthsOutcome {
     const selection = selectMonthsForZuijiAverage(employmentType, months);
+    return gradesFromSelection(selection, gradeTable);
+}
+
+export function calculateGradesForLeaveReturn(
+    employmentType: EmploymentType,
+    months: readonly MonthlyRemunerationSource[],
+    gradeTable: RemunerationGradeTableSet,
+): GradesFromMonthsOutcome {
+    const selection = selectMonthsForLeaveReturnAverage(employmentType, months);
     return gradesFromSelection(selection, gradeTable);
 }

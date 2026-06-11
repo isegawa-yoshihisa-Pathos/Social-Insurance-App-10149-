@@ -172,6 +172,29 @@ export async function getMonthlyDocument(
   return snap.data() as MonthlyDocument;
 }
 
+export async function updateMonthlyBonusRelatedRemuneration(
+  db: admin.firestore.Firestore,
+  tid: string,
+  eid: string,
+  yyyyMm: string,
+  bonusRelatedRemuneration: number,
+): Promise<void> {
+  await db
+    .collection('tenants')
+    .doc(tid)
+    .collection('monthly-records')
+    .doc(yyyyMm)
+    .collection('employees')
+    .doc(eid)
+    .set(
+      {
+        bonusRelatedRemuneration,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+}
+
 export async function getBonusPeriod(
   db: admin.firestore.Firestore,
   tid: string,
@@ -376,6 +399,7 @@ export async function getBonusTypeDefinitions(
   const types = snap.data()?.types as BonusTypeDefinition[] | undefined;
   return types?.length ? types : [...DEFAULT_BONUS_TYPE_DEFINITIONS];
 }
+
 export async function listBonusRecordsInRange(
   db: admin.firestore.Firestore,
   tid: string,

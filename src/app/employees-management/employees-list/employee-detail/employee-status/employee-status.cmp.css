@@ -1,0 +1,33 @@
+.section-title {
+  margin: 24px 0 12px;
+  font-size: 1rem;
+}
+
+.empty-message {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-left: 8px;
+}
+
+.timeline-item {
+  display: flex;
+  gap: 12px;
+}
+
+.timeline-label {
+  font-weight: 600;
+}
+
+.timeline-date,
+.timeline-detail {
+  color: rgba(0, 0, 0, 0.75);
+}
+
+.timeline-detail {
+  margin-top: 4px;
+}

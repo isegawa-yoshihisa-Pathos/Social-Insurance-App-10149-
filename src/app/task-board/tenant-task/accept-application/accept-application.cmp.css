@@ -1,3 +1,56 @@
-:host {
-  display: block;
+.accept-application {
+  max-width: 960px;
+  margin: 0 auto 24px;
+  padding: 0 24px;
+}
+
+.accept-application h3 {
+  margin: 0 0 16px;
+}
+
+.section-title {
+  margin-top: 32px;
+}
+
+.empty-message {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.application-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.application-card {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 16px;
+  background: #fff;
+}
+
+.application-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.employee-id {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.application-body p {
+  margin: 4px 0;
+}
+
+.applied-at {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.9rem;
+}
+
+.application-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
 }

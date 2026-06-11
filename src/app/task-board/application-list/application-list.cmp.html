@@ -1,0 +1,40 @@
+<div class="accept-application">
+    <h3>申請一覧</h3>
+  
+    @if (loading) {
+      <p>申請一覧を読み込んでいます...</p>
+    } @else if (applications.length === 0) {
+      <p class="empty-message">休暇申請はありません。</p>
+    } @else {
+      <div class="application-list">
+        @for (application of applications; track application.eid) {
+          <div class="application-card">
+            <div class="application-header">
+              <strong>{{ application.type === 'leave' ? '休暇申請' : '退職申請' }}</strong>
+            </div>
+            @if (application.type === 'leave') {
+            <div class="application-body">
+                <p>種別：{{ application.leaveDetails ? leaveTypeLabel(application.leaveDetails.type) : '' }}</p>
+                <p>期間：{{ leavePeriod(application) }}</p>
+                <p>状況：{{ formatStatus(application.status) }}</p>
+                @if (application.leaveDetails?.reason) {
+                  <p>備考：{{ application.leaveDetails?.reason }}</p>
+                }
+                <p class="applied-at">申請日：{{ appliedAt(application) }}</p>
+              </div>
+            }
+            @if (application.type === 'resign') {
+              <div class="application-body">
+                <p>退職日：{{ resignDate(application) }}</p>
+                <p>状況：{{ formatStatus(application.status) }}</p>
+                @if (application.resignDetails?.reason) {
+                  <p>備考：{{ application.resignDetails?.reason }}</p>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+  

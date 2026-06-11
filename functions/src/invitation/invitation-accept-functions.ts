@@ -210,15 +210,14 @@ export const acceptInvitation = onCall<AcceptInvitationInput>(
           payType: '',
           employmentType: '',
           status: 'active',
-          joinedAt: now,
-          leaveAt: null,
-          returnAt: null,
-          resignAt: null,
+            joinedAt: now,
+            resignAt: null,
           licenseStartAt: null,
           licenseEndAt: null,
           healthInsuranceRecordNumber: '',
           pensionInsuranceRecordNumber: '',
         },
+        leaveInfo: [],
         updatedAt: now,
       });
 

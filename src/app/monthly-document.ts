@@ -15,6 +15,8 @@ export interface MonthlyDocument {
     displayName: string;
 
     paymentBaseDays: number;
+    /** 標準報酬月額の算定に加算する賞与分（定時決定時に12等分値で更新、それ以外は前月値を継承または手入力） */
+    bonusRelatedRemuneration?: number;
 
     payrollData: PayrollData;
     premiumData?: PremiumData;
@@ -50,6 +52,7 @@ export interface MonthlyFormData {
     employeeId: string;
     paymentBaseDays: number;
     basicSalary: number;
+    bonusRelatedRemuneration: number;
     allowances: AllowanceData;
     retroactivePay: number | null;
 }

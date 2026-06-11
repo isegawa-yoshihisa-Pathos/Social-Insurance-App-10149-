@@ -1,0 +1,32 @@
+<div class="info-container">
+  <div class="info-row">
+    <span class="info-label">勤務状況：</span>
+    <span class="info-value">{{ statusLabel(dataService.employForm.status) }}</span>
+  </div>
+</div>
+
+<h3 class="section-title">勤務履歴</h3>
+
+@if (timeline().length === 0) {
+  <p class="empty-message">表示できる勤務履歴がありません。</p>
+} @else {
+  <div class="timeline">
+    @for (item of timeline(); track $index) {
+      <div class="timeline-item">
+        <div class="timeline-content">
+          <div class="timeline-label">{{ item.label }}</div>
+          <div class="timeline-date">
+            @if (item.kind === 'leave') {
+              {{ formatLeavePeriod(item.startAt, item.endAt) }}
+            } @else {
+              {{ formatDate(item.startAt) }}
+            }
+          </div>
+          @if (item.detail) {
+            <div class="timeline-detail">{{ item.detail }}</div>
+          }
+        </div>
+      </div>
+    }
+  </div>
+}

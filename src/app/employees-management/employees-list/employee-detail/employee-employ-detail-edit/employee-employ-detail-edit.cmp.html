@@ -79,36 +79,6 @@
   </div>
 
   <div class="field-container">
-    <label class="label-name">休職日：</label>
-    <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
-      <mat-label>休職日</mat-label>
-      <input 
-        matInput 
-        [matDatepicker]="leaveAtPicker" 
-        [(ngModel)]="employForm.leaveAt" 
-        name="leaveAt" 
-      />
-      <mat-datepicker-toggle matIconSuffix [for]="leaveAtPicker"></mat-datepicker-toggle>
-      <mat-datepicker #leaveAtPicker></mat-datepicker>
-    </mat-form-field>
-  </div>
-
-  <div class="field-container">
-    <label class="label-name">復職日：</label>
-    <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
-      <mat-label>復職日</mat-label>
-      <input 
-        matInput 
-        [matDatepicker]="returnAtPicker" 
-        [(ngModel)]="employForm.returnAt" 
-        name="returnAt" 
-      />
-      <mat-datepicker-toggle matIconSuffix [for]="returnAtPicker"></mat-datepicker-toggle>
-      <mat-datepicker #returnAtPicker></mat-datepicker>
-    </mat-form-field>
-  </div>
-
-  <div class="field-container">
     <label class="label-name">退職日：</label>
     <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
       <mat-label>退職日</mat-label>

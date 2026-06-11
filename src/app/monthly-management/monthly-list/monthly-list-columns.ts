@@ -26,6 +26,7 @@ export const BASE_MONTHLY_LIST_COLUMN_KEYS = [
   'employeeId',
   'paymentBaseDays',
   'basicSalary',
+  'bonusRelatedRemuneration',
   'fixedWage',
   'variableWage',
   'retroactivePay',
@@ -38,6 +39,7 @@ export const DEFAULT_MONTHLY_LIST_COLUMNS: MonthlyListColumnKey[] = [
   'employeeId',
   'paymentBaseDays',
   'basicSalary',
+  'bonusRelatedRemuneration',
 ];
 
 const STATIC_COLUMN_LABELS: Record<BaseMonthlyListColumnKey, string> = {
@@ -45,6 +47,7 @@ const STATIC_COLUMN_LABELS: Record<BaseMonthlyListColumnKey, string> = {
   employeeId: '社員番号',
   paymentBaseDays: '支払基礎日数',
   basicSalary: '基本給与',
+  bonusRelatedRemuneration: '賞与にかかる報酬',
   fixedWage: '固定的賃金',
   variableWage: '非固定的賃金',
   retroactivePay: '遡及清算',
@@ -73,6 +76,7 @@ export function getOptionalMonthlyListColumns(
     { key: 'employeeId', label: '社員番号' },
     { key: 'paymentBaseDays', label: '支払基礎日数' },
     { key: 'basicSalary', label: '基本給与' },
+    { key: 'bonusRelatedRemuneration', label: '賞与にかかる報酬' },
     { key: 'fixedWage', label: '固定的賃金' },
     { key: 'variableWage', label: '非固定的賃金' },
     ...allowanceColumns,
@@ -85,6 +89,10 @@ export function getMonthlyListColumnLabel(
   column: MonthlyListColumnKey,
   definitions: AllowanceTypeDefinition[],
 ): string {
+  if (Object.hasOwn(STATIC_COLUMN_LABELS, column)) {
+    return STATIC_COLUMN_LABELS[column as BaseMonthlyListColumnKey];
+  }
+
   const allowanceType = allowanceTypeFromColumnKey(column);
   if (allowanceType) {
     return definitions.find((def) => def.type === allowanceType)?.label ?? column;
@@ -103,6 +111,7 @@ export interface MonthlyListRow {
   displayName: string;
   paymentBaseDays: number;
   basicSalary: number;
+  bonusRelatedRemuneration: number;
   fixedWage: number | null;
   variableWage: number | null;
   allowances: AllowanceData;

@@ -39,6 +39,18 @@ export function resolveGradesFromRemuneration(
     return { remuneration, health, pension };
 }
 
+export function resolveStandardRemunerationFromRemuneration(
+    rows: readonly RemunerationGradeRow[],
+    rawStandardAmount: number,
+): number{
+    const remuneration = roundRemunerationForGrade(rawStandardAmount);
+    const row = rows.find(
+        (r) => remuneration >= r.minRemuneration && remuneration < r.maxRemuneration,
+        );
+    if (!row) throw new Error('等級表に該当しない標準報酬月額です。');
+    return row.standardRemuneration;
+}
+
 export function gradeDifference(a: number, b: number): number {
     return Math.abs(a - b);
 }

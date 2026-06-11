@@ -10,19 +10,20 @@ export interface MonthlyRemunerationSource {
   daysInMonth: number;
   payroll: PayrollData;
   paymentBaseDays: number;
+  bonusRelatedRemuneration: number;
 }
 
-export function toMonthPaymentBaseInput(source: MonthlyRemunerationSource): MonthPaymentBaseInput {
-  const paymentBaseDays = source.paymentBaseDays;
+export function toMonthPaymentBaseInput(
+  source: MonthlyRemunerationSource,
+  options?: { includeVariable?: boolean },
+): MonthPaymentBaseInput {
+  const base = options?.includeVariable
+    ? (source.payroll.fixedWage ?? source.payroll.basicSalary ?? 0) +
+      (source.payroll.variableWage ?? 0)
+    : computeFixedWageFromPayroll(source.payroll);
   return {
     yyyyMm: source.yyyyMm,
-    paymentBaseDays,
-    remuneration: computeFixedWageFromPayroll(source.payroll),
+    paymentBaseDays: source.paymentBaseDays,
+    remuneration: base + source.bonusRelatedRemuneration,
   };
-}
-
-export function toMonthPaymentBaseInputs(
-  sources: readonly MonthlyRemunerationSource[],
-): MonthPaymentBaseInput[] {
-  return sources.map(toMonthPaymentBaseInput);
 }

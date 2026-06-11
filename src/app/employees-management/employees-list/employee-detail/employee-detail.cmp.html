@@ -9,14 +9,21 @@
     <a
         mat-tab-link
         [routerLink]="['/employees-management', 'detail', eid, 'employ']"
-        [active]="!isPersonalActive"
+        [active]="isActive === 'employ'"
     >
         <span>雇用情報</span>
+    </a>
+    <a
+        mat-tab-link
+        [routerLink]="['/employees-management', 'detail', eid, 'status']"
+        [active]="isActive === 'status'"
+    >
+        <span>勤務情報</span>
     </a>
     <a 
         mat-tab-link
         [routerLink]="['/employees-management', 'detail', eid, 'personal']"
-        [active]="isPersonalActive"
+        [active]="isActive === 'personal'"
     >
         <span>個人情報</span>
     </a>
