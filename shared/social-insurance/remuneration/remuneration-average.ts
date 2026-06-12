@@ -5,7 +5,6 @@ import {
     selectMonthsForRemunerationAverageSelection,
     selectMonthsForZuijiAverage,
     type EmploymentType,
-    type MonthPaymentBaseInput,
     type RemunerationAverageSelectionOutcome,
     type RemunerationAverageSelectionResult,
 } from './payment-base-days';
@@ -43,7 +42,7 @@ function gradesFromSelection(
 
 export function calculateGradesFromMonths(
     employmentType: EmploymentType,
-    months: readonly MonthPaymentBaseInput[],
+    months: readonly MonthlyRemunerationSource[],
     gradeTable: RemunerationGradeTableSet,
 ): GradesFromMonthsOutcome {
     const selection = selectMonthsForRemunerationAverageSelection(employmentType, months);

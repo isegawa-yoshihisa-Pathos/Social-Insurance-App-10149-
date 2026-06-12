@@ -93,6 +93,10 @@ export class RoutesService {
     void this.router.navigate(['/payment-management']);
   }
 
+  redirectToPaymentDetail(eid: string): void {
+    void this.router.navigate(['/payment-management', 'detail', eid]);
+  }
+
   redirectToBonusManagement(): void {
     void this.router.navigate(['/bonus-management']);
   }

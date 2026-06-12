@@ -23,7 +23,6 @@ export function toPaymentListRow(
   eid: string,
   monthlyData: Partial<MonthlyDocument> | undefined,
   bonusData: Partial<BonusDocument> | undefined,
-  bonusTypeDefinitions: BonusTypeDefinition[],
 ): PaymentListRow {
   const payroll = monthlyData?.payrollData;
   const bonus = bonusData?.bonusData ? extractBonusAmounts(bonusData.bonusData) : {};

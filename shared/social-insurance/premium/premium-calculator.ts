@@ -1,4 +1,6 @@
 import type { PremiumData } from '../../monthly-document';
+import { toFormDate } from '../../date-utils';
+import type { DependentInfo } from '../../personal-document';
 import {
   premiumFromStandardRemuneration,
   type SplitPremiumResult,
@@ -16,7 +18,13 @@ export interface InsuranceRatesInput {
   pensionInsuranceRate: number;
 }
 
-export interface PremiumCalculationInput {
+export interface CareInsuranceCollectionInput {
+  specificInsuranceCollectionType?: string | boolean;
+  hasDependents?: boolean;
+  dependentsInfo?: readonly Pick<DependentInfo, 'birthDate'>[];
+}
+
+export interface PremiumCalculationInput extends CareInsuranceCollectionInput {
   yyyyMm: string;
   birthDate: Date | null;
   licenceStartAt: Date | null | undefined;
@@ -93,6 +101,50 @@ export function isCareInsuranceTarget(
   return startYyyyMm <= yyyyMm && yyyyMm < endYyyyMm;
 }
 
+export function isSpecificInsuranceCollectionEnabled(
+  value: string | boolean | undefined,
+): boolean {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  return value === 'true';
+}
+
+export function hasCareInsuranceAgeDependent(
+  dependentsInfo: readonly Pick<DependentInfo, 'birthDate'>[] | undefined,
+  yyyyMm: string,
+  hasDependents?: boolean,
+): boolean {
+  if (!hasDependents || !dependentsInfo?.length) {
+    return false;
+  }
+
+  return dependentsInfo.some((dependent) =>
+    isCareInsuranceTarget(toFormDate(dependent.birthDate), yyyyMm),
+  );
+}
+
+export function shouldCollectCareInsurance(
+  input: {
+    yyyyMm: string;
+    birthDate: Date | null;
+  } & CareInsuranceCollectionInput,
+): boolean {
+  if (isCareInsuranceTarget(input.birthDate, input.yyyyMm)) {
+    return true;
+  }
+
+  if (!isSpecificInsuranceCollectionEnabled(input.specificInsuranceCollectionType)) {
+    return false;
+  }
+
+  return hasCareInsuranceAgeDependent(
+    input.dependentsInfo,
+    input.yyyyMm,
+    input.hasDependents,
+  );
+}
+
 export function isHealthInsuranceTarget(
   birthDate: Date | null,
   yyyyMm: string,
@@ -139,7 +191,7 @@ function toPremiumPart(
   return { employer: split.employer, employee: split.employee };
 }
 
-export interface BonusPremiumCalculationInput {
+export interface BonusPremiumCalculationInput extends CareInsuranceCollectionInput {
   yyyyMm: string;
   birthDate: Date | null;
   licenceStartAt: Date | null | undefined;
@@ -173,6 +225,9 @@ export function calculateBonusPremium(input: BonusPremiumCalculationInput): Prem
     licenceStartAt: input.licenceStartAt,
     resignAt: input.resignAt,
     applyLeavePremiumExemption: false,
+    specificInsuranceCollectionType: input.specificInsuranceCollectionType,
+    hasDependents: input.hasDependents,
+    dependentsInfo: input.dependentsInfo,
     standardRemuneration: input.standardBonus,
     rates: input.rates,
     employeeRate: input.employeeRate,
@@ -232,7 +287,13 @@ export function calculateMonthlyPremium(input: PremiumCalculationInput): Premium
       pension = toPremiumPart(pensionSplit);
     }
 
-    if (isCareInsuranceTarget(birthDate, yyyyMm)) {
+    if (shouldCollectCareInsurance({
+      yyyyMm,
+      birthDate,
+      specificInsuranceCollectionType: input.specificInsuranceCollectionType,
+      hasDependents: input.hasDependents,
+      dependentsInfo: input.dependentsInfo,
+    })) {
       const careSplit = premiumFromStandardRemuneration(
         standardRemuneration.health,
         rates.careInsuranceRate,

@@ -1,17 +1,18 @@
 import { Component, computed, effect, inject, signal, ViewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog } from '@angular/material/dialog';
+import { MatMenuModule } from '@angular/material/menu';
 import { map } from 'rxjs';
 import { CurrentTenantService } from '../../../current-tenant.service';
 import { BonusManagementDataService } from '../../bonus-management-data.service';
 import { BonusSettingDataService } from '../../bonus-setting/bonus-setting-data.service';
-import { BonusDetailRow, BonusListDataService } from '../bonus-list-data.service';
+import { BonusDetailRow, BonusListDataService, EmployeeLookupEntry } from '../bonus-list-data.service';
 import { BonusListColumnKey, getBonusListColumnLabel } from '../bonus-list-columns';
 import { formatBonusListCellValue, bonusListSortValue } from '../bonus-list-row.mapper';
 import { ErrorDialogCmp, mapFirebaseError } from '../../../error-dialog/error-dialog.cmp';
@@ -26,12 +27,14 @@ import { RoutesService } from '../../../routes.service';
     MatIconModule,
     RouterModule,
     MatTooltipModule,
+    MatMenuModule,
   ],
   templateUrl: './bonus-detail.cmp.html',
   styleUrl: './bonus-detail.cmp.css',
 })
 export class BonusDetailCmp {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly currentTenantService = inject(CurrentTenantService);
   private readonly bonusManagementDataService = inject(BonusManagementDataService);
   private readonly bonusSettingDataService = inject(BonusSettingDataService);
@@ -49,6 +52,7 @@ export class BonusDetailCmp {
 
   readonly employeeName = signal('');
   readonly employeeId = signal('');
+  readonly employees = signal<EmployeeLookupEntry[]>([]);
   readonly loading = signal(true);
 
   dataSource = new MatTableDataSource<BonusDetailRow>([]);
@@ -80,6 +84,7 @@ export class BonusDetailCmp {
         this.dataSource.data = [];
         this.employeeName.set('');
         this.employeeId.set('');
+        this.employees.set([]);
         this.settingsLoadedTid = null;
         this.loading.set(false);
         return;
@@ -102,9 +107,13 @@ export class BonusDetailCmp {
         this.settingsLoadedTid = tid;
       }
 
-      const result = await this.listDataService.loadEmployeeBonusHistory(tid, eid);
+      const [result, employeeLookup] = await Promise.all([
+        this.listDataService.loadEmployeeBonusHistory(tid, eid),
+        this.listDataService.loadEmployeeLookup(tid),
+      ]);
       if (token !== this.loadToken) return;
 
+      this.employees.set(this.sortEmployees([...employeeLookup.values()]));
       this.employeeName.set(result.displayName);
       this.employeeId.set(result.employeeId);
       this.dataSource.data = result.rows;
@@ -138,5 +147,18 @@ export class BonusDetailCmp {
 
   redirectToBonusManagement(): void {
     void this.routesService.redirectToBonusManagement();
+  }
+
+  switchEmployee(eid: string): void {
+    if (!eid || eid === this.eid()) return;
+    void this.router.navigate(['/monthly-management', 'detail', eid]);
+  }
+
+  private sortEmployees(employees: EmployeeLookupEntry[]): EmployeeLookupEntry[] {
+    return employees.sort((a, b) => {
+      const nameCompare = a.displayName.localeCompare(b.displayName, 'ja');
+      if (nameCompare !== 0) return nameCompare;
+      return a.employeeId.localeCompare(b.employeeId, 'ja');
+    });
   }
 }

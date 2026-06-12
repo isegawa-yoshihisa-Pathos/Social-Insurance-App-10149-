@@ -5,13 +5,24 @@
         <mat-icon>arrow_back</mat-icon>
       </button>
       @if (!loading()) {
-        <div class="employee-meta-card">
+        <button mat-button [matMenuTriggerFor]="employeeMenu">
           <span class="meta-value-name">{{ employeeName() || '未登録' }}</span>
           <div class="meta-item">
             <span class="meta-label">社員番号:</span>
             <span class="meta-value-id">{{ employeeId() || '---' }}</span>
           </div>
-        </div>
+        </button>
+        <mat-menu #employeeMenu="matMenu">
+          @for (employee of employees(); track employee.eid) {
+            <button mat-menu-item (click)="switchEmployee(employee.eid)">
+              <span class="meta-value-name">{{ employee.displayName || '未登録' }}</span>
+              <div class="meta-item">
+                <span class="meta-label">社員番号:</span>
+                <span class="meta-value-id">{{ employee.employeeId || '---' }}</span>
+              </div>
+            </button>
+          }
+        </mat-menu>
       }
     </div>
 

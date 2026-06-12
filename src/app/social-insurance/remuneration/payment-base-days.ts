@@ -100,10 +100,11 @@ export function selectMonthsForZuijiAverage(
 
 /**
  * 定時決定用: 条件を満たす月が1ヶ月でもあればその月（複数ならそれら）で平均。months は通常 4・5・6 月。
+ * 報酬月額は固定的賃金・非固定的賃金・賞与関連報酬を含む。
  */
 export function selectMonthsForRemunerationAverageSelection(
   category: EmploymentType,
-  months: readonly MonthPaymentBaseInput[],
+  months: readonly MonthlyRemunerationSource[],
 ): RemunerationAverageSelectionOutcome {
   /** 4，5，6月の支払基礎日数が基準に満たない場合は前回の決定を継続 */
   if (months.length === 0) {
@@ -117,7 +118,7 @@ export function selectMonthsForRemunerationAverageSelection(
   if (primary.length > 0) {
     return {
       kind: 'calculated',
-      result: buildAverage(primary, 'primary'),
+      result: buildPayrollAverage(primary, 'primary'),
     };
   }
 
@@ -129,25 +130,13 @@ export function selectMonthsForRemunerationAverageSelection(
     if (secondary.length > 0) {
       return {
         kind: 'calculated',
-        result: buildAverage(secondary, 'secondary'),
+        result: buildPayrollAverage(secondary, 'secondary'),
       };
     }
     return { kind: 'continue_previous', reason: 'all_months_below_secondary' };
   }
 
   return { kind: 'continue_previous', reason: 'all_months_below_secondary' };
-}
-
-function buildAverage(
-  usedMonths: readonly MonthPaymentBaseInput[],
-  tier: PaymentBaseDaysTier,
-): RemunerationAverageSelectionResult {
-  const total = usedMonths.reduce((s, m) => s + m.remuneration, 0);
-  return {
-    usedMonths: [...usedMonths],
-    tier,
-    averageRemuneration: total / usedMonths.length,
-  };
 }
 
 function buildPayrollAverage(

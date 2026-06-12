@@ -72,10 +72,11 @@ export class ApplicationDataService {
     return this.listPendingApplicationsByType(tid, 'resign');
   }
 
-  async listApplications(tid: string): Promise<ApplicationDocument[]> {
+  async listApplications(tid: string, eid: string): Promise<ApplicationDocument[]> {
     const snap = await getDocs(
       query(
         this.applicationsRef(tid),
+        where('eid', '==', eid),
       ),
     );
     return snap.docs
@@ -222,15 +223,7 @@ export class ApplicationDataService {
       'employeeEmployInfo.licenseEndAt': licenseEndAt,
       updatedAt: serverTimestamp(),
     });
-
-    const uid = employee.uid;
-    if (uid) {
-      batch.update(doc(this.firestore, 'affiliations', `${uid}_${tid}`), {
-        status: 'archived',
-        updatedAt: serverTimestamp(),
-      });
-    }
-
+    
     batch.update(applicationRef, {
       status: 'approved',
       updatedAt: serverTimestamp(),

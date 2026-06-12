@@ -10,8 +10,15 @@ export type StandardRemunerationSource =
   | 'initial'
   | 'teiji'
   | 'zuiji'
+  | 'provisional_zuiji'
   | 'manual'
   | 'carried';
+
+export function isConfirmedStandardRemunerationSource(
+  source: StandardRemunerationSource,
+): boolean {
+  return source !== 'provisional_zuiji';
+}
 
 export interface StandardRemunerationDocument {
   healthGrade: number;
@@ -25,7 +32,6 @@ export interface StandardRemunerationDocument {
 
 export type StandardRemunerationSavePayload = StandardRemunerationDocument;
 
-/** Firestore は undefined を受け付けないため、書き込み前に除去する */
 export function omitUndefinedFields<T extends Record<string, unknown>>(obj: T): T {
   const result = { ...obj };
   for (const key of Object.keys(result)) {
@@ -126,6 +132,21 @@ export async function getEmployee(
   const snap = await db.collection('tenants').doc(tid).collection('employees').doc(eid).get();
   if (!snap.exists) throw new Error('従業員が見つかりません。');
   return snap.data() as EmployeeDocument;
+}
+
+export interface TenantDocumentForCalculation {
+  socialInsuranceSettings?: {
+    specificInsuranceCollectionType?: string;
+  };
+}
+
+export async function getTenant(
+  db: admin.firestore.Firestore,
+  tid: string,
+): Promise<TenantDocumentForCalculation | null> {
+  const snap = await db.collection('tenants').doc(tid).get();
+  if (!snap.exists) return null;
+  return snap.data() as TenantDocumentForCalculation;
 }
 
 export async function getMonthlyPeriod(
@@ -273,8 +294,20 @@ export async function getLatestStandardRemuneration(
   eid: string,
   yyyyMm: string,
 ): Promise<StandardRemunerationSavePayload | null> {
+  return getLatestConfirmedStandardRemuneration(db, tid, eid, yyyyMm);
+}
+
+export async function getLatestConfirmedStandardRemuneration(
+  db: admin.firestore.Firestore,
+  tid: string,
+  eid: string,
+  yyyyMm: string,
+): Promise<StandardRemunerationSavePayload | null> {
   const history = await listStandardRemuneration(db, tid, eid);
-  const found = history.find((item) => item.yyyyMm <= yyyyMm);
+  const found = history.find(
+    (item) =>
+      item.yyyyMm <= yyyyMm && isConfirmedStandardRemunerationSource(item.doc.source),
+  );
   return found?.doc ?? null;
 }
 

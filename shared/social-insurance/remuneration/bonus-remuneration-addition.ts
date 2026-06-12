@@ -1,5 +1,7 @@
 import type { BonusData, BonusTypeDefinition } from '../../bonus-document';
 import type { MonthPaymentBaseInput } from './payment-base-days';
+import type { MonthlyRemunerationSource } from './remuneration-month-input';
+import { addMonths } from '../monthly/social-insurance-data.util';
 
 export interface BonusRecordInPeriod {
   yyyyMm: string;
@@ -126,21 +128,59 @@ export function calculateBonusRemunerationAddition(
   defs: readonly BonusTypeDefinition[],
 ): number {
   const total = sumTeijiEligibleLaborBonusAmount(records, defs);
-  const times = records.length;
   if (total <= 0) return 0;
   return Math.floor(total / 12);
 }
 
-/** 定時決定の適用期間（当年9月〜翌年6月）の月キー */
 export function buildTeijiApplicationMonthKeys(teijiYear: number): string[] {
+  return buildBonusRelatedRemunerationApplicationMonthKeys(teijiYear, `${teijiYear}-09`);
+}
+
+/**
+ * bonusRelatedRemuneration を月次へ反映する対象月。
+ * 定時決定は9月〜翌8月。7・8月適用の随時改定はそれぞれ7月・8月から翌8月まで。
+ */
+export function buildBonusRelatedRemunerationApplicationMonthKeys(
+  teijiYear: number,
+  effectiveFrom: string,
+): string[] {
+  const endYm = `${teijiYear + 1}-08`;
   const keys: string[] = [];
-  for (let month = 7; month <= 12; month++) {
-    keys.push(`${teijiYear}-${String(month).padStart(2, '0')}`);
-  }
-  for (let month = 1; month <= 6; month++) {
-    keys.push(`${teijiYear + 1}-${String(month).padStart(2, '0')}`);
+  let ym = effectiveFrom;
+  while (ym <= endYm) {
+    keys.push(ym);
+    ym = addMonths(ym, 1);
   }
   return keys;
+}
+
+export function parseMonthFromYyyyMm(yyyyMm: string): number {
+  return Number(yyyyMm.slice(5, 7));
+}
+
+/** 7・8・9月適用の随時改定（定時決定に代わる特例） */
+export function isTeijiReplacementZuijiEffectiveMonth(effectiveFrom: string): boolean {
+  const month = parseMonthFromYyyyMm(effectiveFrom);
+  return month === 7 || month === 8 || month === 9;
+}
+
+/** 7・8・9月適用の随時改定に対応する定時決定の対象年 */
+export function teijiYearFromEffectiveMonth(effectiveFrom: string): number {
+  return Number(effectiveFrom.slice(0, 4));
+}
+
+export function isBonusRelatedRemunerationUnset(
+  value: number | undefined | null,
+): boolean {
+  return value == null;
+}
+
+/** 標準報酬算定用に、全月へ同一の bonusRelatedRemuneration を適用したコピーを返す */
+export function withBonusRelatedRemuneration(
+  sources: readonly MonthlyRemunerationSource[],
+  bonusRelatedRemuneration: number,
+): MonthlyRemunerationSource[] {
+  return sources.map((s) => ({ ...s, bonusRelatedRemuneration }));
 }
 
 export function applyBonusRemunerationAddition(

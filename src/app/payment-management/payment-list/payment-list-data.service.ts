@@ -1,14 +1,24 @@
 import { Injectable, inject } from '@angular/core';
-import { Firestore, collection, getDocs } from '@angular/fire/firestore';
+import { Firestore, collection, getDocs, getDoc, doc } from '@angular/fire/firestore';
 import { EmployeeDocument } from '../../employee-document';
 import { MonthlyDocument } from '../../monthly-document';
 import { BonusDocument } from '../../bonus-document';
 import { PaymentListRow } from './payment-list-columns';
 import { StandardRemunerationDataService } from '../../social-insurance/monthly/standard-remuneration-data.service';
 import { toPaymentListRow } from './payment-list-row.mapper';
-import { BonusTypeDefinition } from '../../bonus-document';
 import { TenantSettingDataService } from '../../tenant-setting/tenant-setting-data.service';
 import { addMonths } from '../../social-insurance/monthly/social-insurance-data.util';
+import { getTargetMonths } from '../../date-utils';
+
+export interface PaymentDetailRow extends PaymentListRow {
+  yyyyMm: string;
+}
+
+export interface EmployeePaymentHistoryResult {
+  rows: PaymentDetailRow[];
+  displayName: string;
+  employeeId: string;
+}
 
 export interface EmployeeLookupEntry {
   eid: string;
@@ -57,7 +67,6 @@ export class PaymentListDataService {
   async loadAggregatedRows(
     tid: string,
     yyyyMm: string,
-    bonusTypeDefinitions: BonusTypeDefinition[],
   ): Promise<PaymentListRow[]> {
     const collectionMonth = addMonths(yyyyMm, this.collectionMonth);
     const monthlySalaryRef = collection(
@@ -115,7 +124,6 @@ export class PaymentListDataService {
         eid,
         mergedMonthlyDoc,
         bonusByEid.get(eid),
-        bonusTypeDefinitions,
       );
       return this.mergeEmployeeMeta(row, employeeLookup);
     });
@@ -149,6 +157,90 @@ export class PaymentListDataService {
         };
       }),
     );
+  }
+
+  async loadEmployeePaymentHistory(
+    tid: string,
+    eid: string,
+  ): Promise<EmployeePaymentHistoryResult> {
+    const employeeLookup = await this.loadEmployeeLookup(tid);
+    const empMeta = employeeLookup.get(eid);
+
+    const [recordsSnap, bonusRecordsSnap] = await Promise.all([
+      getDocs(collection(this.firestore, 'tenants', tid, 'monthly-records')),
+      getDocs(collection(this.firestore, 'tenants', tid, 'bonus-records')),
+    ]);
+
+    const minRecordMonth = recordsSnap.docs[0].id;
+    const maxRecordMonth = recordsSnap.docs[recordsSnap.docs.length - 1].id;
+    const minBonusMonth = bonusRecordsSnap.docs[0].id;
+    const maxBonusMonth = bonusRecordsSnap.docs[bonusRecordsSnap.docs.length - 1].id;
+
+    const targetMonths = getTargetMonths(
+      minRecordMonth < minBonusMonth ? minRecordMonth : minBonusMonth, 
+      addMonths(maxRecordMonth > maxBonusMonth ? maxRecordMonth : maxBonusMonth, -this.collectionMonth)
+    );
+
+    const detailRows = (
+      await Promise.all(
+        [...targetMonths].map(async (yyyyMm) => { 
+          const collectionMonth = addMonths(yyyyMm, this.collectionMonth);
+
+          const [monthlySalarySnap, monthlyPremiumSnap, bonusSnap] = await Promise.all([
+            getDoc(
+              doc(this.firestore, 'tenants', tid, 'monthly-records', yyyyMm, 'employees', eid),
+            ),
+            getDoc(
+              doc(this.firestore, 'tenants', tid, 'monthly-records', collectionMonth, 'employees', eid),
+            ),
+            getDoc(
+              doc(this.firestore, 'tenants', tid, 'bonus-records', yyyyMm, 'employees', eid),
+            ),
+          ]);
+
+          const hasSalary = monthlySalarySnap.exists();
+          const hasPremium = monthlyPremiumSnap.exists();
+          const hasBonus = bonusSnap.exists();
+          if (!hasSalary && !hasPremium && !hasBonus) return null;
+
+          const monthlySalaryDoc = hasSalary
+            ? (monthlySalarySnap.data() as Partial<MonthlyDocument>)
+            : {};
+          const monthlyPremiumDoc = hasPremium
+            ? (monthlyPremiumSnap.data() as Partial<MonthlyDocument>)
+            : {};
+
+          const mergedMonthlyDoc = {
+            ...monthlySalaryDoc,
+            calculationSnapshot: monthlyPremiumDoc.calculationSnapshot,
+            premiumData: monthlyPremiumDoc.premiumData,
+          };
+          const bonusDoc = hasBonus
+            ? (bonusSnap.data() as Partial<BonusDocument>)
+            : undefined;
+
+          const baseRow = toPaymentListRow(eid, mergedMonthlyDoc, bonusDoc);
+          const enrichedRow = this.mergeEmployeeMeta(baseRow, employeeLookup);
+          return { ...enrichedRow, yyyyMm };
+        }),
+      )
+    ).filter((row): row is PaymentDetailRow => row !== null);
+
+    const finalRows = await Promise.all(
+      detailRows.map(async (row) => {
+        const collectionMonth = addMonths(row.yyyyMm, this.collectionMonth);
+        const enriched = await this.enrichWithStandardRemuneration(tid, collectionMonth, [row]);
+        return { ...enriched[0], yyyyMm: row.yyyyMm };
+      }),
+    );
+
+    finalRows.sort((a, b) => b.yyyyMm.localeCompare(a.yyyyMm));
+
+    return {
+      rows: finalRows,
+      displayName: empMeta?.displayName || finalRows[0]?.displayName || '',
+      employeeId: empMeta?.employeeId || finalRows[0]?.employeeId || '',
+    };
   }
 
   mergeEmployeeMeta(

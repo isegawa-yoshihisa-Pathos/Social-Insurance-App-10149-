@@ -1,0 +1,45 @@
+<div class="accept-application">
+  <h3>標準報酬月額の承認・適用（本人同意済み）</h3>
+
+  @if (loading) {
+    <p class="loading-message">読み込み中...</p>
+  } @else if (reviews.length === 0) {
+    <p class="empty-message">承認待ちの同意確認はありません。</p>
+  } @else {
+    <div class="review-list">
+      @for (review of reviews; track review.id) {
+        <div class="review-item">
+          <div class="review-main">
+            <div class="review-name">{{ review.employeeDisplayName || '未登録' }}</div>
+            <div class="review-detail">
+              {{ typeLabel(review.type) }} / {{ review.effectiveFrom }} 適用
+            </div>
+            <div class="review-detail">
+              健保 {{ review.proposedHealthGrade }}等級 /
+              厚年 {{ review.proposedPensionGrade }}等級 /
+              報酬月額 {{ review.proposedRemuneration | number }}円
+            </div>
+            <div class="review-note">{{ review.summaryBody }}</div>
+          </div>
+          <div class="review-actions">
+            <button
+              mat-button
+              color="primary"
+              [disabled]="busyId === review.id"
+              (click)="approve(review)"
+            >
+              承認・適用
+            </button>
+            <button
+              mat-button
+              [disabled]="busyId === review.id"
+              (click)="reject(review)"
+            >
+              却下
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

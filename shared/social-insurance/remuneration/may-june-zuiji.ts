@@ -4,10 +4,12 @@ import { classifyPaymentBaseDaysTier, type EmploymentType } from './payment-base
 import type { MonthlyRemunerationSource } from './remuneration-month-input';
 import {
   evaluateStandardZuijiApplicability,
+  evaluateFixedWageAndGradeDirectionAlignment,
   getGradeTableLimits,
   type PreviousGrades,
   type StandardZuijiApplicability,
 } from './zuiji-determination';
+import { computeFixedWageFromPayroll } from './fixed-wage';
 
 export interface MayJuneZuijiSchedule {
   raiseMonthYyyyMm: string;
@@ -72,7 +74,7 @@ export type MayJuneZuijiScreeningOutcome =
     }
   | {
       kind: 'not_candidate';
-      reason: 'not_may_june' | 'insufficient_payment_base_days' | 'grade_not_found' | 'insufficient_grade_change';
+      reason: 'not_may_june' | 'insufficient_payment_base_days' | 'grade_not_found' | 'insufficient_grade_change' | 'fixed_wage_grade_direction_mismatch';
       schedule?: MayJuneZuijiSchedule;
     };
 
@@ -83,7 +85,11 @@ export function screenMayJuneZuijiFromSingleMonth(
   employmentType: EmploymentType,
   raiseMonthSource: MonthlyRemunerationSource,
   previous: PreviousGrades,
-  options?: { gradeTable?: RemunerationGradeTableSet; minGradeDifference?: number },
+  options?: {
+    gradeTable?: RemunerationGradeTableSet;
+    minGradeDifference?: number;
+    fixedWageBeforeChange?: number;
+  },
 ): MayJuneZuijiScreeningOutcome {
   if (!isMayOrJuneRaiseMonth(raiseMonthSource.yyyyMm)) {
     return { kind: 'not_candidate', reason: 'not_may_june' };
@@ -120,6 +126,20 @@ export function screenMayJuneZuijiFromSingleMonth(
     return { kind: 'not_candidate', reason: 'insufficient_grade_change', schedule };
   }
 
+  if (options?.fixedWageBeforeChange != null) {
+    const fixedWageAtChange = computeFixedWageFromPayroll(raiseMonthSource.payroll);
+    if (
+      !evaluateFixedWageAndGradeDirectionAlignment(
+        options.fixedWageBeforeChange,
+        fixedWageAtChange,
+        previous,
+        grades,
+      )
+    ) {
+      return { kind: 'not_candidate', reason: 'fixed_wage_grade_direction_mismatch', schedule };
+    }
+  }
+
   return { kind: 'candidate', grades, applicability, schedule };
 }
 
@@ -139,7 +159,7 @@ export function buildMayJuneZuijiPendingNotificationBody(
   return (
     `${employeeName}様は${raiseMonth}月に固定的賃金の変動がありました。` +
     `単月の報酬で試算した結果、随時改定の要件を満たす可能性があります。` +
-    `${effectiveLabel}（${effectiveYyyyMm}）からの随時改定適用をご確認ください。` +
-    `定時決定の届出は不要です。`
+    `${effectiveLabel}（${effectiveYyyyMm}）からの随時改定適用可否をタスクボードでご確認ください。` +
+    `承認すると7月の定時決定は省略されます。随時改定は${effectiveLabel}の適用に向け、データが揃った計算時に確定されます。`
   );
 }

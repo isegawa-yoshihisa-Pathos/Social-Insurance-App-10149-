@@ -93,7 +93,13 @@ export type InsuranceRateSource =
   | 'combination_manual'
   | 'manual'
 
-export type StandardRemunerationSource = 'initial' | 'teiji' | 'zuiji' | 'manual' | 'carried';
+export type StandardRemunerationSource =
+  | 'initial'
+  | 'teiji'
+  | 'zuiji'
+  | 'provisional_zuiji'
+  | 'manual'
+  | 'carried';
 
 export interface StandardRemunerationDocument {
   healthGrade: number;

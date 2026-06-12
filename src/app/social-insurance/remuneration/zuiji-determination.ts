@@ -4,8 +4,9 @@ import {
   calculateGradesForZuiji,
   type GradesFromMonthsOutcome,
 } from './remuneration-average';
-import type { EmploymentType, MonthPaymentBaseInput } from './payment-base-days';
+import type { EmploymentType } from './payment-base-days';
 import type { MonthlyRemunerationSource } from './remuneration-month-input';
+import { computeFixedWageFromPayroll } from './fixed-wage';
 
 export interface PreviousGrades {
   healthGrade: number;
@@ -83,6 +84,31 @@ export function evaluateStandardZuijiApplicability(
   };
 }
 
+/**
+ * 固定的賃金の昇降方向と、改定後等級の昇降方向が一致するか。
+ * 変動した等級（健保・厚年）それぞれが、固定的賃金と同じ方向でなければ false。
+ */
+export function evaluateFixedWageAndGradeDirectionAlignment(
+  fixedWageBeforeChange: number,
+  fixedWageAtChange: number,
+  previous: PreviousGrades,
+  grades: ResolvedStandardRemuneration,
+): boolean {
+  const fwDelta = fixedWageAtChange - fixedWageBeforeChange;
+  if (fwDelta === 0) return false;
+
+  const fwUp = fwDelta > 0;
+  const healthDelta = grades.health.grade - previous.healthGrade;
+  const pensionDelta = grades.pension.grade - previous.pensionGrade;
+
+  if (healthDelta === 0 && pensionDelta === 0) return false;
+
+  if (healthDelta !== 0 && (healthDelta > 0) !== fwUp) return false;
+  if (pensionDelta !== 0 && (pensionDelta > 0) !== fwUp) return false;
+
+  return true;
+}
+
 type CalculatedGrades = Extract<GradesFromMonthsOutcome, { kind: 'calculated' }>;
 
 export type StandardZuijiDeterminationOutcome =
@@ -96,7 +122,8 @@ export type StandardZuijiDeterminationOutcome =
         | 'requires_three_months'
         | 'insufficient_payment_base_days'
         | 'grade_not_found'
-        | 'insufficient_grade_change';
+        | 'insufficient_grade_change'
+        | 'fixed_wage_grade_direction_mismatch';
       preview?: GradesFromMonthsOutcome;
     };
 
@@ -111,6 +138,8 @@ export function determineStandardZuiji(
   options?: {
     minGradeDifference?: number;
     gradeTable?: RemunerationGradeTableSet;
+    /** 昇（降）給月の直前月の固定的賃金 */
+    fixedWageBeforeChange?: number;
   },
 ): StandardZuijiDeterminationOutcome {
   if (months.length !== 3) {
@@ -145,6 +174,24 @@ export function determineStandardZuiji(
       reason: 'insufficient_grade_change',
       preview: base,
     };
+  }
+
+  if (options?.fixedWageBeforeChange != null) {
+    const fixedWageAtChange = computeFixedWageFromPayroll(months[0].payroll);
+    if (
+      !evaluateFixedWageAndGradeDirectionAlignment(
+        options.fixedWageBeforeChange,
+        fixedWageAtChange,
+        previous,
+        base.grades,
+      )
+    ) {
+      return {
+        kind: 'not_applicable',
+        reason: 'fixed_wage_grade_direction_mismatch',
+        preview: base,
+      };
+    }
   }
 
   return {

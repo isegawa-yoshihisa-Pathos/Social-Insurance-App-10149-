@@ -59,10 +59,12 @@ export class ApplicationListCmp implements OnInit {
   private async reload(): Promise<void> {
     const tid = this.tenant.currentTid();
     if (!tid) return;
+    const eid = this.tenant.currentEmployeeId();
+    if (!eid) return;
 
     this.loading = true;
     try {
-      this.applications = await this.applicationDataService.listApplications(tid);
+      this.applications = await this.applicationDataService.listApplications(tid, eid);
     } catch (error) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: mapFirebaseError(error) },

@@ -2,6 +2,12 @@
   display: block;
 }
 
+.notification-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .notification-label {
   font-size: 18px;
   font-weight: bold;

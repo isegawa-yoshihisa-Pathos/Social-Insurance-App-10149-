@@ -196,6 +196,10 @@ export const routes: Routes = [
             loadComponent: () => import('./payment-management/payment-list/payment-list.cmp').then(m => m.PaymentListCmp),
           },
           {
+            path: 'detail/:eid',
+            loadComponent: () => import('./payment-management/payment-list/payment-detail/payment-detail.cmp').then(m => m.PaymentDetailCmp),
+          },
+          {
             path: 'setting',
             loadComponent: () => import('./payment-management/payment-setting/payment-setting.cmp').then(m => m.PaymentSettingCmp),
           },

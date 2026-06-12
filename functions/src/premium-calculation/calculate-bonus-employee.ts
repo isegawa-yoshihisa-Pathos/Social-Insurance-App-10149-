@@ -31,6 +31,7 @@ import {
   saveStandardBonus,
   getBonusTypeDefinitions,
   omitUndefinedFields,
+  getTenant,
   type StandardBonusDocument,
   type StandardBonusSavePayload,
 } from './repos';
@@ -48,7 +49,17 @@ export async function calculateBonusEmployee(
   yyyyMm: string,
 ): Promise<void> {
   await assertBonusPeriodNotLocked(db, tid, yyyyMm);
-  const ctx = await loadContext(db, tid, eid, yyyyMm);
+  const [ctx, tenant] = await Promise.all([
+    loadContext(db, tid, eid, yyyyMm),
+    getTenant(db, tid),
+  ]);
+  const personalInfo = ctx.employee.employeePersonalInfo;
+  const careInsuranceCollection = {
+    specificInsuranceCollectionType:
+      tenant?.socialInsuranceSettings?.specificInsuranceCollectionType,
+    hasDependents: personalInfo?.hasDependents,
+    dependentsInfo: personalInfo?.dependentsInfo,
+  };
   const standardBonus = await resolveStandardBonus(db, tid, eid, yyyyMm, ctx);
   await saveStandardBonus(db, tid, eid, yyyyMm, standardBonus);
 
@@ -63,6 +74,7 @@ export async function calculateBonusEmployee(
     licenceStartAt: toFormDate(ctx.employee.employeeEmployInfo?.licenseStartAt),
     resignAt: toFormDate(ctx.employee.employeeEmployInfo?.resignAt),
     leaveRecords: employeeLeaveRecordsToPeriodInputs(ctx.employee.leaveInfo),
+    ...careInsuranceCollection,
     standardBonus: standardBonus.standardBonus,
     rates: rate.rates,
     employeeRate: rate.employeeRate,

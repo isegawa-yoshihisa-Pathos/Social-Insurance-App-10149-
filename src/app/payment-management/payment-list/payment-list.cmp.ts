@@ -201,7 +201,6 @@ export class PaymentListCmp implements OnInit {
       const data = await this.listDataService.loadAggregatedRows(
         tid,
         ym,
-        this.bonusManagementDataService.bonusTypeDefinitions(),
       );
       if (token !== this.loadToken) return;
       this.dataSource.data = data;
@@ -221,7 +220,7 @@ export class PaymentListCmp implements OnInit {
 
   onCellClick(row: PaymentListRow, col: PaymentListColumnKey): void {
     if (col === 'displayName' || col === 'employeeId') {
-      this.routesService.redirectToEmployeeEmployDetail(row.eid);
+      this.routesService.redirectToPaymentDetail(row.eid);
     }
   }
 

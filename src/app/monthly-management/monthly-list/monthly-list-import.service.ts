@@ -149,6 +149,16 @@ export class MonthlyListImportService {
       );
 
       if (existingRow) {
+        if (payrollPatch.bonusRelatedRemuneration === undefined) {
+          const previousBonus = previousBonusMap.get(matched) ?? 0;
+          const currentBonus = existingRow.bonusRelatedRemuneration;
+          if (
+            currentBonus == null ||
+            (currentBonus === 0 && previousBonus > 0)
+          ) {
+            payrollPatch.bonusRelatedRemuneration = previousBonus;
+          }
+        }
         batch.update(
           employeeRef,
           this.buildMonthlyUpdatePayload(payrollPatch, existingRow, definitions),

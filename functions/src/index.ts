@@ -17,6 +17,12 @@ export { validateInvitationToken } from './invitation/invitation-accept-function
 export { acceptInvitation } from './invitation/invitation-accept-functions';
 export { startPremiumCalculationBatch } from './premium-calculation/batch';
 export { calculatePremiumTask } from './premium-calculation/task';
+export { approveMayJuneZuijiReview, rejectMayJuneZuijiReview } from './premium-calculation/may-june-zuiji-review';
+export {
+  submitRemunerationConsentReview,
+  approveRemunerationConsentReview,
+  rejectRemunerationConsentReview,
+} from './premium-calculation/remuneration-consent-review';
 export { checkAgeAttainmentAlerts } from './notification/age-alert';
 // import {onRequest} from "firebase-functions/https";
 // import * as logger from "firebase-functions/logger";

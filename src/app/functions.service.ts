@@ -21,6 +21,25 @@ export class FunctionsService {
 
   private startPremiumCalculationBatchFn = httpsCallable(this.functions, 'startPremiumCalculationBatch');
 
+  private approveMayJuneZuijiReviewFn = httpsCallable(this.functions, 'approveMayJuneZuijiReview');
+
+  private rejectMayJuneZuijiReviewFn = httpsCallable(this.functions, 'rejectMayJuneZuijiReview');
+
+  private submitRemunerationConsentReviewFn = httpsCallable(
+    this.functions,
+    'submitRemunerationConsentReview',
+  );
+
+  private approveRemunerationConsentReviewFn = httpsCallable(
+    this.functions,
+    'approveRemunerationConsentReview',
+  );
+
+  private rejectRemunerationConsentReviewFn = httpsCallable(
+    this.functions,
+    'rejectRemunerationConsentReview',
+  );
+
   async registerAdminAndTenant(payload: any) {
     return await this.registerFn(payload);
   }
@@ -70,5 +89,42 @@ export class FunctionsService {
   }) {
     const result = await this.startPremiumCalculationBatchFn(payload);
     return result.data as { jobId: string; total: number };
+  }
+
+  async approveMayJuneZuijiReview(payload: {
+    tid: string;
+    eid: string;
+    raiseMonthYyyyMm: string;
+  }) {
+    const result = await this.approveMayJuneZuijiReviewFn(payload);
+    return result.data as { status: 'approved' };
+  }
+
+  async rejectMayJuneZuijiReview(payload: {
+    tid: string;
+    eid: string;
+    raiseMonthYyyyMm: string;
+  }) {
+    const result = await this.rejectMayJuneZuijiReviewFn(payload);
+    return result.data as { status: 'rejected' };
+  }
+
+  async submitRemunerationConsentReview(payload: {
+    tid: string;
+    reviewId: string;
+    consent: 'agreed' | 'declined';
+  }) {
+    const result = await this.submitRemunerationConsentReviewFn(payload);
+    return result.data as { status: string };
+  }
+
+  async approveRemunerationConsentReview(payload: { tid: string; reviewId: string }) {
+    const result = await this.approveRemunerationConsentReviewFn(payload);
+    return result.data as { status: 'approved' };
+  }
+
+  async rejectRemunerationConsentReview(payload: { tid: string; reviewId: string }) {
+    const result = await this.rejectRemunerationConsentReviewFn(payload);
+    return result.data as { status: 'rejected' };
   }
 }
