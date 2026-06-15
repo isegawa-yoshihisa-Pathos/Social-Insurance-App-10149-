@@ -8,7 +8,7 @@ export function computeFixedWageFromPayroll(payroll: PayrollData): number {
 }
 
 export function computeTotalRemunerationFromPayroll(payroll: PayrollData): number {
-  const fixed = payroll.fixedWage ?? payroll.basicSalary + payroll.fringeBenefits ?? 0;
+  const fixed = payroll.fixedWage ?? payroll.basicSalary + payroll.fringeBenefits;
   const variable = payroll.variableWage ?? 0;
   return fixed + variable;
 }

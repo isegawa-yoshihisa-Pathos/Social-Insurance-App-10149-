@@ -21,6 +21,39 @@ export function lastPremiumMonthYyyyMm(licenseEndAt: Date): string {
   return addMonths(licenseEndYyyyMm(licenseEndAt), -1);
 }
 
+export function resolveLicenseEndAt(
+  licenseEndAt: Date | null | undefined,
+  resignAt: Date | null | undefined,
+): Date | null {
+  if (licenseEndAt) {
+    return licenseEndAt;
+  }
+  if (resignAt) {
+    return licenseEndAtFromResignAt(resignAt);
+  }
+  return null;
+}
+
+/**
+ * 退職済み従業員について、対象月が保険料算定対象外なら batch 計算をスキップする。
+ * 最終保険料月までは false（計算する）。
+ */
+export function shouldSkipPremiumCalculationForResignedEmployee(
+  licenceStartAt: Date | null | undefined,
+  licenseEndAt: Date | null | undefined,
+  resignAt: Date | null | undefined,
+  yyyyMm: string,
+): boolean {
+  const resolvedEnd = resolveLicenseEndAt(licenseEndAt, resignAt);
+  if (!resolvedEnd) {
+    return false;
+  }
+  if (!licenceStartAt) {
+    return true;
+  }
+  return !isInsurancePeriodTargetByLicenseEnd(licenceStartAt, resolvedEnd, yyyyMm);
+}
+
 /** 退職給与の支払月（退職日が属する月） */
 export function resignPayMonthYyyyMm(resignAt: Date): string {
   return toYyyyMmFromDate(resignAt);

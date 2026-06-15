@@ -1,11 +1,10 @@
 import { Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { RoutesService } from '../../routes.service';
-import { RemunerationConsentCmp } from './remuneration-consent/remuneration-consent.cmp';
 
 @Component({
   selector: 'app-personal-task',
-  imports: [MatButtonModule, RemunerationConsentCmp],
+  imports: [MatButtonModule],
   templateUrl: './personal-task.cmp.html',
   styleUrl: './personal-task.cmp.css',
 })

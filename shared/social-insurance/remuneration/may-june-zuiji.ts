@@ -47,7 +47,7 @@ export function getMayJuneZuijiSchedule(raiseMonthYyyyMm: string): MayJuneZuijiS
 export function computeTotalRemunerationFromMonthlySource(
   source: MonthlyRemunerationSource,
 ): number {
-  const fixed = source.payroll.fixedWage ?? source.payroll.basicSalary + source.payroll.fringeBenefits ?? 0;
+  const fixed = source.payroll.fixedWage ?? source.payroll.basicSalary + source.payroll.fringeBenefits;
   const variable = source.payroll.variableWage ?? 0;
   return fixed + variable;
 }

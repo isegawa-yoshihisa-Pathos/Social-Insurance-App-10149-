@@ -64,4 +64,8 @@ export class SigninCmp {
   navigateToSignup(): void {
     this.routesService.redirectToSignup();
   }
+
+  navigateToPasswordReset(): void {
+    this.routesService.redirectToPasswordReset();
+  }
 }

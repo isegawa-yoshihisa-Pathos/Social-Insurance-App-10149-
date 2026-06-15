@@ -20,6 +20,8 @@ import {
   employeeEmployInfoToForm,
 } from '../../../employee-employ-form-data';
 import { employeeLeaveRecordsToForm } from '../../../employee-leave.util';
+import { AuditLogService } from '../../../audit-log/audit-log.service';
+import { serializeAuditValue } from '../../../../../shared/audit-log.util';
 
 @Injectable({
   providedIn: 'root',
@@ -28,6 +30,7 @@ export class EmployeeDetailDataService {
   private readonly firestore = inject(Firestore);
   private readonly tenant = inject(CurrentTenantService);
   private readonly authService = inject(AuthService);
+  private readonly auditLog = inject(AuditLogService);
 
   eid = '';
   loading = false;
@@ -100,9 +103,27 @@ export class EmployeeDetailDataService {
     const tid = this.tenant.currentTid();
     if (!tid || !this.eid) throw new Error('従業員情報の保存に必要な情報が不足しています。');
 
-    await updateDoc(doc(this.firestore, 'tenants', tid, 'employees', this.eid), {
-      ...employFormToSavePayload(this.employForm),
+    const employeeRef = doc(this.firestore, 'tenants', tid, 'employees', this.eid);
+    const beforeSnap = await getDoc(employeeRef);
+    const beforeEmploy = beforeSnap.data()?.['employeeEmployInfo'] as Record<string, unknown> | undefined;
+
+    const payload = employFormToSavePayload(this.employForm);
+    await updateDoc(employeeRef, {
+      ...payload,
       updatedAt: serverTimestamp(),
+    });
+
+    await this.auditLog.recordUpdate({
+      tid,
+      category: 'employee.employ',
+      summary: '雇用情報を更新',
+      target: this.auditLog.employeeTarget(
+        this.eid,
+        this.personalForm.displayName,
+        this.employForm.employeeId,
+      ),
+      before: serializeAuditValue(beforeEmploy) as Record<string, unknown>,
+      after: serializeAuditValue(payload.employeeEmployInfo) as Record<string, unknown>,
     });
 
     const uid = this.authService.uid();

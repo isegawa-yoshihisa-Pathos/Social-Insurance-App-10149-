@@ -1,0 +1,42 @@
+:host {
+  display: block;
+}
+
+.main_inner {
+  width: 100%;
+  padding: 20px;
+  background-color: white;
+  box-sizing: border-box;
+  box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+.m-title {
+  background-color: #f0f0f0;
+  border-bottom: 5px solid #673ab7;
+}
+
+.m-title h2 {
+  margin: 0;
+  padding: 10px;
+}
+
+.main-link {
+  color: #673ab7;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.norcor {
+  list-style: none;
+}
+
+.link {
+  color: #000;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.link:hover {
+  text-decoration: underline;
+}

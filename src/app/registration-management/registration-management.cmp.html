@@ -15,6 +15,10 @@
   }
 
   @if (view() === 'formTypes' && selectedCategory(); as category) {
+    <button mat-button class="registration-back-link" (click)="goBack()">
+      <mat-icon>arrow_back</mat-icon>
+      戻る
+    </button>
     <div class="registration-content-container">
       <div class="registration-subtitle">{{ category.label }}</div>
       @for (form of category.forms; track form.formType) {
@@ -24,7 +28,6 @@
           </button>
         </div>
       }
-      <button mat-button class="registration-back-link" (click)="goBack()">戻る</button>
     </div>
   }
 
@@ -50,21 +53,39 @@
         </button>
       </div>
 
-      @if (requiresEmployeeSelection()) {
-        @if (loading()) {
-          <div class="registration-loading">
-            <mat-spinner diameter="32"></mat-spinner>
-            <span>従業員を読み込んでいます...</span>
-          </div>
-        } @else if (employees().length === 0) {
-          <p class="registration-empty-message">従業員が登録されていません。</p>
+      @if (loading()) {
+        <div class="registration-loading">
+          <mat-spinner diameter="32"></mat-spinner>
+          <span>従業員と該当状況を読み込んでいます...</span>
+        </div>
+      } @else if (employees().length === 0) {
+        <p class="registration-empty-message">従業員が登録されていません。</p>
+      } @else {
+        <div class="registration-eligibility-toolbar">
+          <p class="registration-eligibility-summary">
+            該当 <strong>{{ eligibilitySummary().eligible }}</strong> 名 /
+            非該当 <strong>{{ eligibilitySummary().ineligible }}</strong> 名
+            （全 {{ eligibilitySummary().total }} 名）
+          </p>
+          <mat-checkbox
+            [checked]="showEligibleOnly()"
+            (change)="showEligibleOnly.set($event.checked)"
+          >
+            該当者のみ表示
+          </mat-checkbox>
+        </div>
+
+        @if (displayedEmployees().length === 0) {
+          <p class="registration-empty-message">該当する従業員がいません。</p>
         } @else {
           <div class="registration-table-scroll">
-            <table mat-table [dataSource]="employees()" class="registration-table">
+            <table mat-table [dataSource]="displayedEmployees()" class="registration-table">
               <ng-container matColumnDef="selected">
                 <th mat-header-cell *matHeaderCellDef class="check-col">
                   <mat-checkbox
                     [checked]="isAllSelected()"
+                    [indeterminate]="isSomeSelected()"
+                    [disabled]="eligibleEmployees().length === 0"
                     (change)="toggleAll($event.checked)"
                     (click)="$event.stopPropagation()"
                   />
@@ -72,8 +93,22 @@
                 <td mat-cell *matCellDef="let row" class="check-col" (click)="$event.stopPropagation()">
                   <mat-checkbox
                     [checked]="isSelected(row.eid)"
-                    (change)="toggleSelection(row.eid, $event.checked)"
+                    [disabled]="!row.eligibility.eligible"
+                    (change)="toggleSelection(row, $event.checked)"
                   />
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="eligibility">
+                <th mat-header-cell *matHeaderCellDef>該当</th>
+                <td mat-cell *matCellDef="let row">
+                  <span
+                    class="eligibility-badge"
+                    [class.eligible]="row.eligibility.eligible"
+                    [class.ineligible]="!row.eligibility.eligible"
+                  >
+                    {{ row.eligibility.label }}
+                  </span>
                 </td>
               </ng-container>
 
@@ -83,8 +118,15 @@
               </ng-container>
 
               <ng-container matColumnDef="employeeId">
-                <th mat-header-cell *matHeaderCellDef>employeeId</th>
+                <th mat-header-cell *matHeaderCellDef>社員番号</th>
                 <td mat-cell *matCellDef="let row">{{ row.employeeId }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="detail">
+                <th mat-header-cell *matHeaderCellDef>理由・概要</th>
+                <td mat-cell *matCellDef="let row" class="detail-col">
+                  <span [matTooltip]="row.eligibility.detail">{{ row.eligibility.detail }}</span>
+                </td>
               </ng-container>
 
               <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
@@ -93,15 +135,12 @@
                 *matRowDef="let row; columns: displayedColumns"
                 class="registration-row"
                 [class.selected-row]="isSelected(row.eid)"
+                [class.ineligible-row]="!row.eligibility.eligible"
                 (click)="onRowClick(row)"
               ></tr>
             </table>
           </div>
         }
-      } @else {
-        <p class="registration-tenant-form-message">
-          事業所情報をもとに{{ form.label }}を作成します。
-        </p>
       }
     </div>
   }

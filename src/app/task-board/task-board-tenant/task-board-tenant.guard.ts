@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { CurrentTenantService } from '../current-tenant.service';
+import { CurrentTenantService } from '../../current-tenant.service';
 
 export const taskBoardTenantGuard: CanActivateFn = () => {
   const tenant = inject(CurrentTenantService);

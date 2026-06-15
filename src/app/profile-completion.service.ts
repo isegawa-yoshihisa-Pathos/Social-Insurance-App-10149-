@@ -155,7 +155,6 @@ export class ProfileCompletionService {
       form.healthInsuranceTenantRecordNumber,
       form.pensionInsuranceTenantNumber,
       form.pensionInsuranceTenantRecordNumber,
-      form.closingDay,
     ]);
   }
 
@@ -226,7 +225,6 @@ export class ProfileCompletionService {
       docData?.healthInsuranceTenantRecordNumber,
       docData?.pensionInsuranceTenantNumber,
       docData?.pensionInsuranceTenantRecordNumber,
-      docData?.closingDay,
     ]);
   }
 

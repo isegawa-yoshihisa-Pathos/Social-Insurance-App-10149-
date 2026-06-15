@@ -60,6 +60,11 @@ import {
   ensureLeaveReturnConsentReview,
 } from './remuneration-consent-review';
 import { updateResignBulkPremiumForEmployee } from './resign-bulk-premium';
+import { skipMonthlyPremiumCalculationIfResigned } from './premium-calculation-skip';
+import {
+  ensureStandardZuijiApplicableAlert,
+  ensureTeijiNonTargetAlert,
+} from './remuneration-admin-alert';
 
 interface CalculationContext {
   employee: EmployeeDocument;
@@ -79,6 +84,9 @@ export async function calculateMonthlyEmployee(
     loadContext(db, tid, eid, yyyyMm),
     getTenant(db, tid),
   ]);
+  if (await skipMonthlyPremiumCalculationIfResigned(db, tid, eid, yyyyMm, ctx.employee)) {
+    return;
+  }
   await ensureBonusRelatedRemunerationCarriedForward(db, tid, eid, yyyyMm, ctx);
   const personalInfo = ctx.employee.employeePersonalInfo;
   const careInsuranceCollection = {
@@ -285,6 +293,20 @@ async function tryZuiji(
     fixedWageBeforeChange: computeFixedWageFromPayroll(sources[0].payroll),
   });
   if (outcome.kind !== 'applicable') return null;
+
+  const employeeName = ctx.employee.employeePersonalInfo?.displayName ?? '対象従業員';
+  await ensureStandardZuijiApplicableAlert(
+    db,
+    tid,
+    eid,
+    changeMonthYyyyMm,
+    effectiveFrom,
+    yyyyMm,
+    employeeName,
+    previous,
+    outcome,
+  );
+
   await notifyZuijiAnnualAverageIfNeeded(
     db,
     tid,
@@ -451,10 +473,24 @@ async function tryTeiji(
   if (!licenseStartAt) return null;
   const licenseDate = toFormDate(licenseStartAt);
   if (!licenseDate) return null;
+  const employeeName = ctx.employee.employeePersonalInfo?.displayName ?? '対象従業員';
+  const monthKeys = [`${year}-04`, `${year}-05`, `${year}-06`] as const;
   // 当年6月1日以降の資格取得者は定時決定の対象外
-  if (licenseDate.getFullYear() === year && licenseDate.getMonth() >= 5) return null;
+  if (licenseDate.getFullYear() === year && licenseDate.getMonth() >= 5) {
+    await ensureTeijiNonTargetAlert(
+      db,
+      tid,
+      eid,
+      year,
+      yyyyMm,
+      employeeName,
+      ctx.employee,
+      'license_start_after_june',
+      monthKeys,
+    );
+    return null;
+  }
 
-  const monthKeys = [`${year}-04`, `${year}-05`, `${year}-06`];
   const sources = await loadMonthSources(db, tid, eid, monthKeys);
   if (sources.length === 0) return null;
 
@@ -467,7 +503,20 @@ async function tryTeiji(
   if (outcome.kind !== 'invalid') {
     await notifyAnnualAverageIfNeeded(db, tid, eid, yyyyMm, year, ctx, outcome, prior ?? null);
   }
-  if (outcome.kind === 'invalid') return null;
+  if (outcome.kind === 'invalid') {
+    await ensureTeijiNonTargetAlert(
+      db,
+      tid,
+      eid,
+      year,
+      yyyyMm,
+      employeeName,
+      ctx.employee,
+      'grade_not_found',
+      monthKeys,
+    );
+    return null;
+  }
 
   if (teijiBonus.qualifies) {
     await applyTeijiBonusRelatedRemunerationToMonthlyRecords(
@@ -480,6 +529,18 @@ async function tryTeiji(
   }
 
   if (outcome.kind === 'continue_previous') {
+    await ensureTeijiNonTargetAlert(
+      db,
+      tid,
+      eid,
+      year,
+      yyyyMm,
+      employeeName,
+      ctx.employee,
+      'insufficient_payment_base_days',
+      monthKeys,
+    );
+
     if (!prior) {
       const initialOutcome = determineInitial(
         ctx.monthly.payrollData,

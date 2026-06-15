@@ -11,6 +11,8 @@ export interface ApplicationDocument {
   updatedAt: FirestoreTimestamp;
   allowanceDetails?: {
     allowanceType: string;
+    allowanceTypeLabel: string;
+    applyYyyyMm: string;
     amount: number;
     reason: string;
   };

@@ -1,19 +1,21 @@
-import { Component, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule } from '@angular/material/table';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog } from '@angular/material/dialog';
 import { CurrentTenantService } from '../current-tenant.service';
 import { AuthService } from '../auth.service';
-import { EmployeeListRow } from '../employees-management/employees-list/employee-list-columns';
 import {
   REGISTRATION_CATEGORIES,
   RegistrationCategory,
   RegistrationFormItem,
 } from './registration-categories';
 import { RegistrationManagementDataService } from './registration-management-data.service';
+import { RegistrationEmployeeRow } from './registration-eligibility.service';
+import { isRegistrationCsvFormType } from '../../../shared/registration-filing-document';
 import { ErrorDialogCmp, mapFirebaseError } from '../error-dialog/error-dialog.cmp';
 import { SuccessDialogCmp } from '../success-dialog/success-dialog.cmp';
 
@@ -27,6 +29,7 @@ type RegistrationView = 'categories' | 'formTypes' | 'create';
     MatIconModule,
     MatProgressSpinnerModule,
     MatTableModule,
+    MatTooltipModule,
   ],
   templateUrl: './registration-management.cmp.html',
   styleUrl: './registration-management.cmp.css',
@@ -41,12 +44,28 @@ export class RegistrationManagementCmp {
   readonly view = signal<RegistrationView>('categories');
   readonly selectedCategory = signal<RegistrationCategory | null>(null);
   readonly selectedForm = signal<RegistrationFormItem | null>(null);
-  readonly employees = signal<EmployeeListRow[]>([]);
+  readonly employees = signal<RegistrationEmployeeRow[]>([]);
   readonly selectedEids = signal<Set<string>>(new Set());
+  readonly showEligibleOnly = signal(false);
   readonly loading = signal(false);
   readonly creating = signal(false);
 
-  readonly displayedColumns = ['selected', 'displayName', 'employeeId'];
+  readonly displayedColumns = ['selected', 'eligibility', 'displayName', 'employeeId', 'detail'];
+
+  readonly eligibleEmployees = computed(() =>
+    this.employees().filter((row) => row.eligibility.eligible),
+  );
+
+  readonly displayedEmployees = computed(() => {
+    const rows = this.employees();
+    return this.showEligibleOnly() ? rows.filter((row) => row.eligibility.eligible) : rows;
+  });
+
+  readonly eligibilitySummary = computed(() => {
+    const rows = this.employees();
+    const eligible = rows.filter((row) => row.eligibility.eligible).length;
+    return { eligible, ineligible: rows.length - eligible, total: rows.length };
+  });
 
   constructor() {
     effect(async () => {
@@ -55,7 +74,7 @@ export class RegistrationManagementCmp {
       if (!tid || this.view() !== 'create' || !form?.requiresEmployeeSelection) {
         return;
       }
-      await this.loadEmployees(tid);
+      await this.loadEmployees(tid, form);
     });
   }
 
@@ -70,6 +89,7 @@ export class RegistrationManagementCmp {
 
     this.selectedForm.set(form);
     this.selectedEids.set(new Set());
+    this.showEligibleOnly.set(false);
     this.view.set('create');
   }
 
@@ -78,6 +98,7 @@ export class RegistrationManagementCmp {
     if (form) {
       this.selectedForm.set(null);
       this.selectedEids.set(new Set());
+      this.showEligibleOnly.set(false);
       this.view.set('formTypes');
       return;
     }
@@ -90,28 +111,44 @@ export class RegistrationManagementCmp {
     return this.selectedEids().has(eid);
   }
 
-  toggleSelection(eid: string, checked: boolean): void {
+  isEligible(row: RegistrationEmployeeRow): boolean {
+    return row.eligibility.eligible;
+  }
+
+  toggleSelection(row: RegistrationEmployeeRow, checked: boolean): void {
+    if (checked && !row.eligibility.eligible) {
+      return;
+    }
     const next = new Set(this.selectedEids());
     if (checked) {
-      next.add(eid);
+      next.add(row.eid);
     } else {
-      next.delete(eid);
+      next.delete(row.eid);
     }
     this.selectedEids.set(next);
   }
 
-  onRowClick(row: EmployeeListRow): void {
-    this.toggleSelection(row.eid, !this.isSelected(row.eid));
+  onRowClick(row: RegistrationEmployeeRow): void {
+    if (!row.eligibility.eligible) {
+      return;
+    }
+    this.toggleSelection(row, !this.isSelected(row.eid));
   }
 
   isAllSelected(): boolean {
-    const rows = this.employees();
+    const rows = this.eligibleEmployees();
     return rows.length > 0 && rows.every((row) => this.selectedEids().has(row.eid));
+  }
+
+  isSomeSelected(): boolean {
+    const rows = this.eligibleEmployees();
+    const selectedCount = rows.filter((row) => this.selectedEids().has(row.eid)).length;
+    return selectedCount > 0 && selectedCount < rows.length;
   }
 
   toggleAll(checked: boolean): void {
     if (checked) {
-      this.selectedEids.set(new Set(this.employees().map((row) => row.eid)));
+      this.selectedEids.set(new Set(this.eligibleEmployees().map((row) => row.eid)));
       return;
     }
     this.selectedEids.set(new Set());
@@ -137,7 +174,7 @@ export class RegistrationManagementCmp {
     }
     if (!this.canCreate()) {
       this.dialog.open(ErrorDialogCmp, {
-        data: { message: '従業員を1名以上選択してください。' },
+        data: { message: '該当する従業員を1名以上選択してください。' },
       });
       return;
     }
@@ -153,10 +190,11 @@ export class RegistrationManagementCmp {
         uid,
       );
       this.dataService.downloadFilings(filings, form.label);
+      const fileKind = isRegistrationCsvFormType(form.formType) ? 'CSV' : 'JSON';
       this.dialog.open(SuccessDialogCmp, {
         data: {
           title: '書類作成完了',
-          message: `${form.label}を${filings.length}件作成しました。JSONファイルをダウンロードしました。`,
+          message: `${form.label}を${filings.length}件作成しました。${fileKind}ファイルをダウンロードしました。`,
         },
       });
       this.goBack();
@@ -173,18 +211,16 @@ export class RegistrationManagementCmp {
     return this.selectedForm()?.label ?? '';
   }
 
-  requiresEmployeeSelection(): boolean {
-    return this.selectedForm()?.requiresEmployeeSelection ?? false;
-  }
-
-  private async loadEmployees(tid: string): Promise<void> {
+  private async loadEmployees(tid: string, form: RegistrationFormItem): Promise<void> {
     this.loading.set(true);
     try {
-      const rows = await this.dataService.listEmployees(tid);
+      const rows = await this.dataService.listEmployeesForForm(tid, form.formType);
       this.employees.set(rows);
-      const alive = new Set(rows.map((row) => row.eid));
+      const eligibleEids = new Set(
+        rows.filter((row) => row.eligibility.eligible).map((row) => row.eid),
+      );
       this.selectedEids.set(
-        new Set([...this.selectedEids()].filter((eid) => alive.has(eid))),
+        new Set([...this.selectedEids()].filter((eid) => eligibleEids.has(eid))),
       );
     } catch (error) {
       this.dialog.open(ErrorDialogCmp, {

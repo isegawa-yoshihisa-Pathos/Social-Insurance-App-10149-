@@ -46,11 +46,18 @@ export class RemunerationConsentReviewCmp {
     return review.status === 'pending_admin_review';
   }
 
-  /** 本人同意前でも、管理者判断で却下できる */
   canReject(review: RemunerationConsentReviewItem): boolean {
     return (
       review.status === 'pending_admin_review' ||
       review.status === 'pending_employee_consent'
+    );
+  }
+
+  isCompleted(review: RemunerationConsentReviewItem): boolean {
+    return (
+      review.status === 'approved' ||
+      review.status === 'rejected' ||
+      review.status === 'employee_declined'
     );
   }
 
@@ -109,10 +116,33 @@ export class RemunerationConsentReviewCmp {
     }
   }
 
+  async deleteReview(review: RemunerationConsentReviewItem): Promise<void> {
+    const tid = this.tenant.currentTid();
+    if (!tid) return;
+
+    this.busyId = review.id;
+    try {
+      await this.consentDataService.deleteReview(tid, review.id);
+      this.dialog.open(SuccessDialogCmp, {
+        data: {
+          message:
+            '同意確認タスクを削除しました。再計算時に条件を満たせばタスクが再生成されます。',
+        },
+      });
+      await this.reload(tid);
+    } catch (error) {
+      this.dialog.open(ErrorDialogCmp, {
+        data: { message: mapFirebaseError(error) },
+      });
+    } finally {
+      this.busyId = null;
+    }
+  }
+
   private async reload(tid: string): Promise<void> {
     this.loading = true;
     try {
-      this.reviews = await this.consentDataService.listActiveAdminConsentStatuses(tid);
+      this.reviews = await this.consentDataService.listAdminReviews(tid);
     } catch (error) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: mapFirebaseError(error) },

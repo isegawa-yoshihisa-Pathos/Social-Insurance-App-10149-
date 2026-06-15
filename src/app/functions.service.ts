@@ -25,20 +25,13 @@ export class FunctionsService {
 
   private rejectMayJuneZuijiReviewFn = httpsCallable(this.functions, 'rejectMayJuneZuijiReview');
 
-  private submitRemunerationConsentReviewFn = httpsCallable(
-    this.functions,
-    'submitRemunerationConsentReview',
-  );
+  private submitRemunerationConsentReviewFn = httpsCallable(this.functions, 'submitRemunerationConsentReview');
 
-  private approveRemunerationConsentReviewFn = httpsCallable(
-    this.functions,
-    'approveRemunerationConsentReview',
-  );
+  private approveRemunerationConsentReviewFn = httpsCallable(this.functions, 'approveRemunerationConsentReview');
 
-  private rejectRemunerationConsentReviewFn = httpsCallable(
-    this.functions,
-    'rejectRemunerationConsentReview',
-  );
+  private rejectRemunerationConsentReviewFn = httpsCallable(this.functions, 'rejectRemunerationConsentReview');
+  
+  private recalculatePremiumsAfterResignFn = httpsCallable(this.functions, 'recalculatePremiumsAfterResign');
 
   async registerAdminAndTenant(payload: any) {
     return await this.registerFn(payload);
@@ -80,11 +73,6 @@ export class FunctionsService {
   }) {
     return await this.acceptInvitationFn(payload);
   }
-
-  private recalculatePremiumsAfterResignFn = httpsCallable(
-    this.functions,
-    'recalculatePremiumsAfterResign',
-  );
 
   async startPremiumCalculationBatch(payload: {
     tid: string;

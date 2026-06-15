@@ -16,6 +16,7 @@ import {
   EmployeesImportFieldKey,
 } from '../employees-import-columns';
 import { EmployeesSettingDataService } from '../employees-setting-data.service';
+import { HelpContentCmp } from '../../../help-content/help-content.cmp';
 
 @Component({
   selector: 'app-employees-import-setting',
@@ -25,6 +26,7 @@ import { EmployeesSettingDataService } from '../employees-setting-data.service';
     MatFormFieldModule,
     MatInputModule,
     MatProgressSpinnerModule,
+    HelpContentCmp,
   ],
   templateUrl: './employees-import-setting.cmp.html',
   styleUrl: './employees-import-setting.cmp.css',

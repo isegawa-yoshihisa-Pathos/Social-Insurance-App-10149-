@@ -2,6 +2,8 @@ import { Injectable, inject } from '@angular/core';
 import {
   Firestore,
   collection,
+  deleteDoc,
+  doc,
   getDocs,
   query,
   where,
@@ -46,6 +48,11 @@ const STATUS_LABELS: Record<RemunerationConsentReviewStatus, string> = {
   rejected: '却下',
 };
 
+const ACTIVE_STATUSES: RemunerationConsentReviewStatus[] = [
+  'pending_employee_consent',
+  'pending_admin_review',
+];
+
 export function remunerationConsentTypeLabel(type: RemunerationConsentReviewType): string {
   return TYPE_LABELS[type];
 }
@@ -54,55 +61,68 @@ export function remunerationConsentStatusLabel(status: RemunerationConsentReview
   return STATUS_LABELS[status];
 }
 
+function isActiveConsentStatus(status: RemunerationConsentReviewStatus): boolean {
+  return ACTIVE_STATUSES.includes(status);
+}
+
+function sortConsentReviews(a: RemunerationConsentReviewItem, b: RemunerationConsentReviewItem): number {
+  const activeOrder =
+    (isActiveConsentStatus(a.status) ? 0 : 1) - (isActiveConsentStatus(b.status) ? 0 : 1);
+  if (activeOrder !== 0) return activeOrder;
+  const adminFirst =
+    (a.status === 'pending_admin_review' ? 0 : 1) -
+    (b.status === 'pending_admin_review' ? 0 : 1);
+  if (adminFirst !== 0) return adminFirst;
+  return a.effectiveFrom.localeCompare(b.effectiveFrom);
+}
+
 @Injectable({ providedIn: 'root' })
 export class RemunerationConsentDataService {
   private readonly firestore = inject(Firestore);
 
+  private reviewsRef(tid: string) {
+    return collection(this.firestore, 'tenants', tid, 'remunerationConsentReviews');
+  }
+
+  async listEmployeeConsents(
+    tid: string,
+    eid: string,
+  ): Promise<RemunerationConsentReviewItem[]> {
+    const snap = await getDocs(
+      query(this.reviewsRef(tid), where('eid', '==', eid)),
+    );
+    return snap.docs
+      .map((docSnap) => this.mapDoc(docSnap.id, docSnap.data()))
+      .sort(sortConsentReviews);
+  }
+
+  /** @deprecated listEmployeeConsents を使用 */
   async listPendingEmployeeConsents(
     tid: string,
     eid: string,
   ): Promise<RemunerationConsentReviewItem[]> {
-    const ref = collection(this.firestore, 'tenants', tid, 'remunerationConsentReviews');
-    const snap = await getDocs(
-      query(
-        ref,
-        where('eid', '==', eid),
-        where('status', '==', 'pending_employee_consent'),
-      ),
-    );
-    return snap.docs.map((docSnap) => this.mapDoc(docSnap.id, docSnap.data()));
+    return this.listEmployeeConsents(tid, eid);
   }
 
+  async listAdminReviews(tid: string): Promise<RemunerationConsentReviewItem[]> {
+    const snap = await getDocs(this.reviewsRef(tid));
+    return snap.docs
+      .map((docSnap) => this.mapDoc(docSnap.id, docSnap.data()))
+      .sort(sortConsentReviews);
+  }
+
+  /** @deprecated listAdminReviews を使用 */
   async listPendingAdminReviews(tid: string): Promise<RemunerationConsentReviewItem[]> {
-    const ref = collection(this.firestore, 'tenants', tid, 'remunerationConsentReviews');
-    const snap = await getDocs(
-      query(ref, where('status', '==', 'pending_admin_review')),
-    );
-    return snap.docs
-      .map((docSnap) => this.mapDoc(docSnap.id, docSnap.data()))
-      .sort((a, b) => a.effectiveFrom.localeCompare(b.effectiveFrom));
+    return this.listAdminReviews(tid);
   }
 
+  /** @deprecated listAdminReviews を使用 */
   async listActiveAdminConsentStatuses(tid: string): Promise<RemunerationConsentReviewItem[]> {
-    const ref = collection(this.firestore, 'tenants', tid, 'remunerationConsentReviews');
-    const snap = await getDocs(
-      query(
-        ref,
-        where('status', 'in', ['pending_employee_consent', 'pending_admin_review']),
-      ),
-    );
-    return snap.docs
-      .map((docSnap) => this.mapDoc(docSnap.id, docSnap.data()))
-      .sort((a, b) => {
-        const statusOrder =
-          a.status === b.status
-            ? 0
-            : a.status === 'pending_admin_review'
-              ? -1
-              : 1;
-        if (statusOrder !== 0) return statusOrder;
-        return a.effectiveFrom.localeCompare(b.effectiveFrom);
-      });
+    return this.listAdminReviews(tid);
+  }
+
+  async deleteReview(tid: string, reviewId: string): Promise<void> {
+    await deleteDoc(doc(this.reviewsRef(tid), reviewId));
   }
 
   private mapDoc(id: string, data: Record<string, unknown>): RemunerationConsentReviewItem {

@@ -8,6 +8,7 @@ import { SuccessDialogCmp } from '../../../success-dialog/success-dialog.cmp';
 import {
   RemunerationConsentDataService,
   RemunerationConsentReviewItem,
+  remunerationConsentStatusLabel,
   remunerationConsentTypeLabel,
 } from '../../remuneration-consent-data.service';
 
@@ -27,6 +28,7 @@ export class RemunerationConsentCmp {
   busyId: string | null = null;
   reviews: RemunerationConsentReviewItem[] = [];
   readonly typeLabel = remunerationConsentTypeLabel;
+  readonly statusLabel = remunerationConsentStatusLabel;
 
   constructor() {
     effect(() => {
@@ -38,6 +40,10 @@ export class RemunerationConsentCmp {
       }
       void this.reload(tid, eid);
     });
+  }
+
+  canRespond(review: RemunerationConsentReviewItem): boolean {
+    return review.status === 'pending_employee_consent';
   }
 
   async agree(review: RemunerationConsentReviewItem): Promise<void> {
@@ -80,7 +86,7 @@ export class RemunerationConsentCmp {
   private async reload(tid: string, eid: string): Promise<void> {
     this.loading = true;
     try {
-      this.reviews = await this.consentDataService.listPendingEmployeeConsents(tid, eid);
+      this.reviews = await this.consentDataService.listEmployeeConsents(tid, eid);
     } catch (error) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: mapFirebaseError(error) },

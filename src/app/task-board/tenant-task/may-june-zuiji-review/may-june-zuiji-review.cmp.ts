@@ -8,6 +8,7 @@ import { SuccessDialogCmp } from '../../../success-dialog/success-dialog.cmp';
 import {
   MayJuneZuijiReviewDataService,
   MayJuneZuijiReviewItem,
+  mayJuneZuijiStatusLabel,
 } from './may-june-zuiji-review-data.service';
 
 @Component({
@@ -25,9 +26,14 @@ export class MayJuneZuijiReviewCmp implements OnInit {
   loading = false;
   busyId: string | null = null;
   reviews: MayJuneZuijiReviewItem[] = [];
+  readonly statusLabel = mayJuneZuijiStatusLabel;
 
   async ngOnInit(): Promise<void> {
     await this.reload();
+  }
+
+  isPending(review: MayJuneZuijiReviewItem): boolean {
+    return review.status === 'pending_review';
   }
 
   raiseMonthLabel(review: MayJuneZuijiReviewItem): string {
@@ -118,13 +124,36 @@ export class MayJuneZuijiReviewCmp implements OnInit {
     }
   }
 
+  async deleteReview(review: MayJuneZuijiReviewItem): Promise<void> {
+    const tid = this.tenant.currentTid();
+    if (!tid) return;
+
+    this.busyId = review.id;
+    try {
+      await this.reviewDataService.deleteReview(tid, review.id);
+      this.dialog.open(SuccessDialogCmp, {
+        data: {
+          message:
+            '確認タスクを削除しました。再計算時に条件を満たせばタスクが再生成されます。',
+        },
+      });
+      await this.reload();
+    } catch (error) {
+      this.dialog.open(ErrorDialogCmp, {
+        data: { message: mapFirebaseError(error) },
+      });
+    } finally {
+      this.busyId = null;
+    }
+  }
+
   private async reload(): Promise<void> {
     const tid = this.tenant.currentTid();
     if (!tid) return;
 
     this.loading = true;
     try {
-      this.reviews = await this.reviewDataService.listPendingReviews(tid);
+      this.reviews = await this.reviewDataService.listReviews(tid);
     } catch (error) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: mapFirebaseError(error) },

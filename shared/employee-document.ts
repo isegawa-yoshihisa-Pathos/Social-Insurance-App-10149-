@@ -14,7 +14,7 @@ export interface EmployeeEmployInfo {
   employeeId: string;
   position: string;
   department: string;
-  payType: 'monthly' | 'weekly' | 'daily' | 'hourly' | '';
+  payType: 'monthly' | 'daily-monthly' | 'weekly' | 'daily' | 'hourly';
   employmentType: 'full-time' | 'short-time-worker' | 'short-time-labor';
   status: 'active' | 'leave' | 'resigned';
   joinedAt: FirestoreTimestamp | null;
@@ -47,7 +47,7 @@ export interface EmployeeEmployFormData {
   employeeId: string;
   position: string;
   department: string;
-  payType: 'monthly' | 'weekly' | 'daily' | 'hourly' | '';
+  payType: 'monthly' | 'daily-monthly' | 'weekly' | 'daily' | 'hourly';
   employmentType: 'full-time' | 'short-time-worker' | 'short-time-labor';
   status: 'active' | 'leave' | 'resigned';
   joinedAt: Date | null;

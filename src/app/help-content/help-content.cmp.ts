@@ -31,12 +31,32 @@ const HELP_DATA: Record<string, { title: string, description: string }> = {
   },
   'employeesImport': {
     title: '社員情報のインポート',
-    description: '1行目にヘッダーが設定されている必要があります。ヘッダー名は設定画面から指定できます。ヘッダーに社員番号または氏名が含まれている必要があります。2行目以降に記述された値がインポートされます。\n 日付はYYYY-MM-DDまたはYYYY/MM/DDの形式で入力してください。\n 権限はadminまたはmemberで指定してください。\n（例）employeeId,displayName,role\n100140,ゲストH,admin\n100141,ゲストI,member\n100142,ゲストJ,member\n100143,ゲストK,member\n100144,ゲストL,member\n100145,ゲストM,member\n100146,ゲストN,member',
+    description: '1行目にヘッダーが設定されている必要があります。ヘッダー名は設定画面から指定できます。ヘッダーに社員番号または氏名が含まれている必要があります。2行目以降に記述された値がインポートされます。\n詳しい入力値は「設定」からご確認ください。',
   },
   'monthlyImport': {
     title: '月次データのインポート',
-    description: '1行目にヘッダーが設定されている必要があります。ヘッダー名は設定画面から指定できます。ヘッダーに社員番号または氏名が含まれている必要があります。2行目以降に記述された値がインポートされます。\n 日付はYYYY-MM-DDまたはYYYY/MM/DDの形式で入力してください。\n 権限はadminまたはmemberで指定してください。\n（例）employeeId,displayName,role\n100140,ゲストH,admin\n100141,ゲストI,member\n100142,ゲストJ,member\n100143,ゲストK,member\n100144,ゲストL,member\n100145,ゲストM,member\n100146,ゲストN,member',
+    description: '1行目にヘッダーが設定されている必要があります。ヘッダー名は設定画面から指定できます。ヘッダーに社員番号または氏名が含まれている必要があります。2行目以降に記述された値がインポートされます。\n詳しい入力値は「設定」からご確認ください。',
   },
+  'role': {
+    title: '権限',
+    description: '権限は「admin」か「管理者」,または「member」か「一般」で指定してください。\nadminは管理者権限を持ちあらゆる操作が可能、memberは一般ユーザー権限は自身のデータのみ操作可能です。',
+  },
+  'status': {
+    title: 'ステータス',
+    description: 'ステータスは「active」か「在職」,または「leave」か「休職」,または「resigned」か「退職」で指定してください。',
+  },
+  'payType': {
+    title: '給与タイプ',
+    description: '給与タイプは「monthly」か「完全月給」,または「daily-monthly」か「日給月給」,または「weekly」か「週給」,または「daily」か「日給」,または「hourly」か「時給」で指定してください。',
+  },
+  'employmentType': {
+    title: '雇用形態',
+    description: '雇用形態は「full-time」か「正社員」,または「short-time-worker」か「短時間就労者」,または「short-time-labor」か「短時間労働者」で指定してください。',
+  },
+  'date': {
+    title: '日付',
+    description: '日付はYYYY-MM-DDまたはYYYY/MM/DDの形式で入力してください。',
+  }
 };
 
 @Component({

@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Firestore, collection, doc, getDoc, getDocs } from '@angular/fire/firestore';
+import { Firestore, doc, getDoc } from '@angular/fire/firestore';
 import { EmployeeDocument } from '../employee-document';
 import { TenantDocument } from '../tenant-document';
 import { toFormDate, toYyyyMmDd } from '../date-utils';
@@ -8,10 +8,16 @@ import {
   RegistrationFilingSavePayload,
   RegistrationFilingTenantSnapshot,
   RegistrationFormType,
+  RegistrationMonthlyBreakdown,
+  RegistrationStandardBonusPayload,
+  RegistrationStandardRemunerationPayload,
 } from '../../../shared/registration-filing-document';
 import { RegistrationFormItem } from './registration-categories';
 import { StandardRemunerationDataService } from '../social-insurance/monthly/standard-remuneration-data.service';
 import { StandardBonusDataService } from '../social-insurance/bonus/standard-bonus-data.service';
+import { MonthlyDocument } from '../monthly-document';
+import { BonusDocument } from '../bonus-document';
+import { addMonths, lastDayOfYyyyMm } from '../../../shared/social-insurance/monthly/social-insurance-data.util';
 
 function formatDate(value: unknown): string | null {
   const date = toFormDate(value);
@@ -56,6 +62,59 @@ function toTenantSnapshot(tenant: TenantDocument): RegistrationFilingTenantSnaps
     phoneNumber: tenant.phoneNumber,
     socialInsuranceSettings: (tenant.socialInsuranceSettings ?? {}) as Record<string, unknown>,
   };
+}
+
+function sumAllowances(allowances: Record<string, number> | undefined): number {
+  return Object.values(allowances ?? {}).reduce(
+    (sum, value) => sum + (typeof value === 'number' ? value : 0),
+    0,
+  );
+}
+
+function toMonthlyBreakdown(
+  yyyyMm: string,
+  monthly: MonthlyDocument,
+): RegistrationMonthlyBreakdown {
+  const payroll = monthly.payrollData;
+  const bonusRelated = monthly.bonusRelatedRemuneration ?? 0;
+  const inKindAmount = payroll.fringeBenefits ?? 0;
+  const currencyAmount =
+    (payroll.basicSalary ?? 0) +
+    sumAllowances(payroll.allowances) +
+    (payroll.variableWage ?? 0) +
+    bonusRelated;
+  return {
+    yyyyMm,
+    paymentBaseDays: monthly.paymentBaseDays ?? 0,
+    currencyAmount,
+    inKindAmount,
+    totalAmount: currencyAmount + inKindAmount,
+  };
+}
+
+function averageAmount(months: RegistrationMonthlyBreakdown[]): number {
+  if (months.length === 0) {
+    return 0;
+  }
+  const total = months.reduce((sum, month) => sum + month.totalAmount, 0);
+  return Math.floor(total / months.length);
+}
+
+function detectRaiseDirection(
+  months: RegistrationMonthlyBreakdown[],
+): 'increase' | 'decrease' | undefined {
+  if (months.length < 2) {
+    return undefined;
+  }
+  const first = months[0].currencyAmount;
+  const last = months[months.length - 1].currencyAmount;
+  if (last > first) {
+    return 'increase';
+  }
+  if (last < first) {
+    return 'decrease';
+  }
+  return undefined;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -162,6 +221,50 @@ export class RegistrationDocumentBuilderService {
     return employees;
   }
 
+  private async loadMonthlyDocument(
+    tid: string,
+    eid: string,
+    yyyyMm: string,
+  ): Promise<MonthlyDocument | null> {
+    const snap = await getDoc(
+      doc(this.firestore, 'tenants', tid, 'monthly-records', yyyyMm, 'employees', eid),
+    );
+    if (!snap.exists()) {
+      return null;
+    }
+    return snap.data() as MonthlyDocument;
+  }
+
+  private async loadBonusDocument(
+    tid: string,
+    eid: string,
+    yyyyMm: string,
+  ): Promise<BonusDocument | null> {
+    const snap = await getDoc(
+      doc(this.firestore, 'tenants', tid, 'bonus-records', yyyyMm, 'employees', eid),
+    );
+    if (!snap.exists()) {
+      return null;
+    }
+    return snap.data() as BonusDocument;
+  }
+
+  private async loadMonthlyBreakdowns(
+    tid: string,
+    eid: string,
+    monthKeys: readonly string[],
+  ): Promise<RegistrationMonthlyBreakdown[]> {
+    const months: RegistrationMonthlyBreakdown[] = [];
+    for (const yyyyMm of monthKeys) {
+      const monthly = await this.loadMonthlyDocument(tid, eid, yyyyMm);
+      if (!monthly?.payrollData) {
+        continue;
+      }
+      months.push(toMonthlyBreakdown(yyyyMm, monthly));
+    }
+    return months;
+  }
+
   private async buildEmployeeFormPayload(
     tid: string,
     formType: RegistrationFormType,
@@ -191,17 +294,17 @@ export class RegistrationDocumentBuilderService {
       case 'teiji_santei':
         return {
           kind: 'teiji_santei',
-          standardRemuneration: await this.loadLatestStandardRemuneration(tid, employee.eid, 'teiji'),
+          ...(await this.buildTeijiPayload(tid, employee.eid)),
         };
       case 'monthly_change':
         return {
           kind: 'monthly_change',
-          standardRemuneration: await this.loadLatestStandardRemuneration(tid, employee.eid, 'zuiji'),
+          ...(await this.buildMonthlyChangePayload(tid, employee.eid)),
         };
       case 'bonus_payment':
         return {
           kind: 'bonus_payment',
-          standardBonus: await this.loadLatestStandardBonus(tid, employee.eid),
+          ...(await this.buildBonusPayload(tid, employee.eid)),
         };
       case 'maternity_leave':
         return {
@@ -218,38 +321,153 @@ export class RegistrationDocumentBuilderService {
     }
   }
 
-  private async loadLatestStandardRemuneration(
+  private async buildTeijiPayload(
     tid: string,
     eid: string,
-    source: 'teiji' | 'zuiji',
-  ): Promise<Record<string, unknown> | null> {
+  ): Promise<RegistrationStandardRemunerationPayload> {
     const history = await this.standardRemunerationData.listForEmployee(tid, eid);
-    const found = history.find((item) => item.doc.source === source) ?? history[0];
-    if (!found) return null;
+    const teiji = history.find((item) => item.doc.source === 'teiji') ?? history[0];
+    if (!teiji) {
+      throw new Error('定時決定の標準報酬履歴がありません。6月の保険料計算を実行してください。');
+    }
+
+    const teijiYear = Number(teiji.doc.effectiveFrom.slice(0, 4));
+    const monthKeys = [`${teijiYear}-04`, `${teijiYear}-05`, `${teijiYear}-06`] as const;
+    const months = await this.loadMonthlyBreakdowns(tid, eid, monthKeys);
+    if (months.length === 0) {
+      throw new Error(`${teijiYear}年4〜6月の月次給与データがありません。`);
+    }
+
+    const prior = history.find(
+      (item) => item.yyyyMm < `${teijiYear}-04` && item.doc.source !== 'carried',
+    );
+    const raiseMonthYyyyMm = this.detectRaiseMonth(months);
+    const retro = await this.findRetroactiveInMonths(tid, eid, monthKeys);
+
     return {
-      yyyyMm: found.yyyyMm,
-      healthGrade: found.doc.healthGrade,
-      pensionGrade: found.doc.pensionGrade,
-      standardRemuneration: found.doc.standardRemuneration,
-      source: found.doc.source,
-      effectiveFrom: found.doc.effectiveFrom,
+      yyyyMm: teiji.yyyyMm,
+      healthGrade: teiji.doc.healthGrade,
+      pensionGrade: teiji.doc.pensionGrade,
+      standardRemuneration: teiji.doc.standardRemuneration,
+      source: teiji.doc.source,
+      effectiveFrom: teiji.doc.effectiveFrom,
+      remuneration: teiji.doc.remuneration,
+      previousHealthGrade: prior?.doc.healthGrade,
+      previousPensionGrade: prior?.doc.pensionGrade,
+      previousEffectiveFrom: prior?.doc.effectiveFrom,
+      raiseMonthYyyyMm,
+      raiseDirection: detectRaiseDirection(months),
+      retroactivePayMonth: retro?.month,
+      retroactivePayAmount: retro?.amount,
+      months,
+      totalRemuneration: months.reduce((sum, month) => sum + month.totalAmount, 0),
+      averageRemuneration: averageAmount(months),
     };
   }
 
-  private async loadLatestStandardBonus(
+  private async buildMonthlyChangePayload(
     tid: string,
     eid: string,
-  ): Promise<Record<string, unknown> | null> {
-    const history = await this.standardBonusData.listForEmployee(tid, eid);
-    const found = history[0];
-    if (!found) return null;
+  ): Promise<RegistrationStandardRemunerationPayload> {
+    const history = await this.standardRemunerationData.listForEmployee(tid, eid);
+    const zuiji =
+      history.find((item) => item.doc.source === 'zuiji') ??
+      history.find((item) => item.doc.source === 'provisional_zuiji');
+    if (!zuiji) {
+      throw new Error('随時改定の標準報酬履歴がありません。');
+    }
+
+    const effectiveYyyyMm = zuiji.doc.effectiveFrom.slice(0, 7);
+    const changeMonthYyyyMm = addMonths(effectiveYyyyMm, -3);
+    const monthKeys = [
+      changeMonthYyyyMm,
+      addMonths(changeMonthYyyyMm, 1),
+      addMonths(changeMonthYyyyMm, 2),
+    ] as const;
+    const months = await this.loadMonthlyBreakdowns(tid, eid, monthKeys);
+    if (months.length < 3) {
+      throw new Error('随時改定に必要な3ヶ月分の月次給与データがありません。');
+    }
+
+    const prior = history.find(
+      (item) => item.yyyyMm < changeMonthYyyyMm && item.doc.source !== 'carried',
+    );
+    const retro = await this.findRetroactiveInMonths(tid, eid, monthKeys);
+
     return {
-      yyyyMm: found.yyyyMm,
-      standardBonus: found.doc.standardBonus,
-      bonusAmount: found.doc.bonusAmount,
-      effectiveFrom: found.doc.effectiveFrom,
-      source: found.doc.source,
+      yyyyMm: zuiji.yyyyMm,
+      healthGrade: zuiji.doc.healthGrade,
+      pensionGrade: zuiji.doc.pensionGrade,
+      standardRemuneration: zuiji.doc.standardRemuneration,
+      source: zuiji.doc.source,
+      effectiveFrom: zuiji.doc.effectiveFrom,
+      remuneration: zuiji.doc.remuneration,
+      previousHealthGrade: prior?.doc.healthGrade,
+      previousPensionGrade: prior?.doc.pensionGrade,
+      previousEffectiveFrom: prior?.doc.effectiveFrom,
+      raiseMonthYyyyMm: changeMonthYyyyMm,
+      raiseDirection: detectRaiseDirection(months),
+      retroactivePayMonth: retro?.month,
+      retroactivePayAmount: retro?.amount,
+      months,
+      totalRemuneration: months.reduce((sum, month) => sum + month.totalAmount, 0),
+      averageRemuneration: averageAmount(months),
     };
+  }
+
+  private async buildBonusPayload(
+    tid: string,
+    eid: string,
+  ): Promise<RegistrationStandardBonusPayload> {
+    const history = await this.standardBonusData.listForEmployee(tid, eid);
+    const latest = history[0];
+    if (!latest) {
+      throw new Error('標準賞与額の履歴がありません。賞与の保険料計算を実行してください。');
+    }
+
+    const bonusDoc = await this.loadBonusDocument(tid, eid, latest.yyyyMm);
+    const bonusAmount = latest.doc.bonusAmount ?? bonusDoc?.bonusData?.total ?? 0;
+    const inKindAmount = 0;
+    const currencyAmount = bonusAmount;
+
+    return {
+      yyyyMm: latest.yyyyMm,
+      standardBonus: latest.doc.standardBonus,
+      bonusAmount,
+      rawStandardBonus: latest.doc.rawStandardBonus,
+      effectiveFrom: latest.doc.effectiveFrom,
+      source: latest.doc.source,
+      currencyAmount,
+      inKindAmount,
+      paymentDate: lastDayOfYyyyMm(latest.yyyyMm),
+    };
+  }
+
+  private detectRaiseMonth(months: RegistrationMonthlyBreakdown[]): string | undefined {
+    if (months.length < 2) {
+      return undefined;
+    }
+    for (let index = 1; index < months.length; index += 1) {
+      if (months[index].currencyAmount !== months[index - 1].currencyAmount) {
+        return months[index].yyyyMm;
+      }
+    }
+    return undefined;
+  }
+
+  private async findRetroactiveInMonths(
+    tid: string,
+    eid: string,
+    monthKeys: readonly string[],
+  ): Promise<{ month: string; amount: number } | undefined> {
+    for (const yyyyMm of monthKeys) {
+      const monthly = await this.loadMonthlyDocument(tid, eid, yyyyMm);
+      const retro = monthly?.payrollData?.retroactivePay;
+      if (retro != null && retro > 0) {
+        return { month: yyyyMm.slice(5, 7), amount: retro };
+      }
+    }
+    return undefined;
   }
 
   private async loadLeaveRecords(

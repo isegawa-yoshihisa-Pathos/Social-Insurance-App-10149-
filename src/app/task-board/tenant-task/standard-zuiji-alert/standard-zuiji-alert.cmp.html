@@ -1,0 +1,37 @@
+<div class="accept-application">
+  <h3>通常随時改定（月額変更届）</h3>
+
+  @if (loading) {
+    <p class="loading-message">読み込み中...</p>
+  } @else if (alerts.length === 0) {
+    <p class="empty-message">随時改定のアラートはありません。</p>
+  } @else {
+    <div class="review-list">
+      @for (alert of alerts; track alert.id) {
+        <div class="review-item">
+          <div class="review-main">
+            <div class="review-name">{{ alert.employeeDisplayName || '未登録' }}</div>
+            <div class="review-detail">
+              {{ changeMonthLabel(alert) }}昇降給 / {{ effectiveMonthLabel(alert) }}適用
+            </div>
+            <div class="review-note">
+              健保 {{ alert.previousHealthGrade }}→{{ alert.newHealthGrade }}等級、
+              厚年 {{ alert.previousPensionGrade }}→{{ alert.newPensionGrade }}等級。
+              月額変更届の提出を確認してください。
+            </div>
+          </div>
+          <div class="review-actions">
+            <button
+              mat-button
+              color="warn"
+              [disabled]="busyId === alert.id"
+              (click)="deleteAlert(alert)"
+            >
+              削除
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

@@ -4,11 +4,11 @@
   @if (loading) {
     <p class="loading-message">読み込み中...</p>
   } @else if (reviews.length === 0) {
-    <p class="empty-message">進行中の同意確認はありません。</p>
+    <p class="empty-message">同意確認タスクはありません。</p>
   } @else {
     <div class="review-list">
       @for (review of reviews; track review.id) {
-        <div class="review-item">
+        <div class="review-item" [class.is-completed]="isCompleted(review)">
           <div class="review-main">
             <div class="review-name">{{ review.employeeDisplayName || '未登録' }}</div>
             <div class="review-status">{{ statusLabel(review.status) }}</div>
@@ -22,29 +22,35 @@
             </div>
             <div class="review-note">{{ review.summaryBody }}</div>
           </div>
-          @if (canApprove(review) || canReject(review)) {
-            <div class="review-actions">
-              @if (canApprove(review)) {
-                <button
-                  mat-button
-                  color="primary"
-                  [disabled]="busyId === review.id"
-                  (click)="approve(review)"
-                >
-                  承認・適用
-                </button>
-              }
-              @if (canReject(review)) {
-                <button
-                  mat-button
-                  [disabled]="busyId === review.id"
-                  (click)="reject(review)"
-                >
-                  却下
-                </button>
-              }
-            </div>
-          }
+          <div class="review-actions">
+            @if (canApprove(review)) {
+              <button
+                mat-button
+                color="primary"
+                [disabled]="busyId === review.id"
+                (click)="approve(review)"
+              >
+                承認・適用
+              </button>
+            }
+            @if (canReject(review)) {
+              <button
+                mat-button
+                [disabled]="busyId === review.id"
+                (click)="reject(review)"
+              >
+                却下
+              </button>
+            }
+            <button
+              mat-button
+              color="warn"
+              [disabled]="busyId === review.id"
+              (click)="deleteReview(review)"
+            >
+              削除
+            </button>
+          </div>
         </div>
       }
     </div>

@@ -53,6 +53,14 @@
                     <span class="notification-badge">{{ notificationService.unreadCount() }}</span>
                 }
             </button>
+            <button 
+                mat-flat-button 
+                class="menu-button" 
+                type="button" 
+                (click)="navigateToHelpLinks()" 
+                [class.selected]="isSelected() === 'helpLinks'"
+            >ヘルプリンク
+            </button>
 
             @if (isAdmin()) {
             <hr class="menu-divider" />
@@ -109,6 +117,13 @@
                 (click)="navigateToRegistrationManagement()"
                 [class.selected]="isSelected() === 'registrationManagement'"
             >届出管理</button>
+            <button
+                mat-flat-button
+                class="menu-button"
+                type="button"
+                (click)="navigateToLogManagement()"
+                [class.selected]="isSelected() === 'logManagement'"
+            >監査ログ</button>
             }
             
             <hr class="menu-divider" />

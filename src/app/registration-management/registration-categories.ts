@@ -17,20 +17,6 @@ export interface RegistrationCategory {
 export const REGISTRATION_CATEGORIES: RegistrationCategory[] = [
   {
     id: 1,
-    label: '会社設立・新規適用',
-    description: '会社設立・新規適用の届出を提出します。',
-    forms: [
-      { formType: 'new_application', label: '新規適用届', requiresEmployeeSelection: false, batchOfficeForm: false },
-      {
-        formType: 'qualification_acquisition_office',
-        label: '被保険者資格取得届(事業所分)',
-        requiresEmployeeSelection: true,
-        batchOfficeForm: true,
-      },
-    ],
-  },
-  {
-    id: 2,
     label: '従業員の入退社',
     description: '従業員の入退社の届出を提出します。',
     forms: [
@@ -39,7 +25,7 @@ export const REGISTRATION_CATEGORIES: RegistrationCategory[] = [
     ],
   },
   {
-    id: 3,
+    id: 2,
     label: '家族・扶養の変更',
     description: '家族・扶養の変更の届出を提出します。',
     forms: [
@@ -48,7 +34,7 @@ export const REGISTRATION_CATEGORIES: RegistrationCategory[] = [
     ],
   },
   {
-    id: 4,
+    id: 3,
     label: '給与・報酬の変動',
     description: '給与・報酬の変動の届出を提出します。',
     forms: [
@@ -58,7 +44,7 @@ export const REGISTRATION_CATEGORIES: RegistrationCategory[] = [
     ],
   },
   {
-    id: 5,
+    id: 4,
     label: '産休・育休手続き',
     description: '産休・育休手続きの届出を提出します。',
     forms: [

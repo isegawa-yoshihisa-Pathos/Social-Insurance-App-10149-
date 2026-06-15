@@ -89,22 +89,8 @@ export class EmployeesListBulkEditService {
     }
 
     return {
-      status: this.mapEmployeeStatusToAffiliationStatus(String(value ?? 'active')),
+      status: value ?? 'active',
       updatedAt: serverTimestamp(),
     };
-  }
-
-  private mapEmployeeStatusToAffiliationStatus(
-    employeeStatus: string,
-  ): 'active' | 'suspended' | 'archived' {
-    switch (employeeStatus) {
-      case 'leave':
-        return 'suspended';
-      case 'resigned':
-        return 'archived';
-      case 'active':
-      default:
-        return 'active';
-    }
   }
 }

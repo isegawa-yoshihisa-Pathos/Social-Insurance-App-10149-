@@ -65,10 +65,17 @@
             </button>
         </div>
     </div>
-    <div class="signup-container">
+    <div class="footer-container">
+        <div class="signup-text">
+            パスワードを忘れた方は
+                <span type="button" class="button-in-text" (click)="navigateToPasswordReset()">
+                    こちら
+                </span>
+            からパスワードを再発行してください。
+        </div>
         <div class="signup-text">
             アカウントをお持ちでない方は
-                <span type="button" class="signup-button" (click)="navigateToSignup()">
+                <span type="button" class="button-in-text" (click)="navigateToSignup()">
                     こちら
                 </span>
             から新規登録してください。

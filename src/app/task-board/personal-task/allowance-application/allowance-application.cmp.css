@@ -1,3 +1,39 @@
-:host {
-  display: block;
+.application-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.application-page h2 {
+  margin: 0 0 12px;
+}
+
+.loading-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.field-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.label-name {
+  min-width: 120px;
+  padding-top: 16px;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.field {
+  flex: 1;
+}
+
+.button-container {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
 }

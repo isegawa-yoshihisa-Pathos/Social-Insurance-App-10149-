@@ -1,0 +1,35 @@
+<div class="accept-application">
+  <h3>定時決定・対象外の確認</h3>
+
+  @if (loading) {
+    <p class="loading-message">読み込み中...</p>
+  } @else if (alerts.length === 0) {
+    <p class="empty-message">定時決定の対象外アラートはありません。</p>
+  } @else {
+    <div class="review-list">
+      @for (alert of alerts; track alert.id) {
+        <div class="review-item">
+          <div class="review-main">
+            <div class="review-name">{{ alert.employeeDisplayName || '未登録' }}</div>
+            <div class="review-detail">
+              {{ alert.teijiYear }}年定時決定 / {{ alert.effectiveYyyyMm }} 適用予定
+            </div>
+            <div class="review-note">
+              {{ reasonLabel(alert.reason) }}
+            </div>
+          </div>
+          <div class="review-actions">
+            <button
+              mat-button
+              color="warn"
+              [disabled]="busyId === alert.id"
+              (click)="deleteAlert(alert)"
+            >
+              削除
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

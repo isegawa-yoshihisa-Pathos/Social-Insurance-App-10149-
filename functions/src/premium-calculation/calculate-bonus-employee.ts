@@ -35,6 +35,7 @@ import {
   type StandardBonusDocument,
   type StandardBonusSavePayload,
 } from './repos';
+import { skipBonusPremiumCalculationIfResigned } from './premium-calculation-skip';
 
 interface CalculationContext {
   employee: EmployeeDocument;
@@ -53,6 +54,9 @@ export async function calculateBonusEmployee(
     loadContext(db, tid, eid, yyyyMm),
     getTenant(db, tid),
   ]);
+  if (await skipBonusPremiumCalculationIfResigned(db, tid, eid, yyyyMm, ctx.employee)) {
+    return;
+  }
   const personalInfo = ctx.employee.employeePersonalInfo;
   const careInsuranceCollection = {
     specificInsuranceCollectionType:

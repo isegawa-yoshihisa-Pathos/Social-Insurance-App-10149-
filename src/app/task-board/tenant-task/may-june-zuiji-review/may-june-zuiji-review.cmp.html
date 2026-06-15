@@ -4,35 +4,48 @@
   @if (loading) {
     <p class="loading-message">読み込み中...</p>
   } @else if (reviews.length === 0) {
-    <p class="empty-message">確認待ちの随時改定はありません。</p>
+    <p class="empty-message">随時改定の確認タスクはありません。</p>
   } @else {
     <div class="review-list">
       @for (review of reviews; track review.id) {
-        <div class="review-item">
+        <div class="review-item" [class.is-completed]="!isPending(review)">
           <div class="review-main">
             <div class="review-name">{{ review.employeeDisplayName || '未登録' }}</div>
+            <div class="review-status">{{ statusLabel(review.status) }}</div>
             <div class="review-detail">
               {{ raiseMonthLabel(review) }}昇給 / {{ effectiveMonthLabel(review) }}適用予定
             </div>
-            <div class="review-note">
-              {{ reviewNote(review) }}
-            </div>
+            @if (isPending(review)) {
+              <div class="review-note">
+                {{ reviewNote(review) }}
+              </div>
+            }
           </div>
           <div class="review-actions">
+            @if (isPending(review)) {
+              <button
+                mat-button
+                color="primary"
+                [disabled]="busyId === review.id"
+                (click)="approve(review)"
+              >
+                承認
+              </button>
+              <button
+                mat-button
+                [disabled]="busyId === review.id"
+                (click)="reject(review)"
+              >
+                却下
+              </button>
+            }
             <button
               mat-button
-              color="primary"
+              color="warn"
               [disabled]="busyId === review.id"
-              (click)="approve(review)"
+              (click)="deleteReview(review)"
             >
-              承認
-            </button>
-            <button
-              mat-button
-              [disabled]="busyId === review.id"
-              (click)="reject(review)"
-            >
-              却下
+              削除
             </button>
           </div>
         </div>

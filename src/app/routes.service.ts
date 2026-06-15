@@ -21,6 +21,10 @@ export class RoutesService {
     void this.router.navigate(['/signin']);
   }
 
+  redirectToPasswordReset(): void {
+    void this.router.navigate(['/password-reset']);
+  }
+
   redirectToCreateTenant(): void {
     void this.router.navigate(['/create-tenant']);
   }
@@ -43,6 +47,10 @@ export class RoutesService {
 
   redirectToTenantSetting(): void {
     void this.router.navigate(['/tenant-setting']);
+  }
+
+  redirectToHelpLinks(): void {
+    void this.router.navigate(['/help-links']);
   }
 
   redirectToEmployeesManagement(): void {
@@ -111,6 +119,10 @@ export class RoutesService {
 
   redirectToRegistrationManagement(): void {
     void this.router.navigate(['/registration-management']);
+  }
+
+  redirectToLogManagement(): void {
+    void this.router.navigate(['/log-management']);
   }
 
   redirectToAllowanceApplication(): void {

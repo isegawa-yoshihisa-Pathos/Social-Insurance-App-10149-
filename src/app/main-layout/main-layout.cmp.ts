@@ -44,6 +44,7 @@ export class MainLayoutCmp {
     | 'personalSetting' 
     | 'taskBoard' 
     | 'notifications'
+    | 'helpLinks'
     | 'tenantSetting'
     | 'createNewTenant'
     | 'employeesManagement'
@@ -52,10 +53,12 @@ export class MainLayoutCmp {
     | 'bonusManagement'
     | 'paymentManagement'
     | 'virtualMailChecker'
-    | 'registrationManagement' {
+    | 'registrationManagement'
+    | 'logManagement' {
     if (url.startsWith('/personal-setting')) return 'personalSetting';
     if (url.startsWith('/task-board')) return 'taskBoard';
     if (url.startsWith('/notifications')) return 'notifications';
+    if (url.startsWith('/help-links')) return 'helpLinks';
     if (url.startsWith('/tenant-setting')) return 'tenantSetting';
     if (url.startsWith('/create-new-tenant')) return 'createNewTenant';
     if (url.startsWith('/employees-management')) return 'employeesManagement';
@@ -65,6 +68,7 @@ export class MainLayoutCmp {
     if (url.startsWith('/payment-management')) return 'paymentManagement';
     if (url.startsWith('/virtual-mail-checker')) return 'virtualMailChecker';
     if (url.startsWith('/registration-management')) return 'registrationManagement';
+    if (url.startsWith('/log-management')) return 'logManagement';
     return 'myPage';
   }
 
@@ -138,5 +142,13 @@ export class MainLayoutCmp {
 
   navigateToRegistrationManagement(): void {
     this.routesService.redirectToRegistrationManagement();
+  }
+
+  navigateToLogManagement(): void {
+    this.routesService.redirectToLogManagement();
+  }
+
+  navigateToHelpLinks(): void {
+    this.routesService.redirectToHelpLinks();
   }
 } 

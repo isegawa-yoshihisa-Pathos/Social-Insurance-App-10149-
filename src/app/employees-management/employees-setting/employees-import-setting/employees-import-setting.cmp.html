@@ -36,6 +36,21 @@
             >
               変更
             </button>
+            @if (col.label === '権限') {
+              <app-help-content key="role"></app-help-content>
+            }
+            @if (col.label === '勤務状況') {
+              <app-help-content key="status"></app-help-content>
+            }
+            @if (col.label === '給与区分') {
+              <app-help-content key="payType"></app-help-content>
+            }
+            @if (col.label === '雇用形態') {
+              <app-help-content key="employmentType"></app-help-content>
+            }
+            @if (col.label === '入社日' || col.label === '退職日' || col.label === '資格取得日' || col.label === '資格喪失日') {
+              <app-help-content key="date"></app-help-content>
+            }
           </div>
         </div>
       }

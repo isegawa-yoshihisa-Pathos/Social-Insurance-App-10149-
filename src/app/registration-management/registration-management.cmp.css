@@ -123,3 +123,62 @@
 .registration-row.selected-row:hover {
   background-color: rgba(103, 58, 183, 0.12);
 }
+
+.registration-eligibility-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.registration-eligibility-summary {
+  margin: 0;
+  color: #444;
+  font-size: 14px;
+}
+
+.registration-eligibility-summary strong {
+  color: #333;
+}
+
+.eligibility-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.eligibility-badge.eligible {
+  background-color: rgba(46, 125, 50, 0.12);
+  color: #2e7d32;
+}
+
+.eligibility-badge.ineligible {
+  background-color: rgba(158, 158, 158, 0.16);
+  color: #757575;
+}
+
+.registration-row.ineligible-row {
+  cursor: default;
+  color: #888;
+}
+
+.registration-row.ineligible-row:hover {
+  background-color: transparent;
+}
+
+.detail-col {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: #666;
+}
+
+.registration-row.ineligible-row .detail-col {
+  color: #999;
+}

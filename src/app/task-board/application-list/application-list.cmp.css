@@ -1,3 +1,31 @@
 :host {
   display: block;
 }
+
+h3 {
+  margin: 0 0 16px;
+}
+
+.empty-message {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.application-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.application-card {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  padding: 16px;
+  background: #fff;
+}
+
+.application-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 8px;
+}

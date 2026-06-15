@@ -1,16 +1,76 @@
 <div class="accept-application">
-  <h3>休暇申請の承認</h3>
+  <h3>諸手当申請の承認</h3>
+
+  @if (loading) {
+    <p>申請一覧を読み込んでいます...</p>
+  } @else if (allowanceApplications.length === 0) {
+    <p class="empty-message">諸手当申請はありません。</p>
+  } @else {
+    <div class="application-list">
+      @for (application of allowanceApplications; track application.id) {
+        <div class="application-card" [class.is-completed]="!isPending(application)">
+          <div class="application-header">
+            <strong>{{ application.displayName }}</strong>
+            <span class="status-badge">{{ formatStatus(application.status) }}</span>
+            <span class="employee-id">社員番号：{{ application.employeeId }}</span>
+          </div>
+          <div class="application-body">
+            <p>手当：{{ allowanceTypeLabel(application) }}</p>
+            <p>適用月：{{ applyMonthLabel(application) }}</p>
+            <p>金額：{{ application.allowanceDetails?.amount | number }}円</p>
+            @if (application.allowanceDetails?.reason) {
+              <p>備考：{{ application.allowanceDetails?.reason }}</p>
+            }
+            <p class="applied-at">申請日：{{ appliedAt(application) }}</p>
+          </div>
+          <div class="application-actions">
+            @if (isPending(application)) {
+              <button
+                mat-flat-button
+                color="primary"
+                type="button"
+                [disabled]="busyId === application.id"
+                (click)="approve(application)"
+              >
+                承認
+              </button>
+              <button
+                mat-button
+                type="button"
+                [disabled]="busyId === application.id"
+                (click)="reject(application)"
+              >
+                却下
+              </button>
+            }
+            <button
+              mat-button
+              color="warn"
+              type="button"
+              [disabled]="busyId === application.id"
+              (click)="deleteApplication(application)"
+            >
+              削除
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <h3 class="section-title">休暇申請の承認</h3>
 
   @if (loading) {
     <p>申請一覧を読み込んでいます...</p>
   } @else if (leaveApplications.length === 0) {
-    <p class="empty-message">承認待ちの休暇申請はありません。</p>
+    <p class="empty-message">休暇申請はありません。</p>
   } @else {
     <div class="application-list">
       @for (application of leaveApplications; track application.id) {
-        <div class="application-card">
+        <div class="application-card" [class.is-completed]="!isPending(application)">
           <div class="application-header">
             <strong>{{ application.displayName }}</strong>
+            <span class="status-badge">{{ formatStatus(application.status) }}</span>
             <span class="employee-id">社員番号：{{ application.employeeId }}</span>
           </div>
           <div class="application-body">
@@ -22,22 +82,33 @@
             <p class="applied-at">申請日：{{ appliedAt(application) }}</p>
           </div>
           <div class="application-actions">
-            <button
-              mat-flat-button
-              color="primary"
-              type="button"
-              [disabled]="busyId === application.id"
-              (click)="approve(application)"
-            >
-              承認
-            </button>
+            @if (isPending(application)) {
+              <button
+                mat-flat-button
+                color="primary"
+                type="button"
+                [disabled]="busyId === application.id"
+                (click)="approve(application)"
+              >
+                承認
+              </button>
+              <button
+                mat-button
+                type="button"
+                [disabled]="busyId === application.id"
+                (click)="reject(application)"
+              >
+                却下
+              </button>
+            }
             <button
               mat-button
+              color="warn"
               type="button"
               [disabled]="busyId === application.id"
-              (click)="reject(application)"
+              (click)="deleteApplication(application)"
             >
-              却下
+              削除
             </button>
           </div>
         </div>
@@ -50,13 +121,14 @@
   @if (loading) {
     <p>申請一覧を読み込んでいます...</p>
   } @else if (resignApplications.length === 0) {
-    <p class="empty-message">承認待ちの退職申請はありません。</p>
+    <p class="empty-message">退職申請はありません。</p>
   } @else {
     <div class="application-list">
       @for (application of resignApplications; track application.id) {
-        <div class="application-card">
+        <div class="application-card" [class.is-completed]="!isPending(application)">
           <div class="application-header">
             <strong>{{ application.displayName }}</strong>
+            <span class="status-badge">{{ formatStatus(application.status) }}</span>
             <span class="employee-id">社員番号：{{ application.employeeId }}</span>
           </div>
           <div class="application-body">
@@ -67,22 +139,33 @@
             <p class="applied-at">申請日：{{ appliedAt(application) }}</p>
           </div>
           <div class="application-actions">
-            <button
-              mat-flat-button
-              color="primary"
-              type="button"
-              [disabled]="busyId === application.id"
-              (click)="approve(application)"
-            >
-              承認
-            </button>
+            @if (isPending(application)) {
+              <button
+                mat-flat-button
+                color="primary"
+                type="button"
+                [disabled]="busyId === application.id"
+                (click)="approve(application)"
+              >
+                承認
+              </button>
+              <button
+                mat-button
+                type="button"
+                [disabled]="busyId === application.id"
+                (click)="reject(application)"
+              >
+                却下
+              </button>
+            }
             <button
               mat-button
+              color="warn"
               type="button"
               [disabled]="busyId === application.id"
-              (click)="reject(application)"
+              (click)="deleteApplication(application)"
             >
-              却下
+              削除
             </button>
           </div>
         </div>

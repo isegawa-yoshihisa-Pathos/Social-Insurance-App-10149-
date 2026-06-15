@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { TenantTaskCmp } from './tenant-task/tenant-task.cmp';
+import { TenantTaskCmp } from '../tenant-task/tenant-task.cmp';
 
 @Component({
   selector: 'app-task-board-tenant',

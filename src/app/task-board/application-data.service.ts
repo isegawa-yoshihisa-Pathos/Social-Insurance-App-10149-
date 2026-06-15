@@ -4,6 +4,7 @@ import {
   Timestamp,
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -25,8 +26,15 @@ import { AuthService } from '../auth.service';
 import { leaveFormToRecord } from '../employee-leave.util';
 import { toFirestoreTimestamp, toFormDate } from '../date-utils';
 import { FunctionsService } from '../functions.service';
+import {
+  AllowanceApplicationFormData,
+  validateAllowanceApplicationForm,
+} from './allowance-application.util';
+import { AllowanceTypeDefinition } from '../payment-document';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 export type PendingApplication = { id: string } & ApplicationDocument;
+export type ApplicationListItem = PendingApplication;
 
 @Injectable({ providedIn: 'root' })
 export class ApplicationDataService {
@@ -34,6 +42,7 @@ export class ApplicationDataService {
   private readonly tenant = inject(CurrentTenantService);
   private readonly authService = inject(AuthService);
   private readonly functionsService = inject(FunctionsService);
+  private readonly auditLog = inject(AuditLogService);
 
   private applicationsRef(tid: string) {
     return collection(this.firestore, 'tenants', tid, 'applications');
@@ -64,17 +73,104 @@ export class ApplicationDataService {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
+
+    await this.auditLog.recordCreate({
+      tid,
+      category: 'application.leave',
+      summary: '休暇申請を提出',
+      target: this.auditLog.employeeTarget(
+        employee.eid,
+        employee.displayName,
+        employee.employeeId,
+      ),
+      metadata: {
+        leaveType: form.type,
+        reason: form.reason.trim(),
+      },
+    });
   }
 
+  async submitAllowanceApplication(
+    form: AllowanceApplicationFormData,
+    allowanceDefinitions: AllowanceTypeDefinition[],
+  ): Promise<void> {
+    const validationError = validateAllowanceApplicationForm(form);
+    if (validationError) {
+      throw new Error(validationError);
+    }
+
+    const tid = this.tenant.currentTid();
+    const uid = this.authService.uid();
+    if (!tid || !uid) throw new Error('申請に必要な情報が不足しています。');
+
+    const definition = allowanceDefinitions.find((item) => item.type === form.allowanceType);
+    if (!definition) {
+      throw new Error('選択した手当の種類が見つかりません。');
+    }
+
+    const employee = await this.loadCurrentEmployee(tid, uid);
+    if (!employee) throw new Error('従業員情報が見つかりません。');
+
+    await addDoc(this.applicationsRef(tid), {
+      eid: employee.eid,
+      employeeId: employee.employeeId,
+      displayName: employee.displayName,
+      type: 'allowance',
+      status: 'pending',
+      allowanceDetails: {
+        allowanceType: definition.type,
+        allowanceTypeLabel: definition.label,
+        applyYyyyMm: form.applyYyyyMm,
+        amount: form.amount as number,
+        reason: form.reason.trim(),
+      },
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    await this.auditLog.recordCreate({
+      tid,
+      category: 'application.allowance',
+      summary: '諸手当申請を提出',
+      target: this.auditLog.employeeTarget(
+        employee.eid,
+        employee.displayName,
+        employee.employeeId,
+        form.applyYyyyMm,
+      ),
+      metadata: {
+        allowanceType: definition.type,
+        allowanceTypeLabel: definition.label,
+        applyYyyyMm: form.applyYyyyMm,
+        amount: form.amount,
+        reason: form.reason.trim(),
+      },
+    });
+  }
+
+  async listLeaveApplications(tid: string): Promise<PendingApplication[]> {
+    return this.listApplicationsByType(tid, 'leave');
+  }
+
+  async listResignApplications(tid: string): Promise<PendingApplication[]> {
+    return this.listApplicationsByType(tid, 'resign');
+  }
+
+  async listAllowanceApplications(tid: string): Promise<PendingApplication[]> {
+    return this.listApplicationsByType(tid, 'allowance');
+  }
+
+  /** @deprecated listLeaveApplications を使用 */
   async listPendingLeaveApplications(tid: string): Promise<PendingApplication[]> {
-    return this.listPendingApplicationsByType(tid, 'leave');
+    return this.listLeaveApplications(tid);
   }
 
+  /** @deprecated listResignApplications を使用 */
   async listPendingResignApplications(tid: string): Promise<PendingApplication[]> {
-    return this.listPendingApplicationsByType(tid, 'resign');
+    return this.listResignApplications(tid);
   }
 
-  async listApplications(tid: string, eid: string): Promise<ApplicationDocument[]> {
+  async listApplications(tid: string, eid: string): Promise<ApplicationListItem[]> {
     const snap = await getDocs(
       query(
         this.applicationsRef(tid),
@@ -93,7 +189,7 @@ export class ApplicationDataService {
       });
   }
 
-  private async listPendingApplicationsByType(
+  private async listApplicationsByType(
     tid: string,
     type: ApplicationDocument['type'],
   ): Promise<PendingApplication[]> {
@@ -101,7 +197,6 @@ export class ApplicationDataService {
       query(
         this.applicationsRef(tid),
         where('type', '==', type),
-        where('status', '==', 'pending'),
       ),
     );
     return snap.docs
@@ -110,6 +205,9 @@ export class ApplicationDataService {
         ...(d.data() as ApplicationDocument),
       }))
       .sort((a, b) => {
+        const pendingOrder =
+          (a.status === 'pending' ? 0 : 1) - (b.status === 'pending' ? 0 : 1);
+        if (pendingOrder !== 0) return pendingOrder;
         const aTime = a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : 0;
         const bTime = b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : 0;
         return bTime - aTime;
@@ -138,6 +236,56 @@ export class ApplicationDataService {
       },
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
+    });
+
+    await this.auditLog.recordCreate({
+      tid,
+      category: 'application.resign',
+      summary: '退職申請を提出',
+      target: this.auditLog.employeeTarget(
+        employee.eid,
+        employee.displayName,
+        employee.employeeId,
+      ),
+      metadata: {
+        reason: form.reason.trim(),
+      },
+    });
+  }
+
+  /** 形式的な承認のみ。給与・手当データには反映しない。 */
+  async approveAllowanceApplication(tid: string, applicationId: string): Promise<void> {
+    const applicationRef = doc(this.applicationsRef(tid), applicationId);
+    const applicationSnap = await getDoc(applicationRef);
+    if (!applicationSnap.exists()) throw new Error('申請が見つかりません。');
+
+    const application = applicationSnap.data() as ApplicationDocument;
+    if (application.type !== 'allowance' || application.status !== 'pending') {
+      throw new Error('承認できない申請です。');
+    }
+
+    await updateDoc(applicationRef, {
+      status: 'approved',
+      updatedAt: serverTimestamp(),
+    });
+
+    await this.auditLog.record({
+      tid,
+      action: 'update',
+      category: 'application.allowance',
+      summary: '諸手当申請を承認',
+      target: this.auditLog.employeeTarget(
+        application.eid,
+        application.displayName,
+        application.employeeId,
+        application.allowanceDetails?.applyYyyyMm,
+      ),
+      metadata: {
+        applicationId,
+        status: 'approved',
+        allowanceTypeLabel: application.allowanceDetails?.allowanceTypeLabel,
+        amount: application.allowanceDetails?.amount,
+      },
     });
   }
 
@@ -183,6 +331,20 @@ export class ApplicationDataService {
     await updateDoc(applicationRef, {
       status: 'approved',
       updatedAt: serverTimestamp(),
+    });
+
+    await this.auditLog.record({
+      tid,
+      action: 'update',
+      category: 'application.leave',
+      summary: '休暇申請を承認',
+      target: this.auditLog.employeeTarget(
+        application.eid,
+        application.displayName,
+        application.employeeId,
+        applicationId,
+      ),
+      metadata: { applicationId, status: 'approved' },
     });
   }
 
@@ -245,6 +407,20 @@ export class ApplicationDataService {
         error,
       });
     }
+
+    await this.auditLog.record({
+      tid,
+      action: 'update',
+      category: 'application.resign',
+      summary: '退職申請を承認',
+      target: this.auditLog.employeeTarget(
+        application.eid,
+        application.displayName,
+        application.employeeId,
+        applicationId,
+      ),
+      metadata: { applicationId, status: 'approved' },
+    });
   }
 
   async rejectApplication(tid: string, applicationId: string): Promise<void> {
@@ -258,6 +434,42 @@ export class ApplicationDataService {
     await updateDoc(applicationRef, {
       status: 'rejected',
       updatedAt: serverTimestamp(),
+    });
+
+    await this.auditLog.record({
+      tid,
+      action: 'update',
+      category: `application.${application.type}`,
+      summary: '申請を却下',
+      target: this.auditLog.employeeTarget(
+        application.eid,
+        application.displayName,
+        application.employeeId,
+        applicationId,
+      ),
+      metadata: { applicationId, status: 'rejected', type: application.type },
+    });
+  }
+
+  async deleteApplication(tid: string, applicationId: string): Promise<void> {
+    const applicationRef = doc(this.applicationsRef(tid), applicationId);
+    const applicationSnap = await getDoc(applicationRef);
+    if (!applicationSnap.exists()) throw new Error('申請が見つかりません。');
+
+    const application = applicationSnap.data() as ApplicationDocument;
+    await deleteDoc(applicationRef);
+
+    await this.auditLog.recordDelete({
+      tid,
+      category: `application.${application.type}`,
+      summary: '申請を削除',
+      target: this.auditLog.employeeTarget(
+        application.eid,
+        application.displayName,
+        application.employeeId,
+        applicationId,
+      ),
+      metadata: { applicationId, type: application.type, status: application.status },
     });
   }
 

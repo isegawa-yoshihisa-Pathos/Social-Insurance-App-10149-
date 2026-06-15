@@ -2,6 +2,12 @@
   display: block;
 }
 
+.notification-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .notification-label {
   font-size: 18px;
   font-weight: bold;
@@ -15,4 +21,11 @@
   font-size: 14px;
   color: #666;
   margin-bottom: 24px;
+}
+
+.notification-item-read-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #673ab7;
 }

@@ -149,6 +149,15 @@ service cloud.firestore {
         ]);
     }
 
+    function auditLogCreateValid() {
+      return request.resource.data.actorUid == request.auth.uid
+        && request.resource.data.action in ['create', 'update', 'delete']
+        && request.resource.data.keys().hasAll([
+          'actorUid', 'actorDisplayName', 'targetKind', 'action',
+          'category', 'summary', 'createdAt',
+        ]);
+    }
+
     function notificationSelfUpdateValid() {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
     }
@@ -216,7 +225,7 @@ service cloud.firestore {
         allow read: if isTenantAdmin(tid);
         allow create: if isActiveTenantMember(tid) && applicationCreateValid(tid);
         allow update: if isTenantAdmin(tid);
-        allow delete: if false;
+        allow delete: if isTenantAdmin(tid);
       }
 
       match /invitations/{invitationId} {
@@ -276,17 +285,37 @@ service cloud.firestore {
 
       match /mayJuneZuijiReviews/{reviewId} {
         allow read: if isTenantAdmin(tid);
-        allow write: if false;
+        allow delete: if isTenantAdmin(tid);
+        allow create, update: if false;
+      }
+
+      match /teijiNonTargetAlerts/{alertId} {
+        allow read: if isTenantAdmin(tid);
+        allow delete: if isTenantAdmin(tid);
+        allow create, update: if false;
+      }
+
+      match /standardZuijiAlerts/{alertId} {
+        allow read: if isTenantAdmin(tid);
+        allow delete: if isTenantAdmin(tid);
+        allow create, update: if false;
       }
 
       match /remunerationConsentReviews/{reviewId} {
         allow read: if isTenantAdmin(tid)
           || (isActiveTenantMember(tid) && resource.data.eid == ownEmployeeId(tid));
-        allow write: if false;
+        allow delete: if isTenantAdmin(tid);
+        allow create, update: if false;
       }
 
       match /registrationFilings/{filingId} {
         allow read, create: if isTenantAdmin(tid);
+        allow update, delete: if false;
+      }
+
+      match /auditLogs/{logId} {
+        allow read: if isTenantAdmin(tid);
+        allow create: if isActiveTenantMember(tid) && auditLogCreateValid();
         allow update, delete: if false;
       }
     }

@@ -1,1 +1,66 @@
-<p>allowance-application works!</p>
+<div class="application-page">
+  <h2>諸手当申請</h2>
+  
+  <form class="input-container" (ngSubmit)="submit()">
+    <div class="field-container">
+      <label class="label-name">手当の種類：</label>
+      <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+        <mat-label>手当の種類</mat-label>
+        <mat-select [(ngModel)]="form.allowanceType" name="allowanceType" required>
+          @for (item of allowanceTypes; track item.type) {
+            <mat-option [value]="item.type">{{ item.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <div class="field-container">
+      <label class="label-name">適用月：</label>
+      <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+        <mat-label>適用月</mat-label>
+        <mat-select [(ngModel)]="form.applyYyyyMm" name="applyYyyyMm" required>
+          @for (yyyyMm of applyMonthOptions; track yyyyMm) {
+            <mat-option [value]="yyyyMm">{{ formatApplyMonthLabel(yyyyMm) }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <div class="field-container">
+      <label class="label-name">金額（円）：</label>
+      <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+        <mat-label>金額</mat-label>
+        <input
+          matInput
+          type="number"
+          min="1"
+          step="1"
+          [(ngModel)]="form.amount"
+          name="amount"
+          required
+        />
+      </mat-form-field>
+    </div>
+
+    <div class="field-container">
+      <label class="label-name">備考：</label>
+      <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+        <mat-label>備考（任意）</mat-label>
+        <textarea matInput rows="3" [(ngModel)]="form.reason" name="reason"></textarea>
+      </mat-form-field>
+    </div>
+
+    <div class="button-container">
+      <button mat-flat-button color="primary" type="submit" [disabled]="submitBusy">
+        @if (submitBusy) {
+          <mat-spinner diameter="24" strokeWidth="3"></mat-spinner>
+        } @else {
+          申請する
+        }
+      </button>
+      <button mat-button type="button" [disabled]="submitBusy" (click)="cancel()">
+        キャンセル
+      </button>
+    </div>
+  </form>
+</div>

@@ -204,18 +204,40 @@ export class EmployeesListImportService {
     });
 
     setIfPresent('payType', (v) => {
-      if (['monthly', 'weekly', 'daily', 'hourly'].includes(v)) {
+      if (['monthly', 'daily-monthly', 'weekly', 'daily', 'hourly'].includes(v)) {
         employee['employeeEmployInfo.payType'] = v;
+      } else if (v === '完全月給') {
+        employee['employeeEmployInfo.payType'] = 'monthly';
+      } else if (v === '日給月給') {
+        employee['employeeEmployInfo.payType'] = 'daily-monthly';
+      } else if (v === '週給') {
+        employee['employeeEmployInfo.payType'] = 'weekly';
+      } else if (v === '日給') {
+        employee['employeeEmployInfo.payType'] = 'daily';
+      } else if (v === '時給') {
+        employee['employeeEmployInfo.payType'] = 'hourly';
       }
     });
     setIfPresent('employmentType', (v) => {
       if (['full-time', 'short-time-worker', 'short-time-labor'].includes(v)) {
         employee['employeeEmployInfo.employmentType'] = v;
+      } else if (v === '正社員') {
+        employee['employeeEmployInfo.employmentType'] = 'full-time';
+      } else if (v === '短時間就労者') {
+        employee['employeeEmployInfo.employmentType'] = 'short-time-worker';
+      } else if (v === '短時間労働者') {
+        employee['employeeEmployInfo.employmentType'] = 'short-time-labor';
       }
     });
     setIfPresent('status', (v) => {
       if (['active', 'leave', 'resigned'].includes(v)) {
         employee['employeeEmployInfo.status'] = v;
+      } else if (v === '在職') {
+        employee['employeeEmployInfo.status'] = 'active';
+      } else if (v === '休職') {
+        employee['employeeEmployInfo.status'] = 'leave';
+      } else if (v === '退職') {
+        employee['employeeEmployInfo.status'] = 'resigned';
       }
     });
 
@@ -236,6 +258,12 @@ export class EmployeesListImportService {
       if (v === 'admin' || v === 'member') {
         employee['role'] = v;
         affiliation = { ...(affiliation ?? {}), role: v };
+      } else if (v === '管理者') {
+        employee['role'] = 'admin';
+        affiliation = { ...(affiliation ?? {}), role: 'admin' };
+      } else if (v === '一般') {
+        employee['role'] = 'member';
+        affiliation = { ...(affiliation ?? {}), role: 'member' };
       }
     });
 
@@ -244,8 +272,8 @@ export class EmployeesListImportService {
       const status = (cols[statusIdx] ?? '').trim();
       if (status) {
         const mapped =
-          status === 'leave' ? 'suspended' :
-          status === 'resigned' ? 'archived' :
+          status === 'leave' ? 'leave' :
+          status === 'resigned' ? 'resigned' :
           status === 'active' ? 'active' : null;
         if (mapped) {
           affiliation = { ...(affiliation ?? {}), status: mapped };

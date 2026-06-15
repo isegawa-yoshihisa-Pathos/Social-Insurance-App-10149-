@@ -25,6 +25,8 @@ import {
 } from '../personal-form-data';
 import { AuthService } from '../auth.service';
 import { EmployeeDocument } from '../employee-document';
+import { AuditLogService } from '../audit-log/audit-log.service';
+import { serializeAuditValue } from '../../../shared/audit-log.util';
 
 @Injectable({ providedIn: 'root' })
 export class PersonalSettingDataService {
@@ -32,6 +34,7 @@ export class PersonalSettingDataService {
   private readonly tenantService = inject(CurrentTenantService);
   private readonly profileCompletionService = inject(ProfileCompletionService);
   private readonly authService = inject(AuthService);
+  private readonly auditLog = inject(AuditLogService);
 
   personalForm: PersonalFormData = createEmptyPersonalForm();
   employeeForm: EmployeeFormData = createEmptyEmployeeForm();
@@ -142,6 +145,12 @@ export class PersonalSettingDataService {
     const eid = account?.['affiliations']?.[tid];
     if (!eid) throw new Error('従業員情報が見つかりません。');
 
+    const employeeRef = doc(this.firestore, 'tenants', tid, 'employees', eid);
+    const beforeSnap = await getDoc(employeeRef);
+    const beforePersonal = beforeSnap.data()?.['employeePersonalInfo'] as
+      | Record<string, unknown>
+      | undefined;
+
     copySharedPersonalFieldsToEmployee(this.personalForm, this.employeeForm);
 
     const currentPersonalInfo = account['personalInfo'] ?? {};
@@ -168,6 +177,8 @@ export class PersonalSettingDataService {
     await this.appendSharedFieldsToOtherEmployees(uid, tid, batch);
     await batch.commit();
 
+    await this.logEmployeePersonalUpdate(tid, eid, beforePersonal);
+
     this.tenantService.updateAffiliationDisplayName(
       uid, tid, this.employeeForm.displayName,
     );
@@ -185,6 +196,12 @@ export class PersonalSettingDataService {
     const account = accountSnap.data();
     const eid = account?.['affiliations']?.[tid];
     if (!eid) throw new Error('従業員情報が見つかりません。');
+
+    const employeeRef = doc(this.firestore, 'tenants', tid, 'employees', eid);
+    const beforeSnap = await getDoc(employeeRef);
+    const beforePersonal = beforeSnap.data()?.['employeePersonalInfo'] as
+      | Record<string, unknown>
+      | undefined;
 
     copySharedPersonalFieldsToEmployee(this.personalForm, this.employeeForm);
 
@@ -210,6 +227,8 @@ export class PersonalSettingDataService {
     await this.appendSharedFieldsToOtherEmployees(uid, tid, batch);
     await batch.commit();
 
+    await this.logEmployeePersonalUpdate(tid, eid, beforePersonal);
+
     this.tenantService.updateAffiliationDisplayName(
       uid, tid, this.employeeForm.displayName,
     );
@@ -226,6 +245,29 @@ export class PersonalSettingDataService {
     this.employeeForm.phoneNumberRaw = this.personalForm.phoneNumberRaw;
     this.employeeForm.zipcode = this.personalForm.zipcode;
     this.employeeForm.address = { ...this.personalForm.address };
+  }
+
+  private async logEmployeePersonalUpdate(
+    tid: string,
+    eid: string,
+    beforePersonal?: Record<string, unknown>,
+  ): Promise<void> {
+    const afterPersonal = buildEmployeePersonalInfoSavePayload(
+      this.personalForm,
+      this.employeeForm,
+    );
+    await this.auditLog.recordUpdate({
+      tid,
+      category: 'employee.personal',
+      summary: '従業員個人情報を更新',
+      target: this.auditLog.employeeTarget(
+        eid,
+        this.employeeForm.displayName,
+        undefined,
+      ),
+      before: serializeAuditValue(beforePersonal) as Record<string, unknown>,
+      after: serializeAuditValue(afterPersonal) as Record<string, unknown>,
+    });
   }
 
   private sharedFieldsEmployeeUpdate(): Record<string, unknown> {

@@ -2,7 +2,6 @@
   "firestore": {
     "database": "(default)",
     "location": "asia-northeast1",
-    "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
   "functions": [
@@ -36,9 +35,6 @@
         "destination": "/index.html"
       }
     ]
-  },
-  "storage": {
-    "rules": "storage.rules"
   },
   "auth": {
     "providers": {

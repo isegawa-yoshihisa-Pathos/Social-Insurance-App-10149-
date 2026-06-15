@@ -1,10 +1,11 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './auth.guard';
 import { adminGuard } from './admin.guard';
-import { taskBoardTenantGuard } from './task-board/task-board-tenant.guard';
+import { taskBoardTenantGuard } from './task-board/task-board-tenant/task-board-tenant.guard';
 import { HomeCmp } from './home/home.cmp';
 import { SigninCmp } from './signin/signin.cmp';
 import { SignupCmp } from './signup/signup.cmp';
+import { PasswordResetCmp } from './password-reset/password-reset.cmp';
 import { CreateTenantCmp } from './create-tenant/create-tenant.cmp';
 import { InvitationAcceptCmp } from './invitation-accept/invitation-accept.cmp';
 import { profileCompletionResolver } from './profile-completion-resolver';
@@ -20,6 +21,7 @@ export const routes: Routes = [
   { path: 'home', component: HomeCmp },
   { path: 'signup', component: SignupCmp },
   { path: 'signin', component: SigninCmp },
+  { path: 'password-reset', component: PasswordResetCmp },
   { path: 'create-tenant', component: CreateTenantCmp },
   { 
     path: '',
@@ -60,28 +62,25 @@ export const routes: Routes = [
           {
             path: 'personal',
             loadComponent: () =>
-              import('./task-board/task-board-personal.cmp').then(m => m.TaskBoardPersonalCmp),
+              import('./task-board/task-board-personal/task-board-personal.cmp').then(m => m.TaskBoardPersonalCmp),
             children: [
+              {
+                path: '',
+                pathMatch: 'full',
+                redirectTo: 'allowance-application',
+              },
               {
                 path: 'allowance-application',
                 loadComponent: () =>
-                  import('./task-board/personal-task/allowance-application/allowance-application.cmp').then(
-                    m => m.AllowanceApplicationCmp,
-                  ),
+                  import('./task-board/personal-task/allowance-application/allowance-application.cmp').then(m => m.AllowanceApplicationCmp),
               },
               {
                 path: 'leave-application',
-                loadComponent: () =>
-                  import('./task-board/personal-task/leave-application/leave-application.cmp').then(
-                    m => m.LeaveApplicationCmp,
-                  ),
+                loadComponent: () => import('./task-board/personal-task/leave-application/leave-application.cmp').then(m => m.LeaveApplicationCmp),
               },
               {
                 path: 'resign-application',
-                loadComponent: () =>
-                  import('./task-board/personal-task/resign-application/resign-application.cmp').then(
-                    m => m.ResignApplicationCmp,
-                  ),
+                loadComponent: () => import('./task-board/personal-task/resign-application/resign-application.cmp').then(m => m.ResignApplicationCmp),
               },
             ],
           },
@@ -89,13 +88,17 @@ export const routes: Routes = [
             path: 'tenant',
             canActivate: [taskBoardTenantGuard],
             loadComponent: () =>
-              import('./task-board/task-board-tenant.cmp').then(m => m.TaskBoardTenantCmp),
+              import('./task-board/task-board-tenant/task-board-tenant.cmp').then(m => m.TaskBoardTenantCmp),
           },
         ],
       },
       {
         path: 'notifications',
         loadComponent: () => import('./notifications/notifications.cmp').then(m => m.NotificationsCmp),
+      },
+      {
+        path: 'help-links',
+        loadComponent: () => import('./help-links/help-links.cmp').then(m => m.HelpLinksCmp),
       },
       {
         path: 'create-new-tenant',
@@ -251,6 +254,11 @@ export const routes: Routes = [
       {
         path: 'registration-management',
         loadComponent: () => import('./registration-management/registration-management.cmp').then(m => m.RegistrationManagementCmp),
+        canActivate: [adminGuard],
+      },
+      {
+        path: 'log-management',
+        loadComponent: () => import('./log-management/log-management.cmp').then(m => m.LogManagementCmp),
         canActivate: [adminGuard],
       },
       {

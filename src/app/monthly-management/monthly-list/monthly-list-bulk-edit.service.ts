@@ -25,12 +25,13 @@ import { StandardRemunerationDocument } from '../../social-insurance/monthly/soc
 import {
   CURRENT_GRADE_TABLE,
   resolveGradeFromStandardAmount,
-  resolveStandardRemunerationFromRemuneration,
 } from '../../social-insurance/remuneration/grade-table';
 import { allowanceTypeFromColumnKey } from '../../payment-management/payment-list/allowance-display.util';
 import { PaymentManagementDataService } from '../../payment-management/payment-management-data.service';
 import { buildPayrollWageFields } from '../../payment-management/payment-list/payroll-wage-update.util';
 import { MonthlyListDataService } from './monthly-list-data.service';
+import { AuditLogService } from '../../audit-log/audit-log.service';
+import { getMonthlyListColumnLabel } from './monthly-list-columns';
 
 @Injectable({
   providedIn: 'root',
@@ -40,6 +41,7 @@ export class MonthlyListBulkEditService {
   private readonly standardRemunerationDataService = inject(StandardRemunerationDataService);
   private readonly paymentManagementDataService = inject(PaymentManagementDataService);
   private readonly listDataService = inject(MonthlyListDataService);
+  private readonly auditLog = inject(AuditLogService);
 
   async applyBulkEdit(
     tid: string,
@@ -77,6 +79,24 @@ export class MonthlyListBulkEditService {
     }
 
     await batch.commit();
+
+    const columnLabel = getMonthlyListColumnLabel(column, definitions);
+    for (const target of targets) {
+      await this.auditLog.recordUpdate({
+        tid,
+        category: 'monthly.payroll',
+        summary: `${yyyyMm} の月次給与を一括更新（${columnLabel}）`,
+        target: {
+          kind: 'monthly',
+          eid: target.eid,
+          resourceId: yyyyMm,
+          label: columnLabel,
+        },
+        before: { [column]: this.readBulkEditBeforeValue(target, column) },
+        after: { [column]: value },
+        metadata: { column, yyyyMm },
+      });
+    }
   }
 
   private async applyStandardRemunerationBulkEdit(
@@ -95,6 +115,26 @@ export class MonthlyListBulkEditService {
         const existing = await this.standardRemunerationDataService.get(tid, eid, yyyyMm);
         const payload = this.buildManualStandardRemuneration(existing, column, value, yyyyMm);
         await this.standardRemunerationDataService.save(tid, eid, yyyyMm, payload);
+
+        const columnLabel = getMonthlyListColumnLabel(column, []);
+        await this.auditLog.recordUpdate({
+          tid,
+          category: 'monthly.standardRemuneration',
+          summary: `${yyyyMm} の標準報酬月額を一括更新（${columnLabel}）`,
+          target: {
+            kind: 'monthly',
+            eid,
+            resourceId: yyyyMm,
+            label: columnLabel,
+          },
+          before: {
+            [column]: existing?.standardRemuneration?.[
+              column === 'standardRemunerationHealth' ? 'health' : 'pension'
+            ] ?? null,
+          },
+          after: { [column]: value },
+          metadata: { column, yyyyMm },
+        });
       }),
     );
   }
@@ -105,20 +145,26 @@ export class MonthlyListBulkEditService {
     value: number,
     yyyyMm: string,
   ): StandardRemunerationSavePayload {
-    const healthAmount = resolveStandardRemunerationFromRemuneration(CURRENT_GRADE_TABLE.health, value);
-    const pensionAmount = resolveStandardRemunerationFromRemuneration(CURRENT_GRADE_TABLE.pension, value);
+    const existingHealth = existing?.standardRemuneration.health ?? 0;
+    const existingPension = existing?.standardRemuneration.pension ?? 0;
+    const existingHealthGrade = existing?.healthGrade ?? 1;
+    const existingPensionGrade = existing?.pensionGrade ?? 1;
 
-    const healthGrade = resolveGradeFromStandardAmount(
+    const healthAmount =
+      column === 'standardRemunerationHealth' ? value : existingHealth;
+    const pensionAmount =
+      column === 'standardRemunerationPension' ? value : existingPension;
+
+    const healthGrade = this.resolveManualGrade(
       CURRENT_GRADE_TABLE.health,
       healthAmount,
+      column === 'standardRemunerationHealth' ? undefined : existingHealthGrade,
     );
-    const pensionGrade = resolveGradeFromStandardAmount(
+    const pensionGrade = this.resolveManualGrade(
       CURRENT_GRADE_TABLE.pension,
       pensionAmount,
+      column === 'standardRemunerationPension' ? undefined : existingPensionGrade,
     );
-    if (healthGrade == null || pensionGrade == null) {
-      throw new Error('等級表に該当しない標準報酬月額です。');
-    }
 
     return {
       healthGrade,
@@ -126,8 +172,26 @@ export class MonthlyListBulkEditService {
       standardRemuneration: { health: healthAmount, pension: pensionAmount },
       source: 'manual',
       effectiveFrom: yyyyMm,
-      remuneration: value,
+      remuneration: existing?.remuneration ?? value,
     };
+  }
+
+  private resolveManualGrade(
+    rows: typeof CURRENT_GRADE_TABLE.health,
+    standardAmount: number,
+    fallbackGrade?: number,
+  ): number {
+    if (standardAmount === 0) {
+      return 0;
+    }
+    const grade = resolveGradeFromStandardAmount(rows, standardAmount);
+    if (grade != null) {
+      return grade;
+    }
+    if (fallbackGrade != null) {
+      return fallbackGrade;
+    }
+    throw new Error('等級表に該当しない標準報酬月額です。');
   }
 
   private buildPayrollUpdatePayload(
@@ -194,5 +258,31 @@ export class MonthlyListBulkEditService {
     }
 
     return update as UpdateData<DocumentData>;
+  }
+
+  private readBulkEditBeforeValue(
+    target: BulkEditTarget,
+    column: BulkEditableColumn,
+  ): number | null {
+    const allowanceType = allowanceTypeFromColumnKey(column);
+    if (allowanceType) {
+      return target.allowances[allowanceType] ?? null;
+    }
+    if (column === 'basicSalary') {
+      return target.basicSalary;
+    }
+    if (column === 'fringeBenefits') {
+      return target.fringeBenefits;
+    }
+    if (column === 'retroactivePay') {
+      return target.retroactivePay;
+    }
+    if (column === 'bonusRelatedRemuneration') {
+      return (target as BulkEditTarget & { bonusRelatedRemuneration?: number }).bonusRelatedRemuneration ?? null;
+    }
+    if (column === 'paymentBaseDays') {
+      return (target as BulkEditTarget & { paymentBaseDays?: number }).paymentBaseDays ?? null;
+    }
+    return null;
   }
 }

@@ -57,7 +57,7 @@
   pointer-events: none;
 }
 
-.signup-container {
+.footer-container {
   padding-top: 40px;
   padding-bottom: 80px;
 }
@@ -67,14 +67,14 @@
   color: black;
 }
 
-.signup-button {
+.button-in-text {
   font-size: 15px;
   color: #673ab7;
   border: none;
   background-color: transparent;
 }
 
-.signup-button:hover {
+.button-in-text:hover {
   text-decoration: underline;
   cursor: pointer;
 }

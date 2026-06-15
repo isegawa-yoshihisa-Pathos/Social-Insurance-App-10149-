@@ -61,6 +61,60 @@ export interface RegistrationFilingTenantSnapshot {
   socialInsuranceSettings: Record<string, unknown>;
 }
 
+export interface RegistrationMonthlyBreakdown {
+  yyyyMm: string;
+  paymentBaseDays: number;
+  currencyAmount: number;
+  inKindAmount: number;
+  totalAmount: number;
+}
+
+export interface RegistrationStandardRemunerationPayload {
+  yyyyMm: string;
+  healthGrade: number;
+  pensionGrade: number;
+  standardRemuneration: { health: number; pension: number };
+  source: string;
+  effectiveFrom: string;
+  remuneration?: number;
+  previousHealthGrade?: number;
+  previousPensionGrade?: number;
+  previousEffectiveFrom?: string;
+  raiseMonthYyyyMm?: string;
+  raiseDirection?: 'increase' | 'decrease';
+  retroactivePayMonth?: string;
+  retroactivePayAmount?: number;
+  months: RegistrationMonthlyBreakdown[];
+  totalRemuneration?: number;
+  averageRemuneration?: number;
+}
+
+export interface RegistrationStandardBonusPayload {
+  yyyyMm: string;
+  standardBonus: { health: number; pension: number };
+  bonusAmount: number;
+  rawStandardBonus?: number;
+  effectiveFrom: string;
+  source: string;
+  currencyAmount: number;
+  inKindAmount: number;
+  paymentDate: string;
+}
+
+export type RegistrationCsvFormType = 'teiji_santei' | 'monthly_change' | 'bonus_payment';
+
+export const REGISTRATION_CSV_FORM_TYPES: readonly RegistrationCsvFormType[] = [
+  'teiji_santei',
+  'monthly_change',
+  'bonus_payment',
+];
+
+export function isRegistrationCsvFormType(
+  formType: RegistrationFormType,
+): formType is RegistrationCsvFormType {
+  return (REGISTRATION_CSV_FORM_TYPES as readonly string[]).includes(formType);
+}
+
 export interface RegistrationFilingDocument {
   formType: RegistrationFormType;
   formLabel: string;

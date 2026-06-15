@@ -3,9 +3,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import {
   ApplicationDataService,
+  ApplicationListItem,
 } from '../application-data.service';
 import { CurrentTenantService } from '../../current-tenant.service';
-import { ApplicationDocument } from '../application-document';
 import {
   formatLeavePeriod,
   leaveTypeLabel,
@@ -26,14 +26,14 @@ export class ApplicationListCmp implements OnInit {
 
   loading = false;
   busyId: string | null = null;
-  applications: ApplicationDocument[] = [];
+  applications: ApplicationListItem[] = [];
   readonly leaveTypeLabel = leaveTypeLabel;
 
   async ngOnInit(): Promise<void> {
     await this.reload();
   }
 
-  leavePeriod(application: ApplicationDocument): string {
+  leavePeriod(application: ApplicationListItem): string {
     const details = application.leaveDetails;
     if (!details) return '';
     return formatLeavePeriod(
@@ -42,17 +42,17 @@ export class ApplicationListCmp implements OnInit {
     );
   }
 
-  resignDate(application: ApplicationDocument): string {
+  resignDate(application: ApplicationListItem): string {
     const details = application.resignDetails;
     if (!details) return '';
     return formatJapaneseDate(toFormDate(details.resignAt));
   }
 
-  appliedAt(application: ApplicationDocument): string {
+  appliedAt(application: ApplicationListItem): string {
     return formatJapaneseDate(toFormDate(application.createdAt));
   }
 
-  formatStatus(status: ApplicationDocument['status']): string {
+  formatStatus(status: ApplicationListItem['status']): string {
     return status === 'pending' ? '未承認' : status === 'approved' ? '承認' : '却下';
   }
 

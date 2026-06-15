@@ -4,13 +4,14 @@
     @if (loading) {
       <p>申請一覧を読み込んでいます...</p>
     } @else if (applications.length === 0) {
-      <p class="empty-message">休暇申請はありません。</p>
+      <p class="empty-message">申請はありません。</p>
     } @else {
       <div class="application-list">
-        @for (application of applications; track application.eid) {
-          <div class="application-card">
+        @for (application of applications; track application.id) {
+          <div class="application-card" [class.is-completed]="application.status !== 'pending'">
             <div class="application-header">
               <strong>{{ application.type === 'leave' ? '休暇申請' : '退職申請' }}</strong>
+              <span class="status-badge">{{ formatStatus(application.status) }}</span>
             </div>
             @if (application.type === 'leave') {
             <div class="application-body">

@@ -9,8 +9,6 @@ import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MonthlyListExportService } from '../../monthly-management/monthly-list/monthly-list-export.service';
 import { BonusListExportService } from '../../bonus-management/bonus-list/bonus-list-export.service';
-import { MonthlySettingDataService } from '../../monthly-management/monthly-setting/monthly-setting-data.service';
-import { BonusSettingDataService } from '../../bonus-management/bonus-setting/bonus-setting-data.service';
 import { PaymentManagementDataService } from '../../payment-management/payment-management-data.service';
 import { BonusManagementDataService } from '../../bonus-management/bonus-management-data.service';
 import { downloadCsvFile } from '../../csv/csv-file.util';
@@ -22,6 +20,7 @@ import {
   type MainPagePaymentScope,
 } from '../main-page-payment-data.service';
 import {
+  getAllMonthlyListColumnKeys,
   getMonthlyListColumnLabel,
   MonthlyListColumnKey,
   MonthlyListRow,
@@ -32,6 +31,7 @@ import {
 import {
   BonusListColumnKey,
   BonusListRow,
+  getAllBonusListColumnKeys,
   getBonusListColumnLabel,
 } from '../../bonus-management/bonus-list/bonus-list-columns';
 import { formatBonusListCellValue } from '../../bonus-management/bonus-list/bonus-list-row.mapper';
@@ -63,8 +63,6 @@ export class MonthlyPaymentCmp {
   private readonly paymentDataService = inject(MainPagePaymentDataService);
   private readonly monthlyListExportService = inject(MonthlyListExportService);
   private readonly bonusListExportService = inject(BonusListExportService);
-  private readonly monthlySettingDataService = inject(MonthlySettingDataService);
-  private readonly bonusSettingDataService = inject(BonusSettingDataService);
   private readonly paymentManagementDataService = inject(PaymentManagementDataService);
   private readonly bonusManagementDataService = inject(BonusManagementDataService);
 
@@ -82,13 +80,13 @@ export class MonthlyPaymentCmp {
   readonly hasLockedPeriods = computed(() => this.lockedPeriods().length > 0);
   readonly hasRow = computed(() => this.tableDataSource.data.length > 0);
 
-  readonly visibleColumns = computed(() =>
+  readonly tableColumns = computed(() =>
     this.scope === 'monthly'
-      ? this.monthlySettingDataService.visibleColumns()
-      : this.bonusSettingDataService.visibleColumns(),
+      ? getAllMonthlyListColumnKeys(
+          this.paymentManagementDataService.allowanceTypeDefinitions(),
+        )
+      : getAllBonusListColumnKeys(this.bonusManagementDataService.bonusTypeDefinitions()),
   );
-
-  readonly tableColumns = computed(() => this.visibleColumns());
 
   constructor() {
     effect(() => {
@@ -159,16 +157,12 @@ export class MonthlyPaymentCmp {
 
     this.exporting.set(true);
     try {
+      const allowanceDefinitions =
+        this.paymentManagementDataService.allowanceTypeDefinitions();
       const bonusDefinitions = this.bonusManagementDataService.bonusTypeDefinitions();
       await Promise.all([
         this.paymentManagementDataService.loadPaymentSettings(tid),
         this.bonusManagementDataService.loadBonusSettings(tid),
-        this.scope === 'monthly'
-          ? this.monthlySettingDataService.loadListSettings(tid)
-          : this.bonusSettingDataService.loadListSettings(tid),
-        this.scope === 'monthly'
-          ? this.monthlySettingDataService.loadSettings(tid)
-          : this.bonusSettingDataService.loadSettings(tid, bonusDefinitions),
       ]);
 
       const prefix = this.scope === 'monthly' ? 'monthly' : 'bonus';
@@ -180,10 +174,10 @@ export class MonthlyPaymentCmp {
       if (this.scope === 'monthly') {
         const csv = this.monthlyListExportService.buildCsv(
           yyyyMm,
-          this.visibleColumns() as MonthlyListColumnKey[],
+          this.tableColumns() as MonthlyListColumnKey[],
           [row as MonthlyListRow],
-          this.monthlySettingDataService.importHeaders(),
-          this.paymentManagementDataService.allowanceTypeDefinitions(),
+          {},
+          allowanceDefinitions,
         );
         downloadCsvFile(`${prefix}-${yyyyMm}.csv`, csv);
         return;
@@ -191,9 +185,9 @@ export class MonthlyPaymentCmp {
 
       const csv = this.bonusListExportService.buildCsv(
         yyyyMm,
-        this.visibleColumns() as BonusListColumnKey[],
+        this.tableColumns() as BonusListColumnKey[],
         [row as BonusListRow],
-        this.bonusSettingDataService.importHeaders(),
+        {},
         bonusDefinitions,
       );
       downloadCsvFile(`${prefix}-${yyyyMm}.csv`, csv);
@@ -243,9 +237,6 @@ export class MonthlyPaymentCmp {
         await Promise.all([
           this.paymentManagementDataService.loadPaymentSettings(tid),
           this.bonusManagementDataService.loadBonusSettings(tid),
-          scope === 'monthly'
-            ? this.monthlySettingDataService.loadListSettings(tid)
-            : this.bonusSettingDataService.loadListSettings(tid),
         ]);
         if (token !== this.loadToken) {
           return;

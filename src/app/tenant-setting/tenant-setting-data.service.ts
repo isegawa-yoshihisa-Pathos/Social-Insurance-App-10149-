@@ -3,6 +3,8 @@ import { CurrentTenantService } from '../current-tenant.service';
 import { ProfileCompletionService } from '../profile-completion.service';
 import { AuthService } from '../auth.service';
 import { TenantsDataService } from '../tenants-data.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
+import { serializeAuditValue } from '../../../shared/audit-log.util';
 import {
   TenantFormData,
   createEmptyTenantForm,
@@ -17,6 +19,7 @@ export class TenantSettingDataService {
   private readonly profileCompletionService = inject(ProfileCompletionService);
   private readonly authService = inject(AuthService);
   private readonly tenantsDataService = inject(TenantsDataService);
+  private readonly auditLog = inject(AuditLogService);
 
   form: TenantFormData = createEmptyTenantForm();
   tid = '';
@@ -69,7 +72,17 @@ export class TenantSettingDataService {
 
     this.form.phoneNumber = parsePhoneNumberRaw(this.form.phoneNumberRaw);
     const payload = tenantFormToSavePayload(this.form);
+    const beforeDoc = await this.tenantsDataService.loadTenant(this.tid);
     await this.tenantsDataService.saveTenant(this.tid, payload);
+
+    await this.auditLog.recordUpdate({
+      tid: this.tid,
+      category: 'tenant.profile',
+      summary: '事業所情報を更新',
+      target: this.auditLog.tenantTarget(this.tid, this.form.tenantName),
+      before: serializeAuditValue(beforeDoc) as Record<string, unknown>,
+      after: serializeAuditValue(payload) as Record<string, unknown>,
+    });
     await this.profileCompletionService.refresh(uid, this.tid);
     this.profileCompletionService.updateFromTenantForm(this.form);
   }
