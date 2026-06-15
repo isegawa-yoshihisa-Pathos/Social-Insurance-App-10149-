@@ -268,6 +268,41 @@
         <div class="comment-text">※半角数字4桁-6桁で入力してください。</div>
     </div>
     <div class="field-container">
+        <label class="label-name">二以上事業所勤務：</label>
+        <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+            <mat-label>二以上事業所勤務の有無</mat-label>
+            <mat-select
+                [(ngModel)]="multiWorkplaceForm.hasMultipleWorkplaces"
+                name="hasMultipleWorkplaces"
+                (selectionChange)="dataService.onMultipleWorkplacesChange($event.value)"
+            >
+                <mat-option [value]="false">なし</mat-option>
+                <mat-option [value]="true">あり</mat-option>
+            </mat-select>
+        </mat-form-field>
+    </div>
+    @if (multiWorkplaceForm.hasMultipleWorkplaces) {
+        <div class="field-container">
+            <label class="label-name">この事業所の区分：</label>
+            <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                <mat-label>事業所区分</mat-label>
+                <mat-select
+                    [(ngModel)]="multiWorkplaceForm.workplaceSelection"
+                    name="workplaceSelection"
+                    (selectionChange)="dataService.onWorkplaceSelectionChange($event.value)"
+                >
+                    <mat-option value="selected">{{ workplaceSelectionLabels.selected }}</mat-option>
+                    <mat-option value="non_selected">{{ workplaceSelectionLabels.non_selected }}</mat-option>
+                </mat-select>
+            </mat-form-field>
+            @if (!canManageDependents) {
+                <div class="comment-text">
+                    ※非選択事業所では扶養家族の設定はできません。扶養の届出は選択事業所で行ってください。
+                </div>
+            }
+        </div>
+    }
+    <div class="field-container">
         <label class="label-name">
             扶養家族の有無：
         </label>
@@ -276,6 +311,7 @@
             <mat-select 
                 [(ngModel)]="employeeForm.hasDependents" 
                 name="hasDependents"
+                [disabled]="!canManageDependents"
                 (selectionChange)="onHasDependentsChange($event.value)"
             >
                 <mat-option [value]="true">有</mat-option>
@@ -283,7 +319,7 @@
             </mat-select>
         </mat-form-field>
     </div>
-    @if (employeeForm.hasDependents) {
+    @if (canManageDependents && employeeForm.hasDependents) {
         @for (dependent of employeeForm.dependentsInfo; track $index) {
             <div class="field-container">
                 <label class="label-name">扶養家族(#{{ $index + 1 }})本名：</label>
@@ -380,7 +416,7 @@
 </form>
 <div class="actions">
     <div class="comment-text">
-        入力を変更したら「保存」ボタンを押してください。
+        入力を変更したら「申請する」ボタンを押してください。二以上事業所の設定は即時反映され、基本情報・扶養家族は管理者承認後に反映されます。
     </div>
     <button
         matButton="outlined"
@@ -400,7 +436,7 @@
         @if (submitBusy) {
             <mat-spinner diameter="20"></mat-spinner>
         } @else {
-            保存
+            申請する
         }
     </button>
 </div>

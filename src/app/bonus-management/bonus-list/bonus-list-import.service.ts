@@ -19,6 +19,7 @@ import { buildBonusData } from './bonus-data.util';
 import { BonusListRow } from './bonus-list-columns';
 import { BonusListDataService, EmployeeLookupEntry } from './bonus-list-data.service';
 import { resolveCsvImportLayout } from '../../csv/csv-file.util';
+import { AuditLogService } from '../../audit-log/audit-log.service';
 
 export interface BonusCsvImportOptions {
   yyyyMm: string;
@@ -46,6 +47,7 @@ export class BonusListImportService {
   private readonly bonusSettingDataService = inject(BonusSettingDataService);
   private readonly bonusManagementDataService = inject(BonusManagementDataService);
   private readonly listDataService = inject(BonusListDataService);
+  private readonly auditLog = inject(AuditLogService);
 
   async importFromCsv(
     tid: string,
@@ -163,6 +165,15 @@ export class BonusListImportService {
     this.listDataService.touchPeriodInBatch(batch, tid, targetYyyyMm);
 
     await batch.commit();
+
+    await this.auditLog.recordCreate({
+      tid,
+      category: 'bonus.import',
+      summary: '賞与CSVをインポート',
+      target: this.auditLog.bonusTarget(targetYyyyMm),
+      metadata: { ...result, fileName: file.name },
+    });
+
     return result;
   }
 

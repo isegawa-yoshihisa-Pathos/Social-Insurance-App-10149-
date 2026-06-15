@@ -1,5 +1,16 @@
 import { Timestamp } from '@angular/fire/firestore';
 import { EmployeePersonalInfo } from './personal-document';
+import type { MultiWorkplaceSettings } from '../../shared/social-insurance/multi-workplace/multi-workplace-settings';
+
+export type { MultiWorkplaceSettings, WorkplaceSelectionType } from '../../shared/social-insurance/multi-workplace/multi-workplace-settings';
+export {
+  canManageDependents,
+  createDefaultMultiWorkplaceSettings,
+  hasMultipleWorkplacesEnabled,
+  isNonSelectedWorkplace,
+  normalizeMultiWorkplaceSettings,
+  WORKPLACE_SELECTION_LABELS,
+} from '../../shared/social-insurance/multi-workplace/multi-workplace-settings';
 
 export interface EmployeeDocument {
   uid: string;
@@ -7,6 +18,7 @@ export interface EmployeeDocument {
   employeeEmployInfo: EmployeeEmployInfo;
   leaveInfo?: EmployeeLeaveRecord[];
   role: 'admin' | 'member';
+  multiWorkplaceSettings?: MultiWorkplaceSettings;
   updatedAt?: Timestamp;
 }
 

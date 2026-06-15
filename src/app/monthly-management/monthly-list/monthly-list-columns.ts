@@ -53,7 +53,7 @@ const STATIC_COLUMN_LABELS: Record<BaseMonthlyListColumnKey, string> = {
   bonusRelatedRemuneration: '賞与にかかる報酬',
   fixedWage: '固定的賃金',
   variableWage: '非固定的賃金',
-  retroactivePay: '遡及清算',
+  retroactivePay: '遡及支払',
 };
 
 export function getAllMonthlyListColumnKeys(
@@ -84,7 +84,7 @@ export function getOptionalMonthlyListColumns(
     { key: 'fixedWage', label: '固定的賃金' },
     { key: 'variableWage', label: '非固定的賃金' },
     ...allowanceColumns,
-    { key: 'retroactivePay', label: '遡及清算' },
+    { key: 'retroactivePay', label: '遡及支払' },
     ...getOptionalPremiumColumns(),
   ];
 }

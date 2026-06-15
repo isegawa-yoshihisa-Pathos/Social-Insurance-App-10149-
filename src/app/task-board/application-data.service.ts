@@ -30,8 +30,15 @@ import {
   AllowanceApplicationFormData,
   validateAllowanceApplicationForm,
 } from './allowance-application.util';
+import { buildPersonalInfoApplicationDetails } from './personal-info-application.util';
+import { employeeFormToSavePayload, type EmployeeFormData, type PersonalFormData } from '../personal-form-data';
 import { AllowanceTypeDefinition } from '../payment-document';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import {
+  canManageDependents,
+  createDefaultMultiWorkplaceSettings,
+  normalizeMultiWorkplaceSettings,
+} from '../../../shared/social-insurance/multi-workplace/multi-workplace-settings';
 
 export type PendingApplication = { id: string } & ApplicationDocument;
 export type ApplicationListItem = PendingApplication;
@@ -158,6 +165,260 @@ export class ApplicationDataService {
 
   async listAllowanceApplications(tid: string): Promise<PendingApplication[]> {
     return this.listApplicationsByType(tid, 'allowance');
+  }
+
+  async listPersonalInfoApplications(tid: string): Promise<PendingApplication[]> {
+    return this.listApplicationsByType(tid, 'personal_info');
+  }
+
+  async listDependentsApplications(tid: string): Promise<PendingApplication[]> {
+    return this.listApplicationsByType(tid, 'dependents');
+  }
+
+  async submitPersonalInfoApplication(
+    personal: PersonalFormData,
+    employee: EmployeeFormData,
+    multipleAffiliations: boolean,
+  ): Promise<void> {
+    const tid = this.tenant.currentTid();
+    const uid = this.authService.uid();
+    if (!tid || !uid) throw new Error('申請に必要な情報が不足しています。');
+
+    const employeeMeta = await this.loadCurrentEmployee(tid, uid);
+    if (!employeeMeta) throw new Error('従業員情報が見つかりません。');
+
+    await this.assertNoPendingApplication(tid, employeeMeta.eid, 'personal_info');
+
+    const details = buildPersonalInfoApplicationDetails(
+      personal,
+      employee,
+      multipleAffiliations,
+    );
+
+    await addDoc(this.applicationsRef(tid), {
+      eid: employeeMeta.eid,
+      employeeId: employeeMeta.employeeId,
+      displayName: employeeMeta.displayName,
+      type: 'personal_info',
+      status: 'pending',
+      personalInfoDetails: details,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    await this.auditLog.recordCreate({
+      tid,
+      category: 'application.personal_info',
+      summary: '基本情報変更申請を提出',
+      target: this.auditLog.employeeTarget(
+        employeeMeta.eid,
+        employeeMeta.displayName,
+        employeeMeta.employeeId,
+      ),
+    });
+  }
+
+  async submitDependentsApplication(employee: EmployeeFormData): Promise<void> {
+    const tid = this.tenant.currentTid();
+    const uid = this.authService.uid();
+    if (!tid || !uid) throw new Error('申請に必要な情報が不足しています。');
+
+    const employeeMeta = await this.loadCurrentEmployee(tid, uid);
+    if (!employeeMeta) throw new Error('従業員情報が見つかりません。');
+
+    const employeeSnap = await getDoc(
+      doc(this.firestore, 'tenants', tid, 'employees', employeeMeta.eid),
+    );
+    const employeeDoc = employeeSnap.data() as Partial<EmployeeDocument> | undefined;
+    const multiWorkplace = normalizeMultiWorkplaceSettings({
+      ...createDefaultMultiWorkplaceSettings(),
+      ...employeeDoc?.multiWorkplaceSettings,
+    });
+    if (!canManageDependents(multiWorkplace)) {
+      throw new Error('選択事業所以外では扶養家族の変更申請はできません。');
+    }
+
+    await this.assertNoPendingApplication(tid, employeeMeta.eid, 'dependents');
+
+    const personalPayload = employeeFormToSavePayload(employee);
+
+    await addDoc(this.applicationsRef(tid), {
+      eid: employeeMeta.eid,
+      employeeId: employeeMeta.employeeId,
+      displayName: employeeMeta.displayName,
+      type: 'dependents',
+      status: 'pending',
+      dependentsDetails: {
+        hasDependents: personalPayload.hasDependents,
+        dependentsInfo: personalPayload.dependentsInfo,
+      },
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    await this.auditLog.recordCreate({
+      tid,
+      category: 'application.dependents',
+      summary: '扶養家族変更申請を提出',
+      target: this.auditLog.employeeTarget(
+        employeeMeta.eid,
+        employeeMeta.displayName,
+        employeeMeta.employeeId,
+      ),
+      metadata: {
+        hasDependents: personalPayload.hasDependents,
+        dependentsCount: personalPayload.dependentsInfo?.length ?? 0,
+      },
+    });
+  }
+
+  async approvePersonalInfoApplication(tid: string, applicationId: string): Promise<void> {
+    const applicationRef = doc(this.applicationsRef(tid), applicationId);
+    const applicationSnap = await getDoc(applicationRef);
+    if (!applicationSnap.exists()) throw new Error('申請が見つかりません。');
+
+    const application = applicationSnap.data() as ApplicationDocument;
+    if (application.type !== 'personal_info' || application.status !== 'pending') {
+      throw new Error('承認できない申請です。');
+    }
+    if (!application.personalInfoDetails) {
+      throw new Error('基本情報申請の内容がありません。');
+    }
+
+    const employeeRef = doc(
+      this.firestore,
+      'tenants',
+      tid,
+      'employees',
+      application.eid,
+    );
+    const employeeSnap = await getDoc(employeeRef);
+    if (!employeeSnap.exists()) throw new Error('従業員が見つかりません。');
+
+    const employee = employeeSnap.data() as EmployeeDocument;
+    const uid = employee.uid;
+    if (!uid) throw new Error('従業員のアカウント情報が見つかりません。');
+
+    const details = application.personalInfoDetails;
+    const batch = writeBatch(this.firestore);
+    const accountRef = doc(this.firestore, 'accounts', uid);
+
+    batch.update(accountRef, {
+      personalInfo: details.accountPersonalInfo,
+      updatedAt: serverTimestamp(),
+    });
+
+    batch.update(employeeRef, {
+      employeePersonalInfo: details.employeePersonalInfo,
+      updatedAt: serverTimestamp(),
+    });
+
+    batch.update(doc(this.firestore, 'affiliations', `${uid}_${tid}`), {
+      displayName: details.affiliationDisplayName,
+      updatedAt: serverTimestamp(),
+    });
+
+    const sharedUpdate = {
+      'employeePersonalInfo.realName': details.employeePersonalInfo.realName,
+      'employeePersonalInfo.myNumber': details.employeePersonalInfo.myNumber,
+      'employeePersonalInfo.basicPensionNumber': details.employeePersonalInfo.basicPensionNumber,
+      'employeePersonalInfo.birthDate': details.employeePersonalInfo.birthDate,
+      updatedAt: serverTimestamp(),
+    };
+
+    const accountSnap = await getDoc(accountRef);
+    const affiliations = accountSnap.data()?.['affiliations'] as Record<string, string> | undefined;
+    if (affiliations) {
+      for (const [affTid, affEid] of Object.entries(affiliations)) {
+        if (affTid === tid && affEid === application.eid) {
+          continue;
+        }
+        batch.update(doc(this.firestore, 'tenants', affTid, 'employees', affEid), sharedUpdate);
+      }
+    }
+
+    batch.update(applicationRef, {
+      status: 'approved',
+      updatedAt: serverTimestamp(),
+    });
+
+    await batch.commit();
+
+    await this.auditLog.record({
+      tid,
+      action: 'update',
+      category: 'application.personal_info',
+      summary: '基本情報変更申請を承認',
+      target: this.auditLog.employeeTarget(
+        application.eid,
+        application.displayName,
+        application.employeeId,
+        applicationId,
+      ),
+      metadata: { applicationId, status: 'approved' },
+    });
+  }
+
+  async approveDependentsApplication(tid: string, applicationId: string): Promise<void> {
+    const applicationRef = doc(this.applicationsRef(tid), applicationId);
+    const applicationSnap = await getDoc(applicationRef);
+    if (!applicationSnap.exists()) throw new Error('申請が見つかりません。');
+
+    const application = applicationSnap.data() as ApplicationDocument;
+    if (application.type !== 'dependents' || application.status !== 'pending') {
+      throw new Error('承認できない申請です。');
+    }
+    if (!application.dependentsDetails) {
+      throw new Error('扶養家族申請の内容がありません。');
+    }
+
+    const employeeRef = doc(
+      this.firestore,
+      'tenants',
+      tid,
+      'employees',
+      application.eid,
+    );
+    const employeeSnap = await getDoc(employeeRef);
+    if (!employeeSnap.exists()) throw new Error('従業員が見つかりません。');
+
+    const beforePersonal = employeeSnap.data()?.['employeePersonalInfo'] as
+      | Record<string, unknown>
+      | undefined;
+
+    await updateDoc(employeeRef, {
+      'employeePersonalInfo.hasDependents': application.dependentsDetails.hasDependents,
+      'employeePersonalInfo.dependentsInfo': application.dependentsDetails.dependentsInfo,
+      updatedAt: serverTimestamp(),
+    });
+
+    await updateDoc(applicationRef, {
+      status: 'approved',
+      updatedAt: serverTimestamp(),
+    });
+
+    await this.auditLog.recordUpdate({
+      tid,
+      category: 'application.dependents',
+      summary: '扶養家族変更申請を承認',
+      target: this.auditLog.employeeTarget(
+        application.eid,
+        application.displayName,
+        application.employeeId,
+        applicationId,
+      ),
+      before: beforePersonal
+        ? {
+            hasDependents: beforePersonal['hasDependents'],
+            dependentsInfo: beforePersonal['dependentsInfo'],
+          }
+        : undefined,
+      after: {
+        hasDependents: application.dependentsDetails.hasDependents,
+        dependentsInfo: application.dependentsDetails.dependentsInfo,
+      },
+      metadata: { applicationId, status: 'approved' },
+    });
   }
 
   /** @deprecated listLeaveApplications を使用 */
@@ -492,5 +753,23 @@ export class ApplicationDataService {
       employeeId: data.employeeEmployInfo?.employeeId ?? '',
       displayName: data.employeePersonalInfo?.displayName ?? '',
     };
+  }
+
+  private async assertNoPendingApplication(
+    tid: string,
+    eid: string,
+    type: ApplicationDocument['type'],
+  ): Promise<void> {
+    const snap = await getDocs(
+      query(
+        this.applicationsRef(tid),
+        where('eid', '==', eid),
+        where('type', '==', type),
+        where('status', '==', 'pending'),
+      ),
+    );
+    if (!snap.empty) {
+      throw new Error('同じ種類の未承認申請が既にあります。承認されるまでお待ちください。');
+    }
   }
 }

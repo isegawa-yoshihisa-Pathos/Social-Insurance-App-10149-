@@ -5,12 +5,14 @@ import {
   DEFAULT_BONUS_TYPE_DEFINITIONS,
 } from '../bonus-document';
 import { normalizeBonusTypeDefinitions as normalizeBonusTypes } from './bonus-list/bonus-type.util';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class BonusManagementDataService {
   private readonly firestore = inject(Firestore);
+  private readonly auditLog = inject(AuditLogService);
 
   readonly bonusTypeDefinitions = signal<BonusTypeDefinition[]>([
     ...DEFAULT_BONUS_TYPE_DEFINITIONS,
@@ -34,6 +36,14 @@ export class BonusManagementDataService {
     await setDoc(settingsRef, {
       types: this.normalizeBonusTypeDefinitions(this.bonusTypeDefinitions()),
       updatedAt: serverTimestamp(),
+    });
+
+    await this.auditLog.recordUpdate({
+      tid,
+      category: 'settings.bonus_kind',
+      summary: '賞与種類設定を更新',
+      target: this.auditLog.settingsTarget('bonusSetting', '賞与種類設定'),
+      after: { types: this.bonusTypeDefinitions() },
     });
   }
 

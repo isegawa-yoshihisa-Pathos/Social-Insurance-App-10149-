@@ -169,6 +169,17 @@
     <hr class="separator grid-full-width">
 
     <div class="field-container">
+        <label class="label-name">給与支給月：</label>
+        <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+            <mat-label>給与支給月</mat-label>
+            <mat-select [(ngModel)]="form.socialInsuranceSettings.payrollPaymentMonth">
+                <mat-option value="currentMonth">当月</mat-option>
+                <mat-option value="nextMonth">翌月</mat-option>
+            </mat-select>
+        </mat-form-field>
+        <app-help-content key="payrollPaymentMonth"></app-help-content>
+    </div>
+    <div class="field-container">
         <label class="label-name">社会保険料徴収月：</label>
         <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
             <mat-label>社会保険料徴収月</mat-label>

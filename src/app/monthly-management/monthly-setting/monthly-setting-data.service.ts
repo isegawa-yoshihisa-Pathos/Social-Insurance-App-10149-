@@ -12,6 +12,7 @@ import {
 } from '../monthly-list/monthly-list-columns';
 import { allowanceColumnKey, allowanceTypeFromColumnKey } from '../../payment-management/payment-list/allowance-display.util';
 import { PaymentManagementDataService } from '../../payment-management/payment-management-data.service';
+import { AuditLogService } from '../../audit-log/audit-log.service';
 
 export interface MonthlySettingDocument {
   importHeaders?: Partial<Record<string, string>>;
@@ -25,6 +26,7 @@ export class MonthlySettingDataService {
   private readonly firestore = inject(Firestore);
   private readonly injector = inject(EnvironmentInjector);
   private readonly paymentManagementDataService = inject(PaymentManagementDataService);
+  private readonly auditLog = inject(AuditLogService);
 
   readonly importHeaders = signal<Record<string, string>>({});
   readonly visibleColumns = signal<MonthlyListColumnKey[]>([
@@ -81,6 +83,14 @@ export class MonthlySettingDataService {
       updatedAt: serverTimestamp(),
     });
     this.listSettingsLoadedTid = tid;
+
+    await this.auditLog.recordUpdate({
+      tid,
+      category: 'settings.monthly_list',
+      summary: '月次一覧表示設定を更新',
+      target: this.auditLog.settingsTarget('monthlyListSetting', '月次一覧設定'),
+      after: { visibleColumns: this.visibleColumns() },
+    });
   }
 
   toggleOptionalColumn(key: MonthlyListColumnKey, checked: boolean): void {

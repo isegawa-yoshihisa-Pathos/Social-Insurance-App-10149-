@@ -17,6 +17,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { HelpContentCmp } from '../../help-content/help-content.cmp';
 import { InvitationsListCmp } from './invitations-list/invitations-list.cmp';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { AuditLogService } from '../../audit-log/audit-log.service';
 
 @Component({
   selector: 'app-invitations-mail',
@@ -37,6 +38,7 @@ export class InvitationsMailCmp implements OnInit{
   private readonly invitationDataService = inject(InvitationDataService);
   private readonly functionsService = inject(FunctionsService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly auditLog = inject(AuditLogService);
 
   async ngOnInit(): Promise<void> {
     const tid = this.currentTenantService.currentTid();
@@ -80,6 +82,15 @@ export class InvitationsMailCmp implements OnInit{
         tid: this.tid,
         items: validInvitations,
       });
+
+      await this.auditLog.recordCreate({
+        tid: this.tid,
+        category: 'invitation.create',
+        summary: '招待メール送信を開始',
+        target: this.auditLog.settingsTarget('invitations', '招待'),
+        metadata: { total, items: validInvitations },
+      });
+
       this.snackBar.open(
         `${total}件の招待送信を開始しました。進捗は一覧、完了は通知で確認できます。`,
         '閉じる',

@@ -48,14 +48,20 @@ export function serializeAuditValue(value: unknown): unknown {
 }
 
 function truncateSerialized(value: unknown): unknown {
+  if (value === undefined) {
+    return undefined;
+  }
   const json = JSON.stringify(value);
-  if (json.length <= MAX_SERIALIZED_LENGTH) {
+  if (json === undefined || json.length <= MAX_SERIALIZED_LENGTH) {
     return value;
   }
   return `${json.slice(0, MAX_SERIALIZED_LENGTH)}…`;
 }
 
 export function sanitizeAuditValue(field: string, value: unknown): unknown {
+  if (value === undefined) {
+    return undefined;
+  }
   const serialized = serializeAuditValue(value);
   if (isSensitiveAuditField(field)) {
     return maskSensitiveAuditValue(serialized);

@@ -51,6 +51,7 @@ export function createDefaultSocialInsuranceSettings(): SocialInsuranceSettings 
     closingDay: '',
     payrollBaseDaysStandard: 'calendarDay',
     socialInsuranceCollectionMonth: 'nextMonth',
+    payrollPaymentMonth: 'currentMonth',
     resignPremiumCollection: 'monthly',
     specificInsuranceCollectionType: 'false',
   };

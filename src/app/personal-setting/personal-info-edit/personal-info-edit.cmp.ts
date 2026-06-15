@@ -55,7 +55,7 @@ export class PersonalInfoEditCmp {
   async save(): Promise<void> {
     this.submitBusy = true;
     try {
-      await this.dataService.savePersonal();
+      await this.dataService.submitPersonalInfoApplication();
       this.routesService.redirectToPersonalSetting();
     } catch (error) {
       this.dialog.open(ErrorDialogCmp, { data: { message: mapFirebaseError(error) } });

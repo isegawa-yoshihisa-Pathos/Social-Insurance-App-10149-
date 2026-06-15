@@ -1,5 +1,6 @@
 import type { FirestoreTimestamp } from './firestore-types';
 import { EmployeePersonalInfo } from './personal-document';
+import type { MultiWorkplaceSettings } from './social-insurance/multi-workplace/multi-workplace-settings';
 
 export interface EmployeeDocument {
   uid: string;
@@ -7,8 +8,20 @@ export interface EmployeeDocument {
   employeeEmployInfo: EmployeeEmployInfo;
   leaveInfo?: EmployeeLeaveRecord[];
   role: 'admin' | 'member';
+  multiWorkplaceSettings?: MultiWorkplaceSettings;
   updatedAt?: FirestoreTimestamp;
 }
+
+export type { MultiWorkplaceSettings, WorkplaceSelectionType } from './social-insurance/multi-workplace/multi-workplace-settings';
+export {
+  canManageDependents,
+  createDefaultMultiWorkplaceSettings,
+  hasMultipleWorkplacesEnabled,
+  hasMultipleWorkplacesEnabledForEmployee,
+  isNonSelectedWorkplace,
+  normalizeMultiWorkplaceSettings,
+  WORKPLACE_SELECTION_LABELS,
+} from './social-insurance/multi-workplace/multi-workplace-settings';
 
 export interface EmployeeEmployInfo {
   employeeId: string;

@@ -41,3 +41,17 @@ export interface EmployeePersonalInfo {
   hasDependents: boolean;
   dependentsInfo: DependentInfo[];
 }
+
+export interface AccountPersonalInfo {
+  realName: RealName;
+  myNumber: string;
+  basicPensionNumber: string;
+  birthDate: FirestoreTimestamp | null;
+  phoneNumber: PhoneNumber;
+  zipcode: string;
+  address: Address;
+  updatedAt?: FirestoreTimestamp;
+}
+
+export type AccountPersonalInfoSavePayload = Omit<AccountPersonalInfo, 'updatedAt'>;
+export type EmployeePersonalInfoSavePayload = Omit<EmployeePersonalInfo, 'updatedAt'>;

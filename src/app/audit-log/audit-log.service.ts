@@ -37,23 +37,25 @@ export class AuditLogService {
   async record(input: AuditLogRecordInput): Promise<void> {
     try {
       const actor = await this.resolveActor();
-      const payload = omitUndefinedFields({
-        actorUid: actor.uid,
-        actorDisplayName: actor.displayName,
-        actorEmail: actor.email,
-        targetKind: input.target.kind,
-        targetEid: input.target.eid,
-        targetDisplayName: input.target.displayName,
-        targetEmployeeId: input.target.employeeId,
-        targetResourceId: input.target.resourceId,
-        targetLabel: input.target.label,
-        action: input.action,
-        category: input.category,
-        summary: input.summary,
-        changes: input.changes,
-        metadata: input.metadata,
+      const payload = {
+        ...omitUndefinedFields({
+          actorUid: actor.uid,
+          actorDisplayName: actor.displayName,
+          actorEmail: actor.email,
+          targetKind: input.target.kind,
+          targetEid: input.target.eid,
+          targetDisplayName: input.target.displayName,
+          targetEmployeeId: input.target.employeeId,
+          targetResourceId: input.target.resourceId,
+          targetLabel: input.target.label,
+          action: input.action,
+          category: input.category,
+          summary: input.summary,
+          changes: input.changes,
+          metadata: input.metadata,
+        }),
         createdAt: serverTimestamp(),
-      });
+      };
 
       await addDoc(collection(this.firestore, 'tenants', input.tid, 'auditLogs'), payload);
     } catch (error) {
@@ -74,16 +76,20 @@ export class AuditLogService {
     fields?: string[];
     metadata?: Record<string, unknown>;
   }): Promise<void> {
-    const changes = buildAuditLogChanges(input.before, input.after, input.fields);
-    await this.record({
-      tid: input.tid,
-      action: 'update',
-      category: input.category,
-      summary: input.summary,
-      target: input.target,
-      changes: changes.length > 0 ? changes : undefined,
-      metadata: input.metadata,
-    });
+    try {
+      const changes = buildAuditLogChanges(input.before, input.after, input.fields);
+      await this.record({
+        tid: input.tid,
+        action: 'update',
+        category: input.category,
+        summary: input.summary,
+        target: input.target,
+        changes,
+        metadata: input.metadata,
+      });
+    } catch (error) {
+      console.error('[AuditLogService] failed to record audit log', { input, error });
+    }
   }
 
   async recordCreate(input: {
@@ -94,18 +100,22 @@ export class AuditLogService {
     after?: Record<string, unknown> | null;
     metadata?: Record<string, unknown>;
   }): Promise<void> {
-    const changes: AuditLogChange[] | undefined = input.after
-      ? buildAuditLogChanges({}, input.after)
-      : undefined;
-    await this.record({
-      tid: input.tid,
-      action: 'create',
-      category: input.category,
-      summary: input.summary,
-      target: input.target,
-      changes,
-      metadata: input.metadata,
-    });
+    try {
+      const changes: AuditLogChange[] | undefined = input.after
+        ? buildAuditLogChanges({}, input.after)
+        : undefined;
+      await this.record({
+        tid: input.tid,
+        action: 'create',
+        category: input.category,
+        summary: input.summary,
+        target: input.target,
+        changes,
+        metadata: input.metadata,
+      });
+    } catch (error) {
+      console.error('[AuditLogService] failed to record audit log', { input, error });
+    }
   }
 
   async recordDelete(input: {
@@ -116,18 +126,22 @@ export class AuditLogService {
     before?: Record<string, unknown> | null;
     metadata?: Record<string, unknown>;
   }): Promise<void> {
-    const changes: AuditLogChange[] | undefined = input.before
-      ? buildAuditLogChanges(input.before, {})
-      : undefined;
-    await this.record({
-      tid: input.tid,
-      action: 'delete',
-      category: input.category,
-      summary: input.summary,
-      target: input.target,
-      changes,
-      metadata: input.metadata,
-    });
+    try {
+      const changes: AuditLogChange[] | undefined = input.before
+        ? buildAuditLogChanges(input.before, {})
+        : undefined;
+      await this.record({
+        tid: input.tid,
+        action: 'delete',
+        category: input.category,
+        summary: input.summary,
+        target: input.target,
+        changes,
+        metadata: input.metadata,
+      });
+    } catch (error) {
+      console.error('[AuditLogService] failed to record audit log', { input, error });
+    }
   }
 
   employeeTarget(
@@ -152,6 +166,30 @@ export class AuditLogService {
       kind: 'tenant',
       resourceId: tid,
       label: tenantName,
+    };
+  }
+
+  monthlyTarget(yyyyMm: string, label?: string): AuditLogTarget {
+    return {
+      kind: 'monthly',
+      resourceId: yyyyMm,
+      label: label ?? yyyyMm,
+    };
+  }
+
+  bonusTarget(yyyyMm: string, label?: string): AuditLogTarget {
+    return {
+      kind: 'bonus',
+      resourceId: yyyyMm,
+      label: label ?? yyyyMm,
+    };
+  }
+
+  settingsTarget(settingId: string, label?: string): AuditLogTarget {
+    return {
+      kind: 'settings',
+      resourceId: settingId,
+      label,
     };
   }
 

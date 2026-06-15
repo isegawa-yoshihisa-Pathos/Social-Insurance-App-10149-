@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Firestore, collection, doc, getDoc, getDocs, serverTimestamp, setDoc } from '@angular/fire/firestore';
 import { StandardBonusDocument } from './social-insurance-document';
+import { AuditLogService } from '../../audit-log/audit-log.service';
 
 export type StandardBonusSavePayload = Omit<
   StandardBonusDocument,
@@ -15,6 +16,7 @@ export interface StandardBonusListItem {
 @Injectable({ providedIn: 'root' })
 export class StandardBonusDataService {
   private readonly firestore = inject(Firestore);
+  private readonly auditLog = inject(AuditLogService);
 
   private subcollection(tid: string, eid: string) {
     return collection(
@@ -67,6 +69,15 @@ export class StandardBonusDataService {
         ? (existing.data() as StandardBonusDocument).createdAt
         : serverTimestamp(),
       updatedAt: serverTimestamp(),
+    });
+
+    await this.auditLog.record({
+      tid,
+      action: existing.exists() ? 'update' : 'create',
+      category: 'standard_bonus',
+      summary: existing.exists() ? '標準賞与額を更新' : '標準賞与額を作成',
+      target: this.auditLog.employeeTarget(eid, '', undefined, yyyyMm),
+      metadata: { source: payload.source },
     });
   }
 }

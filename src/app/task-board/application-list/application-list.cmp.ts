@@ -56,6 +56,23 @@ export class ApplicationListCmp implements OnInit {
     return status === 'pending' ? '未承認' : status === 'approved' ? '承認' : '却下';
   }
 
+  applicationTypeLabel(application: ApplicationListItem): string {
+    switch (application.type) {
+      case 'leave':
+        return '休暇申請';
+      case 'resign':
+        return '退職申請';
+      case 'allowance':
+        return '諸手当申請';
+      case 'personal_info':
+        return '基本情報変更申請';
+      case 'dependents':
+        return '扶養家族変更申請';
+      default:
+        return '申請';
+    }
+  }
+
   private async reload(): Promise<void> {
     const tid = this.tenant.currentTid();
     if (!tid) return;

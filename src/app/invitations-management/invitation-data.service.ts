@@ -1,5 +1,6 @@
 import { EnvironmentInjector, inject, Injectable, runInInjectionContext, signal } from '@angular/core';
 import { doc, Firestore, getDoc, Timestamp, collection, query, orderBy, onSnapshot, Unsubscribe, getDocs, where, writeBatch } from '@angular/fire/firestore';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 export interface InvitationData {
   email: string;
@@ -46,6 +47,7 @@ export const DEFAULT_INVITATION_TEMPLATE_TEXT = `{name} 様
 export class InvitationDataService {
   private readonly firestore = inject(Firestore);
   private readonly injector = inject(EnvironmentInjector);
+  private readonly auditLog = inject(AuditLogService);
 
   readonly nameHeader = signal<string>(DEFAULT_INVITATION_NAME_HEADER);
   readonly emailHeader = signal<string>(DEFAULT_INVITATION_EMAIL_HEADER);
@@ -122,6 +124,14 @@ export class InvitationDataService {
     try {
       await batch.commit();
       this.invitationList.update((list) => list.filter((item) => !ids.includes(item.id)));
+
+      await this.auditLog.recordDelete({
+        tid,
+        category: 'invitation',
+        summary: '招待を削除',
+        target: this.auditLog.settingsTarget('invitations', '招待'),
+        metadata: { deletedCount: ids.length, ids },
+      });
     } catch (error) {
       console.error(error);
       throw new Error('招待を削除できませんでした。');

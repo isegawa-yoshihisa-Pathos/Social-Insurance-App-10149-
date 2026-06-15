@@ -6,12 +6,6 @@
   border: none;
   background: none;
   cursor: pointer;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  color: #999;
-  transition: color 0.2s;
-  &:hover { color: #666; }
 }
 
 .balloon-container {

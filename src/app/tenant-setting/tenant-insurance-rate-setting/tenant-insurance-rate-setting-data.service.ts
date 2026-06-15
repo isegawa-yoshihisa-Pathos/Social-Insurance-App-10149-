@@ -8,6 +8,7 @@ import { buildCombinationInsuranceRatePayload, buildOtherCombinationInsuranceRat
 import { determineRateSource } from './determine-rate-source';
 import { resolvePrefectureCodeFromAddress } from './resolve-prefecture-from-address';
 import { ZipcodeToAddressService } from '../../zipcode-to-address.service';
+import { AuditLogService } from '../../audit-log/audit-log.service';
 
 export interface InsuranceRateEditForm {
     effectiveFrom: string;
@@ -39,6 +40,7 @@ export class TenantInsuranceRateSettingDataService {
     private readonly rateData = inject(InsuranceRateDataService);
     private readonly tenantSetting = inject(TenantSettingDataService);
     private readonly zipcodeToAddressService = inject(ZipcodeToAddressService);
+    private readonly auditLog = inject(AuditLogService);
 
     readonly rates = signal<InsuranceRateListItem[]>([]);
     readonly submitBusy = signal(false);
@@ -153,6 +155,14 @@ export class TenantInsuranceRateSettingDataService {
         try {
             await this.rateData.addRate(tid, payload);
             await this.loadRates();
+
+            await this.auditLog.recordCreate({
+                tid,
+                category: 'settings.insurance_rate',
+                summary: '保険料率を追加',
+                target: this.auditLog.settingsTarget(payload.effectiveFrom, payload.label),
+                after: payload as unknown as Record<string, unknown>,
+            });
         } finally {
             this.submitBusy.set(false);
         }

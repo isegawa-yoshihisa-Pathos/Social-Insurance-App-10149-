@@ -36,6 +36,7 @@ import {
   type StandardBonusSavePayload,
 } from './repos';
 import { skipBonusPremiumCalculationIfResigned } from './premium-calculation-skip';
+import { ensureMultiWorkplaceManualPremiumAlert } from './multi-workplace-premium-alert';
 
 interface CalculationContext {
   employee: EmployeeDocument;
@@ -126,6 +127,12 @@ export async function calculateBonusEmployee(
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       }),
     );
+
+  await ensureMultiWorkplaceManualPremiumAlert(db, tid, eid, ctx.employee, {
+    trigger: 'bonus',
+    yyyyMm,
+    employeeDisplayName: ctx.employee.employeePersonalInfo?.displayName,
+  });
 }
 
 async function resolveStandardBonus(

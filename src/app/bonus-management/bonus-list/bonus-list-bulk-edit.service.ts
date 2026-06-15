@@ -13,6 +13,7 @@ import { bonusTypeFromColumnKey } from './bonus-display.util';
 import { BulkEditableColumn, BulkEditTarget, BulkEditValue } from './bonus-bulk-edit.types';
 import { BonusAmountMap } from '../../bonus-document';
 import { BonusListDataService } from './bonus-list-data.service';
+import { AuditLogService } from '../../audit-log/audit-log.service';
 
 @Injectable({
   providedIn: 'root',
@@ -20,6 +21,7 @@ import { BonusListDataService } from './bonus-list-data.service';
 export class BonusListBulkEditService {
   private readonly firestore = inject(Firestore);
   private readonly listDataService = inject(BonusListDataService);
+  private readonly auditLog = inject(AuditLogService);
 
   async applyBulkEdit(
     tid: string,
@@ -56,6 +58,18 @@ export class BonusListBulkEditService {
     this.listDataService.touchPeriodInBatch(batch, tid, yyyyMm);
 
     await batch.commit();
+
+    await this.auditLog.recordUpdate({
+      tid,
+      category: 'bonus.bulk_edit',
+      summary: '賞与一括編集を適用',
+      target: this.auditLog.bonusTarget(yyyyMm),
+      metadata: {
+        column,
+        targetCount: targets.length,
+        value,
+      },
+    });
   }
 
   private buildBonusUpdatePayload(

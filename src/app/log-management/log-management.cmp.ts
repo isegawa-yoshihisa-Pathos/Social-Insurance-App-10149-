@@ -74,4 +74,8 @@ export class LogManagementCmp implements OnInit {
   hasChanges(item: AuditLogListItem): boolean {
     return (item.doc.changes?.length ?? 0) > 0;
   }
+
+  formatChangeField(field: string): string {
+    return this.logDataService.formatChangeField(field);
+  }
 }

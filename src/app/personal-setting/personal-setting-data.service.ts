@@ -4,14 +4,13 @@ import {
   doc,
   getDoc,
   serverTimestamp,
+  updateDoc,
   writeBatch,
   WriteBatch,
 } from '@angular/fire/firestore';
 import { CurrentTenantService } from '../current-tenant.service';
 import { ProfileCompletionService } from '../profile-completion.service';
 import {
-  EmployeeFormData,
-  PersonalFormData,
   accountPersonalInfoToForm,
   buildEmployeePersonalInfoSavePayload,
   buildSingleAffiliationPersonalInfoSavePayload,
@@ -22,11 +21,21 @@ import {
   personalFormToSavePayload,
   reconcileSharedPersonalFields,
   sharedPersonalFieldsToFirestore,
+  type EmployeeFormData,
+  type PersonalFormData,
 } from '../personal-form-data';
 import { AuthService } from '../auth.service';
 import { EmployeeDocument } from '../employee-document';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { serializeAuditValue } from '../../../shared/audit-log.util';
+import { ApplicationDataService } from '../task-board/application-data.service';
+import {
+  createDefaultMultiWorkplaceSettings,
+  canManageDependents,
+  isNonSelectedWorkplace,
+  normalizeMultiWorkplaceSettings,
+  type MultiWorkplaceSettings,
+} from '../../../shared/social-insurance/multi-workplace/multi-workplace-settings';
 
 @Injectable({ providedIn: 'root' })
 export class PersonalSettingDataService {
@@ -35,9 +44,11 @@ export class PersonalSettingDataService {
   private readonly profileCompletionService = inject(ProfileCompletionService);
   private readonly authService = inject(AuthService);
   private readonly auditLog = inject(AuditLogService);
+  private readonly applicationDataService = inject(ApplicationDataService);
 
   personalForm: PersonalFormData = createEmptyPersonalForm();
   employeeForm: EmployeeFormData = createEmptyEmployeeForm();
+  multiWorkplaceForm: MultiWorkplaceSettings = createDefaultMultiWorkplaceSettings();
   tid = '';
   loading = false;
   loaded = false;
@@ -49,6 +60,7 @@ export class PersonalSettingDataService {
   private reset(): void {
     this.personalForm = createEmptyPersonalForm();
     this.employeeForm = createEmptyEmployeeForm();
+    this.multiWorkplaceForm = createDefaultMultiWorkplaceSettings();
     this.tid = '';
     this.loading = false;
     this.loaded = false;
@@ -77,6 +89,14 @@ export class PersonalSettingDataService {
   }
   get isEmployeePhoneNumberMissing(): boolean { return !this.employeeForm.phoneNumberRaw?.trim(); }
 
+  get canManageDependents(): boolean {
+    return canManageDependents(this.multiWorkplaceForm);
+  }
+
+  get isNonSelectedWorkplace(): boolean {
+    return isNonSelectedWorkplace(this.multiWorkplaceForm);
+  }
+
 
   async loadAll(): Promise<void> {
     if (this.loaded) return;
@@ -99,6 +119,10 @@ export class PersonalSettingDataService {
         );
         const employee = employeeSnap.data() as Partial<EmployeeDocument> | undefined;
         this.employeeForm = employeePersonalInfoToForm(employee?.employeePersonalInfo);
+        this.multiWorkplaceForm = {
+          ...createDefaultMultiWorkplaceSettings(),
+          ...employee?.multiWorkplaceSettings,
+        };
       }
 
       reconcileSharedPersonalFields(this.personalForm, this.employeeForm);
@@ -115,6 +139,54 @@ export class PersonalSettingDataService {
   async reloadForTenantChange(): Promise<void> {
     this.loaded = false;
     await this.loadAll();
+  }
+
+  async submitPersonalInfoApplication(): Promise<void> {
+    copySharedPersonalFieldsToEmployee(this.personalForm, this.employeeForm);
+    await this.applicationDataService.submitPersonalInfoApplication(
+      this.personalForm,
+      this.employeeForm,
+      this.multipleAffiliations(),
+    );
+  }
+
+  async submitDependentsApplication(): Promise<void> {
+    if (!this.canManageDependents) {
+      throw new Error('選択事業所以外では扶養家族の変更申請はできません。');
+    }
+    copySharedPersonalFieldsToEmployee(this.personalForm, this.employeeForm);
+    this.applyMultiWorkplaceDependentsRestriction();
+    await this.applicationDataService.submitDependentsApplication(this.employeeForm);
+  }
+
+  async saveMultiWorkplaceSettings(): Promise<void> {
+    const uid = this.authService.uid();
+    if (!uid) throw new Error('ユーザーが見つかりません。');
+    const tid = this.tid || (await this.resolveCurrentTid(uid));
+    const accountSnap = await getDoc(doc(this.firestore, 'accounts', uid));
+    if (!accountSnap.exists()) throw new Error('アカウント情報が見つかりません。');
+    const eid = accountSnap.data()?.['affiliations']?.[tid];
+    if (!eid) throw new Error('従業員情報が見つかりません。');
+
+    const normalized = normalizeMultiWorkplaceSettings(this.multiWorkplaceForm);
+    await updateDoc(doc(this.firestore, 'tenants', tid, 'employees', eid), {
+      multiWorkplaceSettings: normalized,
+      updatedAt: serverTimestamp(),
+    });
+    this.multiWorkplaceForm = normalized;
+    this.applyMultiWorkplaceDependentsRestriction();
+
+    await this.auditLog.recordUpdate({
+      tid,
+      category: 'employee.multi_workplace',
+      summary: '二以上事業所勤務設定を更新',
+      target: this.auditLog.employeeTarget(
+        eid,
+        this.employeeForm.displayName,
+        undefined,
+      ),
+      after: serializeAuditValue(normalized) as Record<string, unknown>,
+    });
   }
 
   async savePersonal(): Promise<void> {
@@ -152,6 +224,7 @@ export class PersonalSettingDataService {
       | undefined;
 
     copySharedPersonalFieldsToEmployee(this.personalForm, this.employeeForm);
+    this.applyMultiWorkplaceDependentsRestriction();
 
     const currentPersonalInfo = account['personalInfo'] ?? {};
 
@@ -168,6 +241,7 @@ export class PersonalSettingDataService {
         this.personalForm,
         this.employeeForm,
       ),
+      multiWorkplaceSettings: normalizeMultiWorkplaceSettings(this.multiWorkplaceForm),
       updatedAt: serverTimestamp(),
     });
     batch.update(doc(this.firestore, 'affiliations', `${uid}_${tid}`), {
@@ -204,6 +278,7 @@ export class PersonalSettingDataService {
       | undefined;
 
     copySharedPersonalFieldsToEmployee(this.personalForm, this.employeeForm);
+    this.applyMultiWorkplaceDependentsRestriction();
 
     const batch = writeBatch(this.firestore);
     batch.update(doc(this.firestore, 'accounts', uid), {
@@ -218,6 +293,7 @@ export class PersonalSettingDataService {
         this.personalForm,
         this.employeeForm,
       ),
+      multiWorkplaceSettings: normalizeMultiWorkplaceSettings(this.multiWorkplaceForm),
       updatedAt: serverTimestamp(),
     });
     batch.update(doc(this.firestore, 'affiliations', `${uid}_${tid}`), {
@@ -245,6 +321,33 @@ export class PersonalSettingDataService {
     this.employeeForm.phoneNumberRaw = this.personalForm.phoneNumberRaw;
     this.employeeForm.zipcode = this.personalForm.zipcode;
     this.employeeForm.address = { ...this.personalForm.address };
+  }
+
+  onMultipleWorkplacesChange(hasMultipleWorkplaces: boolean): void {
+    this.multiWorkplaceForm.hasMultipleWorkplaces = hasMultipleWorkplaces;
+    if (!hasMultipleWorkplaces) {
+      delete this.multiWorkplaceForm.workplaceSelection;
+      return;
+    }
+    if (!this.multiWorkplaceForm.workplaceSelection) {
+      this.multiWorkplaceForm.workplaceSelection = 'selected';
+    }
+  }
+
+  onWorkplaceSelectionChange(selection: MultiWorkplaceSettings['workplaceSelection']): void {
+    this.multiWorkplaceForm.workplaceSelection = selection;
+    if (selection === 'non_selected') {
+      this.employeeForm.hasDependents = false;
+      this.employeeForm.dependentsInfo = [];
+    }
+  }
+
+  private applyMultiWorkplaceDependentsRestriction(): void {
+    this.multiWorkplaceForm = normalizeMultiWorkplaceSettings(this.multiWorkplaceForm);
+    if (!this.canManageDependents) {
+      this.employeeForm.hasDependents = false;
+      this.employeeForm.dependentsInfo = [];
+    }
   }
 
   private async logEmployeePersonalUpdate(

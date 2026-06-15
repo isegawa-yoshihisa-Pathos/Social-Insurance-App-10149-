@@ -13,6 +13,7 @@ import { PaymentManagementDataService } from '../payment-management-data.service
 import { BonusManagementDataService } from '../../bonus-management/bonus-management-data.service';
 import { bonusColumnKey } from '../../bonus-management/bonus-list/bonus-display.util';
 import { BonusTypeDefinition } from '../../bonus-document';
+import { AuditLogService } from '../../audit-log/audit-log.service';
 
 export interface PaymentSettingDocument {
   types?: AllowanceTypeDefinition[];
@@ -28,6 +29,7 @@ export class PaymentSettingDataService {
   private readonly injector = inject(EnvironmentInjector);
   private readonly paymentManagementDataService = inject(PaymentManagementDataService);
   private readonly bonusManagementDataService = inject(BonusManagementDataService);
+  private readonly auditLog = inject(AuditLogService);
 
   readonly importHeaders = signal<Record<string, string>>({});
   readonly visibleColumns = signal<PaymentListColumnKey[]>([
@@ -86,6 +88,14 @@ export class PaymentSettingDataService {
       updatedAt: serverTimestamp(),
     });
     this.listSettingsLoadedTid = tid;
+
+    await this.auditLog.recordUpdate({
+      tid,
+      category: 'settings.payment_list',
+      summary: '給与一覧表示設定を更新',
+      target: this.auditLog.settingsTarget('paymentListSetting', '給与一覧設定'),
+      after: { visibleColumns: this.visibleColumns() },
+    });
   }
 
   toggleOptionalColumn(key: PaymentListColumnKey, checked: boolean): void {

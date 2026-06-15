@@ -65,6 +65,8 @@ import {
   ensureStandardZuijiApplicableAlert,
   ensureTeijiNonTargetAlert,
 } from './remuneration-admin-alert';
+import { ensureMultiWorkplaceManualPremiumAlert } from './multi-workplace-premium-alert';
+import type { MultiWorkplacePremiumAlertTrigger } from '../../../shared/social-insurance/multi-workplace/multi-workplace-alert-messages';
 
 interface CalculationContext {
   employee: EmployeeDocument;
@@ -105,6 +107,14 @@ export async function calculateMonthlyEmployee(
       eid,
       rawStandardRemuneration.effectiveFrom,
       rawStandardRemuneration,
+    );
+    await notifyMultiWorkplaceManualPremiumIfNeeded(
+      db,
+      tid,
+      eid,
+      ctx,
+      yyyyMm,
+      rawStandardRemuneration.source,
     );
   }
 
@@ -829,4 +839,36 @@ async function notifyZuijiAnnualAverageIfNeeded(
   } catch (err) {
     console.error('[zuiji-annual-average] consent review failed', { tid, eid, yyyyMm, err });
   }
+}
+
+function resolveMultiWorkplaceAlertTrigger(
+  source: StandardRemunerationSource,
+): MultiWorkplacePremiumAlertTrigger | null {
+  if (source === 'teiji') {
+    return 'teiji';
+  }
+  if (source === 'zuiji' || source === 'initial' || source === 'manual') {
+    return 'remuneration_change';
+  }
+  return null;
+}
+
+async function notifyMultiWorkplaceManualPremiumIfNeeded(
+  db: admin.firestore.Firestore,
+  tid: string,
+  eid: string,
+  ctx: CalculationContext,
+  yyyyMm: string,
+  source: StandardRemunerationSource,
+): Promise<void> {
+  const trigger = resolveMultiWorkplaceAlertTrigger(source);
+  if (!trigger) {
+    return;
+  }
+
+  await ensureMultiWorkplaceManualPremiumAlert(db, tid, eid, ctx.employee, {
+    trigger,
+    yyyyMm,
+    employeeDisplayName: ctx.employee.employeePersonalInfo?.displayName,
+  });
 }

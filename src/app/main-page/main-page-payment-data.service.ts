@@ -13,8 +13,18 @@ import { toBonusListRow } from '../bonus-management/bonus-list/bonus-list-row.ma
 import { MonthlyListRow } from '../monthly-management/monthly-list/monthly-list-columns';
 import { toMonthlyListRow } from '../monthly-management/monthly-list/monthly-list-row.mapper';
 import { BonusManagementDataService } from '../bonus-management/bonus-management-data.service';
+import { addMonths } from '../social-insurance/monthly/social-insurance-data.util';
+import {
+  buildBonusPremiumChangeReasons,
+  buildMonthlyPremiumChangeReasons,
+} from '../../../shared/social-insurance/premium/premium-change-reason';
 
 export type MainPagePaymentScope = 'monthly' | 'bonus';
+
+export interface MainPagePaymentRowResult {
+  row: MonthlyListRow | BonusListRow | null;
+  changeReasons: string[];
+}
 
 @Injectable({
   providedIn: 'root',
@@ -64,29 +74,49 @@ export class MainPagePaymentDataService {
     tid: string,
     eid: string,
     yyyyMm: string,
-    meta: { employeeId: string; displayName: string },
-  ): Promise<MonthlyListRow | null> {
+    meta: { employeeId: string; displayName: string; birthDate?: Date | null },
+  ): Promise<MainPagePaymentRowResult> {
     const snap = await getDoc(
       doc(this.firestore, 'tenants', tid, 'monthly-records', yyyyMm, 'employees', eid),
     );
     if (!snap.exists()) {
-      return null;
+      return { row: null, changeReasons: [] };
     }
 
-    const row = toMonthlyListRow(eid, snap.data() as Partial<MonthlyDocument>);
-    return {
+    const data = snap.data() as Partial<MonthlyDocument>;
+    const row = toMonthlyListRow(eid, data);
+    const enrichedRow: MonthlyListRow = {
       ...row,
       employeeId: meta.employeeId,
       displayName: meta.displayName || row.displayName,
     };
+
+    const previousYyyyMm = addMonths(yyyyMm, -1);
+    const previousSnap = await getDoc(
+      doc(this.firestore, 'tenants', tid, 'monthly-records', previousYyyyMm, 'employees', eid),
+    );
+    const previousData = previousSnap.exists()
+      ? (previousSnap.data() as Partial<MonthlyDocument>)
+      : undefined;
+
+    const changeReasons = buildMonthlyPremiumChangeReasons({
+      yyyyMm,
+      birthDate: meta.birthDate ?? null,
+      current: data.calculationSnapshot,
+      previous: previousData?.calculationSnapshot,
+      currentPremium: data.premiumData,
+      previousPremium: previousData?.premiumData,
+    });
+
+    return { row: enrichedRow, changeReasons };
   }
 
   async loadBonusRow(
     tid: string,
     eid: string,
     yyyyMm: string,
-    meta: { employeeId: string; displayName: string },
-  ): Promise<BonusListRow | null> {
+    meta: { employeeId: string; displayName: string; birthDate?: Date | null },
+  ): Promise<MainPagePaymentRowResult> {
     await this.bonusManagementDataService.loadBonusSettings(tid);
     const bonusTypeDefinitions = this.bonusManagementDataService.bonusTypeDefinitions();
 
@@ -94,15 +124,35 @@ export class MainPagePaymentDataService {
       doc(this.firestore, 'tenants', tid, 'bonus-records', yyyyMm, 'employees', eid),
     );
     if (!snap.exists()) {
-      return null;
+      return { row: null, changeReasons: [] };
     }
 
-    const row = toBonusListRow(eid, snap.data() as Partial<BonusDocument>, bonusTypeDefinitions);
-    return {
+    const data = snap.data() as Partial<BonusDocument>;
+    const row = toBonusListRow(eid, data, bonusTypeDefinitions);
+    const enrichedRow: BonusListRow = {
       ...row,
       employeeId: meta.employeeId,
       displayName: meta.displayName || row.displayName,
     };
+
+    const previousYyyyMm = addMonths(yyyyMm, -1);
+    const previousSnap = await getDoc(
+      doc(this.firestore, 'tenants', tid, 'bonus-records', previousYyyyMm, 'employees', eid),
+    );
+    const previousData = previousSnap.exists()
+      ? (previousSnap.data() as Partial<BonusDocument>)
+      : undefined;
+
+    const changeReasons = buildBonusPremiumChangeReasons({
+      yyyyMm,
+      birthDate: meta.birthDate ?? null,
+      current: data.calculationSnapshot,
+      previous: previousData?.calculationSnapshot,
+      currentPremium: data.premiumData,
+      previousPremium: previousData?.premiumData,
+    });
+
+    return { row: enrichedRow, changeReasons };
   }
 }
 

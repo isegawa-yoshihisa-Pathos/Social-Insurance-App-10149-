@@ -81,7 +81,7 @@ export function getOptionalPaymentListColumns(
     { key: 'fixedWage', label: '固定的賃金' },
     { key: 'variableWage', label: '非固定的賃金' },
     ...allowanceColumns,
-    { key: 'retroactivePay', label: '遡及清算' },
+    { key: 'retroactivePay', label: '遡及支払' },
     { key: 'bonus', label: '賞与合計' },
     ...bonusColumns,
     ...getOptionalPremiumColumns(),

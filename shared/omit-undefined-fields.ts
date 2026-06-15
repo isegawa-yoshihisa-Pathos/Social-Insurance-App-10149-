@@ -1,6 +1,17 @@
+/** Firestore FieldValue（serverTimestamp 等）をそのまま保持する */
+function isFirestoreFieldValue(value: unknown): boolean {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  return '_methodName' in value || 'methodName' in value;
+}
+
 /** Firestore に保存する前に undefined フィールドを除去する */
 export function omitUndefinedFields<T>(value: T): T {
   if (value === undefined) {
+    return value;
+  }
+  if (isFirestoreFieldValue(value)) {
     return value;
   }
   if (Array.isArray(value)) {

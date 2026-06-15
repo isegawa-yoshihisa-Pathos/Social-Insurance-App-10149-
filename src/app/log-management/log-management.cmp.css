@@ -48,12 +48,31 @@
   width: 100%;
 }
 
+.log-main-row td {
+  border-bottom-width: 0 !important;
+}
+
+.log-detail-cell {
+  padding: 0 24px !important;
+  background-color: #fafafa;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.log-detail-row {
+  height: 0;
+}
+
+.log-detail-row:not(.expanded) {
+  display: none;
+}
+
 .log-change-panel {
-  margin-top: 16px;
+  margin-top: 8px;
+  margin-bottom: 16px;
   padding: 16px;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
-  background: #fafafa;
+  background: white;
 }
 
 .log-change-panel h3 {

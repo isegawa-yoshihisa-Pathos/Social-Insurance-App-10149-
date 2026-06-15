@@ -120,7 +120,9 @@ export class ProfileCompletionService {
         form.address.address2,
         form.phoneNumberRaw,
         form.myNumber,
-      ]) || !form.birthDate
+        form.basicPensionNumber,
+      ]) || 
+      !toFormDate(form.birthDate)
     );
   }
 

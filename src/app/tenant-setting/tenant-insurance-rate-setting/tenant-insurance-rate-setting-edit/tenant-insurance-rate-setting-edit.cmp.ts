@@ -13,6 +13,7 @@ import { TenantSettingDataService } from '../../tenant-setting-data.service';
 import { buildAssociationInsuranceRatePayload, CURRENT_ASSOCIATION_RATE_TABLE } from '../../../social-insurance/insurance-rates/association';
 import { toFormDate, toYyyyMmDd } from '../../../date-utils';
 import { roundPercent, roundRate } from '../../../social-insurance/premium/rounding';
+import { HelpContentCmp } from '../../../help-content/help-content.cmp';
 
 @Component({
   selector: 'app-tenant-insurance-rate-setting-edit',
@@ -27,6 +28,7 @@ import { roundPercent, roundRate } from '../../../social-insurance/premium/round
     MatCheckboxModule,
     MatDatepickerModule,
     MatDatepickerToggle,
+    HelpContentCmp,
   ],
   templateUrl: './tenant-insurance-rate-setting-edit.cmp.html',
   styleUrl: './tenant-insurance-rate-setting-edit.cmp.css'

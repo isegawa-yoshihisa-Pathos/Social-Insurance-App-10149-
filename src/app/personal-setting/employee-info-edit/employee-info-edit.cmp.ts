@@ -15,6 +15,7 @@ import { RoutesService } from '../../routes.service';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule, MatDatepickerToggle } from '@angular/material/datepicker';
 import { CurrentTenantService } from '../../current-tenant.service';
+import { WORKPLACE_SELECTION_LABELS } from '../../employee-document';
 
 @Component({
   selector: 'app-employee-info-edit',
@@ -45,8 +46,12 @@ export class EmployeeInfoEditCmp {
     Object.entries(DEPENDENT_RELATIONSHIP_LABELS) as [DependentRelationship, string][]
   ).map(([value, label]) => ({ value, label }));
 
+  readonly workplaceSelectionLabels = WORKPLACE_SELECTION_LABELS;
+
   get employeeForm() { return this.dataService.employeeForm; }
   get personalForm() { return this.dataService.personalForm; }
+  get multiWorkplaceForm() { return this.dataService.multiWorkplaceForm; }
+  get canManageDependents() { return this.dataService.canManageDependents; }
 
   get employeeDisplayZipcode(): string {
     const z = this.employeeForm.zipcode;
@@ -93,10 +98,10 @@ export class EmployeeInfoEditCmp {
   async save(): Promise<void> {
     this.submitBusy = true;
     try {
-      if (this.currentTenantService.affiliations().length > 1) {
-        await this.dataService.saveEmployee();
-      } else {
-        await this.dataService.saveEmployeeAndPersonal();
+      await this.dataService.saveMultiWorkplaceSettings();
+      await this.dataService.submitPersonalInfoApplication();
+      if (this.canManageDependents) {
+        await this.dataService.submitDependentsApplication();
       }
       this.routesService.redirectToEmployeeSetting();
     } catch (error) {

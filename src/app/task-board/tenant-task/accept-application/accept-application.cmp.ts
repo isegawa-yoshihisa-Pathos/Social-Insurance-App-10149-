@@ -1,5 +1,4 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import {
@@ -15,10 +14,11 @@ import {
 import { formatJapaneseDate, toFormDate } from '../../../date-utils';
 import { ErrorDialogCmp, mapFirebaseError } from '../../../error-dialog/error-dialog.cmp';
 import { SuccessDialogCmp } from '../../../success-dialog/success-dialog.cmp';
+import { Format } from '../../../format-number-jp';
 
 @Component({
   selector: 'app-accept-application',
-  imports: [MatButtonModule, DecimalPipe],
+  imports: [MatButtonModule],
   templateUrl: './accept-application.cmp.html',
   styleUrl: './accept-application.cmp.css',
 })
@@ -32,8 +32,11 @@ export class AcceptApplicationCmp implements OnInit {
   allowanceApplications: PendingApplication[] = [];
   leaveApplications: PendingApplication[] = [];
   resignApplications: PendingApplication[] = [];
+  personalInfoApplications: PendingApplication[] = [];
+  dependentsApplications: PendingApplication[] = [];
   readonly leaveTypeLabel = leaveTypeLabel;
   readonly formatApplyMonthLabel = formatApplyMonthLabel;
+  readonly Format = Format;
 
   async ngOnInit(): Promise<void> {
     await this.reload();
@@ -89,6 +92,10 @@ export class AcceptApplicationCmp implements OnInit {
         await this.applicationDataService.approveLeaveApplication(tid, application.id);
       } else if (application.type === 'resign') {
         await this.applicationDataService.approveResignApplication(tid, application.id);
+      } else if (application.type === 'personal_info') {
+        await this.applicationDataService.approvePersonalInfoApplication(tid, application.id);
+      } else if (application.type === 'dependents') {
+        await this.applicationDataService.approveDependentsApplication(tid, application.id);
       } else {
         throw new Error('承認できない申請です。');
       }
@@ -144,12 +151,22 @@ export class AcceptApplicationCmp implements OnInit {
     }
   }
 
+  dependentsCount(application: PendingApplication): number {
+    return application.dependentsDetails?.dependentsInfo?.length ?? 0;
+  }
+
   private approveSuccessMessage(application: PendingApplication): string {
     if (application.type === 'allowance') {
       return '諸手当申請を承認しました。給与・手当データは別途手動で反映してください。';
     }
     if (application.type === 'resign') {
       return '退職申請を承認しました。';
+    }
+    if (application.type === 'personal_info') {
+      return '基本情報変更申請を承認しました。';
+    }
+    if (application.type === 'dependents') {
+      return '扶養家族変更申請を承認しました。';
     }
     return '休暇申請を承認しました。';
   }
@@ -161,6 +178,12 @@ export class AcceptApplicationCmp implements OnInit {
     if (application.type === 'resign') {
       return '退職申請を却下しました。';
     }
+    if (application.type === 'personal_info') {
+      return '基本情報変更申請を却下しました。';
+    }
+    if (application.type === 'dependents') {
+      return '扶養家族変更申請を却下しました。';
+    }
     return '休暇申請を却下しました。';
   }
 
@@ -170,14 +193,24 @@ export class AcceptApplicationCmp implements OnInit {
 
     this.loading = true;
     try {
-      const [allowanceApplications, leaveApplications, resignApplications] = await Promise.all([
+      const [
+        allowanceApplications,
+        leaveApplications,
+        resignApplications,
+        personalInfoApplications,
+        dependentsApplications,
+      ] = await Promise.all([
         this.applicationDataService.listAllowanceApplications(tid),
         this.applicationDataService.listLeaveApplications(tid),
         this.applicationDataService.listResignApplications(tid),
+        this.applicationDataService.listPersonalInfoApplications(tid),
+        this.applicationDataService.listDependentsApplications(tid),
       ]);
       this.allowanceApplications = allowanceApplications;
       this.leaveApplications = leaveApplications;
       this.resignApplications = resignApplications;
+      this.personalInfoApplications = personalInfoApplications;
+      this.dependentsApplications = dependentsApplications;
     } catch (error) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: mapFirebaseError(error) },

@@ -62,7 +62,7 @@ export const STATIC_MONTHLY_IMPORT_COLUMNS: MonthlyImportColumnDef[] = [
   },
   {
     key: 'retroactivePay',
-    label: '遡及清算',
+    label: '遡及支払',
     defaultHeader: 'retroactivePay',
     kind: 'number',
   },

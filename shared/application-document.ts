@@ -1,11 +1,23 @@
 import type { FirestoreTimestamp } from './firestore-types';
 import type { EmployeeLeaveType } from './employee-document';
+import type {
+  AccountPersonalInfoSavePayload,
+  DependentInfo,
+  EmployeePersonalInfoSavePayload,
+} from './personal-document';
+
+export type ApplicationType =
+  | 'allowance'
+  | 'leave'
+  | 'resign'
+  | 'personal_info'
+  | 'dependents';
 
 export interface ApplicationDocument {
   eid: string;
   employeeId: string;
   displayName: string;
-  type: 'allowance' | 'leave' | 'resign';
+  type: ApplicationType;
   status: 'pending' | 'approved' | 'rejected';
   createdAt: FirestoreTimestamp;
   updatedAt: FirestoreTimestamp;
@@ -25,5 +37,15 @@ export interface ApplicationDocument {
   resignDetails?: {
     resignAt: FirestoreTimestamp | null;
     reason: string;
+  };
+  personalInfoDetails?: {
+    multipleAffiliations: boolean;
+    accountPersonalInfo: AccountPersonalInfoSavePayload;
+    employeePersonalInfo: EmployeePersonalInfoSavePayload;
+    affiliationDisplayName: string;
+  };
+  dependentsDetails?: {
+    hasDependents: boolean;
+    dependentsInfo: DependentInfo[];
   };
 }

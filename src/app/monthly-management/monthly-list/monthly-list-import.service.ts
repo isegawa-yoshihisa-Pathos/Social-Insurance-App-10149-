@@ -20,6 +20,7 @@ import { EmployeeLookupEntry, MonthlyListDataService } from './monthly-list-data
 import { PaymentManagementDataService } from '../../payment-management/payment-management-data.service';
 import { buildPayrollWageFields } from '../../payment-management/payment-list/payroll-wage-update.util';
 import { resolveCsvImportLayout } from '../../csv/csv-file.util';
+import { AuditLogService } from '../../audit-log/audit-log.service';
 
 export interface MonthlyCsvImportOptions {
   yyyyMm: string;
@@ -48,6 +49,7 @@ export class MonthlyListImportService {
   private readonly monthlySettingDataService = inject(MonthlySettingDataService);
   private readonly paymentManagementDataService = inject(PaymentManagementDataService);
   private readonly listDataService = inject(MonthlyListDataService);
+  private readonly auditLog = inject(AuditLogService);
 
   async importFromCsv(
     tid: string,
@@ -190,6 +192,15 @@ export class MonthlyListImportService {
     this.listDataService.touchPeriodInBatch(batch, tid, targetYyyyMm);
 
     await batch.commit();
+
+    await this.auditLog.recordCreate({
+      tid,
+      category: 'monthly.import',
+      summary: '月次給与CSVをインポート',
+      target: this.auditLog.monthlyTarget(targetYyyyMm),
+      metadata: { ...result, fileName: file.name },
+    });
+
     return result;
   }
 

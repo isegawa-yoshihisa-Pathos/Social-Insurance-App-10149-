@@ -75,7 +75,7 @@ export class AllowanceApplicationCmp implements OnInit {
       this.dialog.open(SuccessDialogCmp, {
         data: {
           message:
-            '諸手当申請を送信しました。管理者の承認後、給与データへは自動反映されません。',
+            '諸手当申請を送信しました。',
         },
       });
       this.routesService.redirectToTaskBoard();

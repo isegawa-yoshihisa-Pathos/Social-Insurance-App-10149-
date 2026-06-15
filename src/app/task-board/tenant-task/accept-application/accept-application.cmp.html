@@ -17,7 +17,7 @@
           <div class="application-body">
             <p>手当：{{ allowanceTypeLabel(application) }}</p>
             <p>適用月：{{ applyMonthLabel(application) }}</p>
-            <p>金額：{{ application.allowanceDetails?.amount | number }}円</p>
+            <p>金額：{{ Format(application.allowanceDetails?.amount ?? 0) }}円</p>
             @if (application.allowanceDetails?.reason) {
               <p>備考：{{ application.allowanceDetails?.reason }}</p>
             }
@@ -136,6 +136,115 @@
             @if (application.resignDetails?.reason) {
               <p>備考：{{ application.resignDetails?.reason }}</p>
             }
+            <p class="applied-at">申請日：{{ appliedAt(application) }}</p>
+          </div>
+          <div class="application-actions">
+            @if (isPending(application)) {
+              <button
+                mat-flat-button
+                color="primary"
+                type="button"
+                [disabled]="busyId === application.id"
+                (click)="approve(application)"
+              >
+                承認
+              </button>
+              <button
+                mat-button
+                type="button"
+                [disabled]="busyId === application.id"
+                (click)="reject(application)"
+              >
+                却下
+              </button>
+            }
+            <button
+              mat-button
+              color="warn"
+              type="button"
+              [disabled]="busyId === application.id"
+              (click)="deleteApplication(application)"
+            >
+              削除
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <h3 class="section-title">基本情報変更申請の承認</h3>
+
+  @if (loading) {
+    <p>申請一覧を読み込んでいます...</p>
+  } @else if (personalInfoApplications.length === 0) {
+    <p class="empty-message">基本情報変更申請はありません。</p>
+  } @else {
+    <div class="application-list">
+      @for (application of personalInfoApplications; track application.id) {
+        <div class="application-card" [class.is-completed]="!isPending(application)">
+          <div class="application-header">
+            <strong>{{ application.displayName }}</strong>
+            <span class="status-badge">{{ formatStatus(application.status) }}</span>
+            <span class="employee-id">社員番号：{{ application.employeeId }}</span>
+          </div>
+          <div class="application-body">
+            <p>申請内容：氏名・連絡先・住所などの基本情報</p>
+            <p class="applied-at">申請日：{{ appliedAt(application) }}</p>
+          </div>
+          <div class="application-actions">
+            @if (isPending(application)) {
+              <button
+                mat-flat-button
+                color="primary"
+                type="button"
+                [disabled]="busyId === application.id"
+                (click)="approve(application)"
+              >
+                承認
+              </button>
+              <button
+                mat-button
+                type="button"
+                [disabled]="busyId === application.id"
+                (click)="reject(application)"
+              >
+                却下
+              </button>
+            }
+            <button
+              mat-button
+              color="warn"
+              type="button"
+              [disabled]="busyId === application.id"
+              (click)="deleteApplication(application)"
+            >
+              削除
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <h3 class="section-title">扶養家族変更申請の承認</h3>
+
+  @if (loading) {
+    <p>申請一覧を読み込んでいます...</p>
+  } @else if (dependentsApplications.length === 0) {
+    <p class="empty-message">扶養家族変更申請はありません。</p>
+  } @else {
+    <div class="application-list">
+      @for (application of dependentsApplications; track application.id) {
+        <div class="application-card" [class.is-completed]="!isPending(application)">
+          <div class="application-header">
+            <strong>{{ application.displayName }}</strong>
+            <span class="status-badge">{{ formatStatus(application.status) }}</span>
+            <span class="employee-id">社員番号：{{ application.employeeId }}</span>
+          </div>
+          <div class="application-body">
+            <p>扶養の有無：{{ application.dependentsDetails?.hasDependents ? 'あり' : 'なし' }}</p>
+            <p>扶養家族数：{{ dependentsCount(application) }}名</p>
             <p class="applied-at">申請日：{{ appliedAt(application) }}</p>
           </div>
           <div class="application-actions">

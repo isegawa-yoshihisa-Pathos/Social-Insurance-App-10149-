@@ -13,8 +13,7 @@ import {
   createEmptyEmployeeForm,
   employeePersonalInfoToForm,
 } from '../../../personal-form-data';
-import { EmployeeDocument, EmployeeEmployFormData, EmployeeLeaveRecord } from '../../../employee-document';
-import {
+import { EmployeeDocument, EmployeeEmployFormData, EmployeeLeaveRecord } from '../../../employee-document';import {
   createEmptyEmployForm,
   employFormToSavePayload,
   employeeEmployInfoToForm,
@@ -105,7 +104,8 @@ export class EmployeeDetailDataService {
 
     const employeeRef = doc(this.firestore, 'tenants', tid, 'employees', this.eid);
     const beforeSnap = await getDoc(employeeRef);
-    const beforeEmploy = beforeSnap.data()?.['employeeEmployInfo'] as Record<string, unknown> | undefined;
+    const beforeData = beforeSnap.data() as Partial<EmployeeDocument> | undefined;
+    const beforeForm = employeeEmployInfoToForm(beforeData?.employeeEmployInfo);
 
     const payload = employFormToSavePayload(this.employForm);
     await updateDoc(employeeRef, {
@@ -119,11 +119,11 @@ export class EmployeeDetailDataService {
       summary: '雇用情報を更新',
       target: this.auditLog.employeeTarget(
         this.eid,
-        this.personalForm.displayName,
+        this.personalForm.displayName || beforeData?.employeePersonalInfo?.displayName || '従業員',
         this.employForm.employeeId,
       ),
-      before: serializeAuditValue(beforeEmploy) as Record<string, unknown>,
-      after: serializeAuditValue(payload.employeeEmployInfo) as Record<string, unknown>,
+      before: serializeAuditValue(beforeForm) as Record<string, unknown>,
+      after: serializeAuditValue(this.employForm) as Record<string, unknown>,
     });
 
     const uid = this.authService.uid();

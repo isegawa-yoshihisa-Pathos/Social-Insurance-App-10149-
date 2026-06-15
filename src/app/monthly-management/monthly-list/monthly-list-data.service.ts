@@ -15,6 +15,7 @@ import { MonthlyListRow } from './monthly-list-columns';
 import { toMonthlyListRow } from './monthly-list-row.mapper';
 import { StandardRemunerationDataService } from '../../social-insurance/monthly/standard-remuneration-data.service';
 import { addMonths } from '../../social-insurance/monthly/social-insurance-data.util';
+import { AuditLogService } from '../../audit-log/audit-log.service';
 
 export interface MonthlyDetailRow extends MonthlyListRow {
   yyyyMm: string;
@@ -39,6 +40,7 @@ export interface EmployeeLookupEntry {
 export class MonthlyListDataService {
   private readonly firestore = inject(Firestore);
   private readonly standardRemunerationDataService = inject(StandardRemunerationDataService);
+  private readonly auditLog = inject(AuditLogService);
 
   periodRef(tid: string, yyyyMm: string) {
     return doc(this.firestore, 'tenants', tid, 'monthly-records', yyyyMm);
@@ -66,6 +68,14 @@ export class MonthlyListDataService {
       },
       { merge: true },
     );
+
+    await this.auditLog.recordUpdate({
+      tid,
+      category: 'monthly.lock',
+      summary: '月次給与を締切',
+      target: this.auditLog.monthlyTarget(yyyyMm),
+      after: { locked: true, yyyyMm },
+    });
   }
 
   /** 期間ドキュメントが無い場合のみ作成する（既存の locked は変更しない） */

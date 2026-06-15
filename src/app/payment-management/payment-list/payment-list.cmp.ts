@@ -20,6 +20,7 @@ import { PaymentManagementDataService } from '../payment-management-data.service
 import { BonusManagementDataService } from '../../bonus-management/bonus-management-data.service';
 import { MonthlySettingDataService } from '../../monthly-management/monthly-setting/monthly-setting-data.service';
 import { BonusSettingDataService } from '../../bonus-management/bonus-setting/bonus-setting-data.service';
+import { TenantSettingDataService } from '../../tenant-setting/tenant-setting-data.service';
 import { downloadCsvFile } from '../../csv/csv-file.util';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Format } from '../../format-number-jp';
@@ -50,6 +51,7 @@ export class PaymentListCmp implements OnInit {
   private readonly exportService = inject(PaymentListExportService);
   private readonly monthlySettingDataService = inject(MonthlySettingDataService);
   private readonly bonusSettingDataService = inject(BonusSettingDataService);
+  private readonly tenantSettingDataService = inject(TenantSettingDataService);
 
   readonly visibleColumns = computed(() => this.paymentSettingDataService.visibleColumns());
   readonly tableColumns = computed(() => this.visibleColumns());
@@ -200,6 +202,7 @@ export class PaymentListCmp implements OnInit {
         await Promise.all([
           this.paymentManagementDataService.loadPaymentSettings(tid),
           this.bonusManagementDataService.loadBonusSettings(tid),
+          this.tenantSettingDataService.loadAll(),
         ]);
         await this.paymentSettingDataService.loadListSettings(tid);
         if (token !== this.loadToken) return;

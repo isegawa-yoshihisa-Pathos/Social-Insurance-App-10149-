@@ -71,6 +71,7 @@ export class MonthlyPaymentCmp {
   readonly loadingPeriods = signal(false);
   readonly loadingRow = signal(false);
   readonly exporting = signal(false);
+  readonly changeReasons = signal<string[]>([]);
   readonly tableDataSource = new MatTableDataSource<PaymentTableRow>([]);
 
   private loadToken = 0;
@@ -200,6 +201,7 @@ export class MonthlyPaymentCmp {
     this.lockedPeriods.set([]);
     this.selectedYyyyMm.set(null);
     this.tableDataSource.data = [];
+    this.changeReasons.set([]);
     this.loadingPeriods.set(false);
     this.loadingRow.set(false);
   }
@@ -215,8 +217,9 @@ export class MonthlyPaymentCmp {
     this.lockedPeriods.set(periods);
   }
 
-  private setTableRow(row: PaymentTableRow | null): void {
+  private setTableRow(row: PaymentTableRow | null, changeReasons: string[] = []): void {
     this.tableDataSource.data = row ? [row] : [];
+    this.changeReasons.set(changeReasons);
   }
 
   private async loadLockedPeriods(
@@ -277,9 +280,10 @@ export class MonthlyPaymentCmp {
       const meta = {
         employeeId: this.employeeDetailDataService.employForm.employeeId,
         displayName: this.employeeDetailDataService.personalForm.displayName,
+        birthDate: this.employeeDetailDataService.personalForm.birthDate,
       };
 
-      const row =
+      const result =
         scope === 'monthly'
           ? await this.paymentDataService.loadMonthlyRow(tid, eid, yyyyMm, meta)
           : await this.paymentDataService.loadBonusRow(tid, eid, yyyyMm, meta);
@@ -288,7 +292,7 @@ export class MonthlyPaymentCmp {
         return;
       }
 
-      this.setTableRow(row);
+      this.setTableRow(result.row, result.changeReasons);
     } finally {
       if (token === this.rowLoadToken) {
         this.loadingRow.set(false);

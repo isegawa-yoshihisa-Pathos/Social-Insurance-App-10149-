@@ -81,10 +81,26 @@
         <span class="info-value">{{ dataService.personalForm.basicPensionNumber }}</span>
     </div>
     <div class="info-row">
-        <span class="info-label">扶養家族の有無：</span>
-        <span class="info-value">{{ dataService.employeeForm.hasDependents ? '有' : '無' }}</span>
+        <span class="info-label">二以上事業所勤務：</span>
+        <span class="info-value">{{ multipleWorkplacesLabel() }}</span>
     </div>
-    @if (dataService.employeeForm.hasDependents) {
+    @if (dataService.multiWorkplaceForm.hasMultipleWorkplaces) {
+        <div class="info-row">
+            <span class="info-label">この事業所の区分：</span>
+            <span class="info-value">{{ workplaceSelectionLabel() }}</span>
+        </div>
+    }
+    <div class="info-row">
+        <span class="info-label">扶養家族の有無：</span>
+        <span class="info-value">
+            @if (dataService.canManageDependents) {
+                {{ dataService.employeeForm.hasDependents ? '有' : '無' }}
+            } @else {
+                設定不可（非選択事業所）
+            }
+        </span>
+    </div>
+    @if (dataService.canManageDependents && dataService.employeeForm.hasDependents) {
         @for (dependent of dataService.employeeForm.dependentsInfo; track $index) {
         <div class="info-row">
             <span class="info-label">扶養家族(#{{ $index + 1 }})：</span>

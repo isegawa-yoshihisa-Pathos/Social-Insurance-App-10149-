@@ -13,6 +13,7 @@ import {
 } from '../bonus-list/bonus-list-columns';
 import { bonusColumnKey, bonusTypeFromColumnKey } from '../bonus-list/bonus-display.util';
 import { BonusManagementDataService } from '../bonus-management-data.service';
+import { AuditLogService } from '../../audit-log/audit-log.service';
 
 export interface BonusSettingDocument {
   importHeaders?: Partial<Record<string, string>>;
@@ -34,6 +35,7 @@ export class BonusSettingDataService {
   private readonly firestore = inject(Firestore);
   private readonly injector = inject(EnvironmentInjector);
   private readonly bonusManagementDataService = inject(BonusManagementDataService);
+  private readonly auditLog = inject(AuditLogService);
 
   readonly importHeaders = signal<Record<string, string>>({});
   readonly visibleColumns = signal<BonusListColumnKey[]>([
@@ -91,6 +93,14 @@ export class BonusSettingDataService {
       updatedAt: serverTimestamp(),
     });
     this.listSettingsLoadedTid = tid;
+
+    await this.auditLog.recordUpdate({
+      tid,
+      category: 'settings.bonus_list',
+      summary: '賞与一覧表示設定を更新',
+      target: this.auditLog.settingsTarget('bonusListSetting', '賞与一覧設定'),
+      after: { visibleColumns: this.visibleColumns() },
+    });
   }
 
   syncVisibleColumnsForBonusTypes(): void {

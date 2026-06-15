@@ -20,6 +20,6 @@ export const STATIC_PAYMENT_LIST_COLUMN_LABELS: Record<BasePaymentListColumnKey,
   fringeBenefits: '現物給与',
   fixedWage: '固定的賃金',
   variableWage: '非固定的賃金',
-  retroactivePay: '遡及清算',
+  retroactivePay: '遡及支払',
   bonus: '賞与合計',
 };

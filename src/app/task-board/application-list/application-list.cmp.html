@@ -10,32 +10,38 @@
         @for (application of applications; track application.id) {
           <div class="application-card" [class.is-completed]="application.status !== 'pending'">
             <div class="application-header">
-              <strong>{{ application.type === 'leave' ? '休暇申請' : '退職申請' }}</strong>
+              <strong>{{ applicationTypeLabel(application) }}</strong>
               <span class="status-badge">{{ formatStatus(application.status) }}</span>
             </div>
-            @if (application.type === 'leave') {
             <div class="application-body">
+              @if (application.type === 'leave') {
                 <p>種別：{{ application.leaveDetails ? leaveTypeLabel(application.leaveDetails.type) : '' }}</p>
                 <p>期間：{{ leavePeriod(application) }}</p>
-                <p>状況：{{ formatStatus(application.status) }}</p>
                 @if (application.leaveDetails?.reason) {
                   <p>備考：{{ application.leaveDetails?.reason }}</p>
                 }
-                <p class="applied-at">申請日：{{ appliedAt(application) }}</p>
-              </div>
-            }
-            @if (application.type === 'resign') {
-              <div class="application-body">
+              }
+              @if (application.type === 'resign') {
                 <p>退職日：{{ resignDate(application) }}</p>
-                <p>状況：{{ formatStatus(application.status) }}</p>
                 @if (application.resignDetails?.reason) {
                   <p>備考：{{ application.resignDetails?.reason }}</p>
                 }
-              </div>
-            }
+              }
+              @if (application.type === 'allowance') {
+                <p>手当：{{ application.allowanceDetails?.allowanceTypeLabel }}</p>
+                <p>金額：{{ application.allowanceDetails?.amount }}円</p>
+              }
+              @if (application.type === 'personal_info') {
+                <p>申請内容：氏名・連絡先・住所などの基本情報</p>
+              }
+              @if (application.type === 'dependents') {
+                <p>扶養の有無：{{ application.dependentsDetails?.hasDependents ? 'あり' : 'なし' }}</p>
+                <p>扶養家族数：{{ application.dependentsDetails?.dependentsInfo?.length ?? 0 }}名</p>
+              }
+              <p class="applied-at">申請日：{{ appliedAt(application) }}</p>
+            </div>
           </div>
         }
       </div>
     }
   </div>
-  

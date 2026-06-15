@@ -14,6 +14,7 @@ import { BonusDocument, BonusPeriodDocument } from '../../bonus-document';
 import { BonusListRow } from './bonus-list-columns';
 import { toBonusListRow } from './bonus-list-row.mapper';
 import { BonusManagementDataService } from '../bonus-management-data.service';
+import { AuditLogService } from '../../audit-log/audit-log.service';
 
 export interface BonusDetailRow extends BonusListRow {
   yyyyMm: string;
@@ -38,6 +39,7 @@ export interface EmployeeLookupEntry {
 export class BonusListDataService {
   private readonly firestore = inject(Firestore);
   private readonly bonusManagementDataService = inject(BonusManagementDataService);
+  private readonly auditLog = inject(AuditLogService);
 
   periodRef(tid: string, yyyyMm: string) {
     return doc(this.firestore, 'tenants', tid, 'bonus-records', yyyyMm);
@@ -65,6 +67,14 @@ export class BonusListDataService {
       },
       { merge: true },
     );
+
+    await this.auditLog.recordUpdate({
+      tid,
+      category: 'bonus.lock',
+      summary: '賞与を締切',
+      target: this.auditLog.bonusTarget(yyyyMm),
+      after: { locked: true, yyyyMm },
+    });
   }
 
   /** 期間ドキュメントが無い場合のみ作成する（既存の locked は変更しない） */

@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Firestore, doc, getDoc, serverTimestamp, writeBatch, UpdateData, DocumentData } from '@angular/fire/firestore';
 import { toFirestoreTimestamp } from '../../date-utils';
 import { EmployeesSettingDataService } from '../employees-setting/employees-setting-data.service';
+import { AuditLogService } from '../../audit-log/audit-log.service';
 import { EMPLOYEES_IMPORT_COLUMNS, EmployeesImportFieldKey } from '../employees-setting/employees-import-columns';
 import { EmployeeListRow } from './employee-list-columns';
 
@@ -22,6 +23,7 @@ export interface EmployeesCsvImportResult {
 export class EmployeesListImportService {
   private readonly firestore = inject(Firestore);
   private readonly employeesSettingDataService = inject(EmployeesSettingDataService);
+  private readonly auditLog = inject(AuditLogService);
 
   async importFromCsv(
     tid: string,
@@ -123,6 +125,15 @@ export class EmployeesListImportService {
     }
 
     await batch.commit();
+
+    await this.auditLog.recordCreate({
+      tid,
+      category: 'employee.import',
+      summary: '従業員CSVをインポート',
+      target: this.auditLog.tenantTarget(tid),
+      metadata: { ...result, fileName: file.name },
+    });
+
     return result;
   }
 
