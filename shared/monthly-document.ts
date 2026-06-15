@@ -19,6 +19,8 @@ export interface MonthlyDocument {
 
     payrollData: PayrollData;
     premiumData?: PremiumData;
+    /** 退職月給与で一括徴収する社会保険料（給与支払月の月次レコードに保存） */
+    resignBulkPremiumData?: PremiumData;
     calculationSnapshot?: CalculationSnapshot;
 
     updatedAt: FirestoreTimestamp;
@@ -51,6 +53,7 @@ export interface MonthlyFormData {
     employeeId: string;
     paymentBaseDays: number;
     basicSalary: number;
+    fringeBenefits: number;
     bonusRelatedRemuneration: number;
     allowances: AllowanceData;
     retroactivePay: number | null;
@@ -58,6 +61,7 @@ export interface MonthlyFormData {
 
 export interface PayrollData {
     basicSalary: number;
+    fringeBenefits: number;
     fixedWage: number | null;
     variableWage: number | null;
     allowances: AllowanceData;

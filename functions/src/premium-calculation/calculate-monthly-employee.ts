@@ -59,6 +59,7 @@ import {
   ensureZuijiAnnualAverageConsentReview,
   ensureLeaveReturnConsentReview,
 } from './remuneration-consent-review';
+import { updateResignBulkPremiumForEmployee } from './resign-bulk-premium';
 
 interface CalculationContext {
   employee: EmployeeDocument;
@@ -103,13 +104,16 @@ export async function calculateMonthlyEmployee(
     (await getLatestStandardRemuneration(db, tid, eid, yyyyMm)) ?? rawStandardRemuneration;
 
   const rate = await resolveInsuranceRateForMonth(db, tid, yyyyMm);
-  if (!rate) return;
+  if (!rate) {
+    throw new Error('保険料率が見つかりません');
+  }
 
   const premiumData = calculateMonthlyPremium({
     yyyyMm,
     birthDate: ctx.birthDate,
     licenceStartAt: toFormDate(ctx.employee.employeeEmployInfo?.licenseStartAt),
     resignAt: toFormDate(ctx.employee.employeeEmployInfo?.resignAt),
+    licenseEndAt: toFormDate(ctx.employee.employeeEmployInfo?.licenseEndAt),
     leaveRecords: employeeLeaveRecordsToPeriodInputs(ctx.employee.leaveInfo),
     ...careInsuranceCollection,
     standardRemuneration: standardRemuneration.standardRemuneration,
@@ -159,6 +163,10 @@ export async function calculateMonthlyEmployee(
     });
 
   await tryLeaveReturnRemunerationScreening(db, tid, eid, yyyyMm, ctx);
+
+  if (ctx.employee.employeeEmployInfo?.resignAt) {
+    await updateResignBulkPremiumForEmployee(db, tid, eid, ctx.employee, tenant);
+  }
 }
 
 async function loadContext(
@@ -237,6 +245,8 @@ async function tryZuiji(
     return finalized.payload;
   }
 
+  await tryMayJuneRaiseMonthScreening(db, tid, eid, yyyyMm, ctx);
+
   const monthKeys = [
     addMonths(yyyyMm, -3),
     addMonths(yyyyMm, -2),
@@ -245,46 +255,14 @@ async function tryZuiji(
   ];
   const sources = await loadMonthSources(db, tid, eid, monthKeys);
   if (sources.length !== 4) return null;
-  const previousPayroll = sources[0].payroll.fixedWage ?? sources[0].payroll.basicSalary;
-  const currentPayroll = sources[1].payroll.fixedWage ?? sources[1].payroll.basicSalary;
+  const previousPayroll = sources[0].payroll.fixedWage ?? sources[0].payroll.basicSalary + sources[0].payroll.fringeBenefits;
+  const currentPayroll = sources[1].payroll.fixedWage ?? sources[1].payroll.basicSalary + sources[1].payroll.fringeBenefits;
   if (previousPayroll === currentPayroll) return null;
   const changeMonthYyyyMm = sources[1].yyyyMm; // 昇給（降給）月 M
   const previous = await getPreviousGrades(db, tid, eid, addMonths(yyyyMm, -3));
   if (!previous) return null;
 
   if (isMayOrJuneRaiseMonth(changeMonthYyyyMm)) {
-    const schedule = getMayJuneZuijiSchedule(changeMonthYyyyMm);
-    if (yyyyMm === schedule.screeningYyyyMm) {
-      const screening = screenMayJuneZuijiFromSingleMonth(
-        ctx.employmentType,
-        sources[1],
-        previous,
-        {
-          fixedWageBeforeChange: computeFixedWageFromPayroll(sources[0].payroll),
-        },
-      );
-      if (screening.kind === 'candidate') {
-        const employeeName = ctx.employee.employeePersonalInfo?.displayName ?? '未登録';
-        const { created } = await ensureMayJuneZuijiReviewPending(
-          db,
-          tid,
-          eid,
-          changeMonthYyyyMm,
-          employeeName,
-        );
-        if (created) {
-          await notifyMayJuneZuijiPending(
-            db,
-            tid,
-            eid,
-            yyyyMm,
-            ctx,
-            changeMonthYyyyMm,
-            schedule.effectiveYyyyMm,
-          );
-        }
-      }
-    }
     return null;
   }
 
@@ -338,6 +316,70 @@ async function tryZuiji(
   };
 }
 
+/** 5・6月の月次計算時: 前月比で固定的賃金変動があれば単月判定し、管理者へ通知する */
+async function tryMayJuneRaiseMonthScreening(
+  db: admin.firestore.Firestore,
+  tid: string,
+  eid: string,
+  yyyyMm: string,
+  ctx: CalculationContext,
+): Promise<void> {
+  if (!isMayOrJuneRaiseMonth(yyyyMm)) return;
+
+  const prevMonthKey = addMonths(yyyyMm, -1);
+  const prevMonthly = await getMonthlyDocument(db, tid, eid, prevMonthKey);
+  if (!prevMonthly?.payrollData) return;
+
+  const prevPayroll =
+    prevMonthly.payrollData.fixedWage ?? prevMonthly.payrollData.basicSalary + prevMonthly.payrollData.fringeBenefits;
+  const currentPayroll =
+    ctx.monthly.payrollData.fixedWage ?? ctx.monthly.payrollData.basicSalary + ctx.monthly.payrollData.fringeBenefits;
+  if (prevPayroll === currentPayroll) return;
+
+  const previous = await getPreviousGrades(db, tid, eid, prevMonthKey);
+  if (!previous) return;
+
+  const raiseMonthSource: MonthlyRemunerationSource = {
+    yyyyMm,
+    hasMonthlyRecord: true,
+    daysInMonth: daysInMonth(yyyyMm),
+    payroll: ctx.monthly.payrollData,
+    paymentBaseDays: ctx.monthly.paymentBaseDays,
+    bonusRelatedRemuneration: ctx.monthly.bonusRelatedRemuneration ?? 0,
+  };
+
+  const screening = screenMayJuneZuijiFromSingleMonth(
+    ctx.employmentType,
+    raiseMonthSource,
+    previous,
+    {
+      fixedWageBeforeChange: computeFixedWageFromPayroll(prevMonthly.payrollData),
+    },
+  );
+  if (screening.kind !== 'candidate') return;
+
+  const schedule = getMayJuneZuijiSchedule(yyyyMm);
+  const employeeName = ctx.employee.employeePersonalInfo?.displayName ?? '未登録';
+  const { created } = await ensureMayJuneZuijiReviewPending(
+    db,
+    tid,
+    eid,
+    yyyyMm,
+    employeeName,
+  );
+  if (created) {
+    await notifyMayJuneZuijiPending(
+      db,
+      tid,
+      eid,
+      yyyyMm,
+      ctx,
+      yyyyMm,
+      schedule.effectiveYyyyMm,
+    );
+  }
+}
+
 async function notifyMayJuneZuijiPending(
   db: admin.firestore.Firestore,
   tid: string,
@@ -383,21 +425,6 @@ async function notifyMayJuneZuijiPending(
       if (!uid) continue;
       await db.collection('accounts').doc(uid).collection('notifications').add(notifDoc);
     }
-
-    if (ctx.employee.uid) {
-      await db.collection('accounts').doc(ctx.employee.uid).collection('notifications').add({
-        scope: 'personal',
-        type: 'may_june_zuiji_pending',
-        title: `【社会保険】${effectiveLabel}から随時改定の可能性があります`,
-        body,
-        targetEid: eid,
-        raiseMonthYyyyMm,
-        effectiveYyyyMm,
-        status: 'assigned',
-        read: false,
-        createdAt: now,
-      });
-    }
   } catch (err) {
     console.error('[may-june-zuiji] notification failed', { tid, eid, yyyyMm, err });
   }
@@ -411,7 +438,8 @@ async function tryTeiji(
   ctx: CalculationContext,
 ): Promise<StandardRemunerationSavePayload | null> {
   const { year, month } = parseYyyyMm(yyyyMm);
-  if (month !== 7) return null;
+  // 6月計算時に定時決定（4〜6月平均）。7月初の算定基礎届提出に間に合わせる。
+  if (month !== 6) return null;
 
   const history = await listStandardRemuneration(db, tid, eid);
   const hasReplacementZuiji = await hasTeijiReplacementZuijiForYear(db, tid, eid, year);
@@ -423,7 +451,8 @@ async function tryTeiji(
   if (!licenseStartAt) return null;
   const licenseDate = toFormDate(licenseStartAt);
   if (!licenseDate) return null;
-  if (licenseDate.getFullYear() === year && licenseDate.getMonth() === 6) return null;
+  // 当年6月1日以降の資格取得者は定時決定の対象外
+  if (licenseDate.getFullYear() === year && licenseDate.getMonth() >= 5) return null;
 
   const monthKeys = [`${year}-04`, `${year}-05`, `${year}-06`];
   const sources = await loadMonthSources(db, tid, eid, monthKeys);

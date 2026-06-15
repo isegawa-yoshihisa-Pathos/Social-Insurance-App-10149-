@@ -9,6 +9,7 @@ import { toPaymentListRow } from './payment-list-row.mapper';
 import { TenantSettingDataService } from '../../tenant-setting/tenant-setting-data.service';
 import { addMonths } from '../../social-insurance/monthly/social-insurance-data.util';
 import { getTargetMonths } from '../../date-utils';
+import { mergePremiumData } from '../../../../shared/social-insurance/premium/resign-premium-collection';
 
 export interface PaymentDetailRow extends PaymentListRow {
   yyyyMm: string;
@@ -118,7 +119,10 @@ export class PaymentListDataService {
       const mergedMonthlyDoc = {
         ...monthlySalaryDoc,
         calculationSnapshot: monthlyPremiumDoc.calculationSnapshot,
-        premiumData: monthlyPremiumDoc.premiumData,
+        premiumData: mergePremiumData(
+          monthlyPremiumDoc.premiumData,
+          monthlySalaryDoc.resignBulkPremiumData,
+        ),
       };
       const row = toPaymentListRow(
         eid,
@@ -213,7 +217,10 @@ export class PaymentListDataService {
           const mergedMonthlyDoc = {
             ...monthlySalaryDoc,
             calculationSnapshot: monthlyPremiumDoc.calculationSnapshot,
-            premiumData: monthlyPremiumDoc.premiumData,
+            premiumData: mergePremiumData(
+              monthlyPremiumDoc.premiumData,
+              monthlySalaryDoc.resignBulkPremiumData,
+            ),
           };
           const bonusDoc = hasBonus
             ? (bonusSnap.data() as Partial<BonusDocument>)

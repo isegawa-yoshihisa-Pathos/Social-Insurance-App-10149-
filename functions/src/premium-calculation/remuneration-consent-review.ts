@@ -264,7 +264,7 @@ export async function ensureTeijiAnnualAverageConsentReview(
   teijiHealthGrade: number,
   teijiPensionGrade: number,
 ): Promise<void> {
-  const periodKeys = buildAnnualAveragePeriodMonthKeys(screeningYyyyMm);
+  const periodKeys = buildAnnualAveragePeriodMonthKeys(`${teijiYear}-07`);
   const annualSources = await loadMonthSources(db, tid, eid, periodKeys);
   const screening = screenAnnualAverageCandidate(
     employmentType,

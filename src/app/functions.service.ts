@@ -81,6 +81,11 @@ export class FunctionsService {
     return await this.acceptInvitationFn(payload);
   }
 
+  private recalculatePremiumsAfterResignFn = httpsCallable(
+    this.functions,
+    'recalculatePremiumsAfterResign',
+  );
+
   async startPremiumCalculationBatch(payload: {
     tid: string;
     kind: 'monthly' | 'bonus';
@@ -89,6 +94,11 @@ export class FunctionsService {
   }) {
     const result = await this.startPremiumCalculationBatchFn(payload);
     return result.data as { jobId: string; total: number };
+  }
+
+  async recalculatePremiumsAfterResign(payload: { tid: string; eid: string }) {
+    const result = await this.recalculatePremiumsAfterResignFn(payload);
+    return result.data as { status: 'ok'; recalculatedMonths: number };
   }
 
   async approveMayJuneZuijiReview(payload: {

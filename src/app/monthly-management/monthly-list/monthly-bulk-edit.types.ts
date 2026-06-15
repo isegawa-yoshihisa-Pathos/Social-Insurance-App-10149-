@@ -20,6 +20,7 @@ export type BulkEditValue = number | null;
 export interface BulkEditTarget {
   eid: string;
   basicSalary: number;
+  fringeBenefits: number;
   allowances: AllowanceData;
   retroactivePay: number | null;
 }
@@ -38,6 +39,7 @@ export function isEditableColumn(column: MonthlyListColumnKey): column is BulkEd
     return false;
   }
   return column === 'basicSalary' ||
+    column === 'fringeBenefits' ||
     column === 'paymentBaseDays' ||
     column === 'bonusRelatedRemuneration' ||
     column === 'retroactivePay';

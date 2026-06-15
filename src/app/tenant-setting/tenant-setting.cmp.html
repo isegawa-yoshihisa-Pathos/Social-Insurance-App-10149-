@@ -84,9 +84,15 @@
     </ng-template>
     <div class="tenant-setting">
       <div class="tenant-setting-panel">
-        <div class="setting-page">
-          <app-tenant-insurance-rate-setting />
-        </div>
+        @if (dataService.loading) {
+          <div class="loading-container">
+            <mat-spinner diameter="40"></mat-spinner>
+          </div>
+        } @else {
+          <div class="setting-page">
+            <app-tenant-insurance-rate-setting />
+          </div>
+        }
       </div>
     </div>
   </mat-tab>

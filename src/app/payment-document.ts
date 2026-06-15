@@ -41,6 +41,7 @@ export interface PaymentFormData {
     employeeId: string;
     paymentBaseDays: number;
     basicSalary: number;
+    fringeBenefits: number;
     allowances: AllowanceData;
     retroactivePay: number | null;
 }
@@ -49,6 +50,7 @@ export type WageCategory = 'fixed' | 'variable';
 
 export interface PayrollData {
     basicSalary: number;
+    fringeBenefits: number;
     fixedWage: number | null;
     variableWage: number | null;
     allowances: AllowanceData;

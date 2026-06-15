@@ -38,8 +38,20 @@ const TYPE_LABELS: Record<RemunerationConsentReviewType, string> = {
   leave_return: '休業明け標準報酬月額調整',
 };
 
+const STATUS_LABELS: Record<RemunerationConsentReviewStatus, string> = {
+  pending_employee_consent: '本人同意待ち',
+  employee_declined: '本人不同意',
+  pending_admin_review: '管理者承認待ち',
+  approved: '承認済み',
+  rejected: '却下',
+};
+
 export function remunerationConsentTypeLabel(type: RemunerationConsentReviewType): string {
   return TYPE_LABELS[type];
+}
+
+export function remunerationConsentStatusLabel(status: RemunerationConsentReviewStatus): string {
+  return STATUS_LABELS[status];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -69,6 +81,28 @@ export class RemunerationConsentDataService {
     return snap.docs
       .map((docSnap) => this.mapDoc(docSnap.id, docSnap.data()))
       .sort((a, b) => a.effectiveFrom.localeCompare(b.effectiveFrom));
+  }
+
+  async listActiveAdminConsentStatuses(tid: string): Promise<RemunerationConsentReviewItem[]> {
+    const ref = collection(this.firestore, 'tenants', tid, 'remunerationConsentReviews');
+    const snap = await getDocs(
+      query(
+        ref,
+        where('status', 'in', ['pending_employee_consent', 'pending_admin_review']),
+      ),
+    );
+    return snap.docs
+      .map((docSnap) => this.mapDoc(docSnap.id, docSnap.data()))
+      .sort((a, b) => {
+        const statusOrder =
+          a.status === b.status
+            ? 0
+            : a.status === 'pending_admin_review'
+              ? -1
+              : 1;
+        if (statusOrder !== 0) return statusOrder;
+        return a.effectiveFrom.localeCompare(b.effectiveFrom);
+      });
   }
 
   private mapDoc(id: string, data: Record<string, unknown>): RemunerationConsentReviewItem {

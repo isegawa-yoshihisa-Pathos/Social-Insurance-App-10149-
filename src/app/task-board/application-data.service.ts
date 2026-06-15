@@ -24,6 +24,7 @@ import { CurrentTenantService } from '../current-tenant.service';
 import { AuthService } from '../auth.service';
 import { leaveFormToRecord } from '../employee-leave.util';
 import { toFirestoreTimestamp, toFormDate } from '../date-utils';
+import { FunctionsService } from '../functions.service';
 
 export type PendingApplication = { id: string } & ApplicationDocument;
 
@@ -32,6 +33,7 @@ export class ApplicationDataService {
   private readonly firestore = inject(Firestore);
   private readonly tenant = inject(CurrentTenantService);
   private readonly authService = inject(AuthService);
+  private readonly functionsService = inject(FunctionsService);
 
   private applicationsRef(tid: string) {
     return collection(this.firestore, 'tenants', tid, 'applications');
@@ -230,6 +232,19 @@ export class ApplicationDataService {
     });
 
     await batch.commit();
+
+    try {
+      await this.functionsService.recalculatePremiumsAfterResign({
+        tid,
+        eid: application.eid,
+      });
+    } catch (error) {
+      console.error('[approveResignApplication] premium recalculation failed', {
+        tid,
+        eid: application.eid,
+        error,
+      });
+    }
   }
 
   async rejectApplication(tid: string, applicationId: string): Promise<void> {

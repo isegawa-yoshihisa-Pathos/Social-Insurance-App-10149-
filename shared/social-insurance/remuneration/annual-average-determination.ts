@@ -41,7 +41,7 @@ export type AnnualAverageCalculationOutcome =
   | { kind: 'calculated'; result: AnnualAverageCalculationResult }
   | { kind: 'invalid'; reason: 'no_eligible_months' | 'grade_not_found'; totalRemuneration: number };
 
-/** 7月算定 yyyyMm から「前年7月〜当年6月」の月キーを生成 */
+/** 定時決定年の7月 yyyyMm から「前年7月〜当年6月」の月キーを生成 */
 export function buildAnnualAveragePeriodMonthKeys(teijiYyyyMm: string): string[] {
   const keys: string[] = [];
   for (let i = ANNUAL_AVERAGE_PERIOD_MONTH_COUNT; i >= 1; i--) {

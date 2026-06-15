@@ -1,0 +1,55 @@
+:host {
+  display: block;
+}
+
+.payment-section {
+  width: 100%;
+}
+
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.period-select {
+  min-width: 180px;
+}
+
+.action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+
+.empty-message {
+  margin: 0;
+  color: #666;
+}
+
+.table-scroll-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.payment-table {
+  width: max-content;
+  min-width: 100%;
+}
+
+.payment-table th,
+.payment-table td {
+  white-space: nowrap;
+}
+
+.table-scroll-container.is-readonly .mat-mdc-row:hover {
+  background-color: inherit;
+}

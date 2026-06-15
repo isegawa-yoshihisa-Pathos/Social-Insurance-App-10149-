@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Firestore, collection, doc, getDocs, serverTimestamp, setDoc } from '@angular/fire/firestore';
+import { normalizeEffectiveFrom } from '../../date-utils';
 import { InsuranceRateDocument, InsuranceRateSavePayload, ResolvedInsuranceRate, toResolvedInsuranceRate } from './social-insurance-document';
 import { lastDayOfYyyyMm } from './social-insurance-data.util';
 
@@ -18,10 +19,16 @@ export class InsuranceRateDataService {
 
   async listRates(tid: string): Promise<InsuranceRateListItem[]> {
     const snap = await getDocs(this.ratesCollection(tid));
-    const items = snap.docs.map((d) => ({
-      rateId: d.id,
-      doc: d.data() as InsuranceRateDocument,
-    }));
+    const items = snap.docs.map((d) => {
+      const raw = d.data() as InsuranceRateDocument;
+      return {
+        rateId: d.id,
+        doc: {
+          ...raw,
+          effectiveFrom: normalizeEffectiveFrom(raw.effectiveFrom),
+        },
+      };
+    });
     return items.sort((a, b) =>
       b.doc.effectiveFrom.localeCompare(a.doc.effectiveFrom),
     );
@@ -31,6 +38,7 @@ export class InsuranceRateDataService {
     const ref = doc(this.ratesCollection(tid));
     await setDoc(ref, {
       ...payload,
+      effectiveFrom: normalizeEffectiveFrom(payload.effectiveFrom),
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });

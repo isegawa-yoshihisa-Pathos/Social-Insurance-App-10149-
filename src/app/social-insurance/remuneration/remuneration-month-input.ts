@@ -18,7 +18,7 @@ export function toMonthPaymentBaseInput(
   options?: { includeVariable?: boolean },
 ): MonthPaymentBaseInput {
   const base = options?.includeVariable
-    ? (source.payroll.fixedWage ?? source.payroll.basicSalary ?? 0) +
+    ? (source.payroll.fixedWage ?? source.payroll.basicSalary + source.payroll.fringeBenefits ?? 0) +
       (source.payroll.variableWage ?? 0)
     : computeFixedWageFromPayroll(source.payroll);
   return {

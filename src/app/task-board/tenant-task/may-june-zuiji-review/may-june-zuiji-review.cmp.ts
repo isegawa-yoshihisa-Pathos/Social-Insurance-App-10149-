@@ -40,6 +40,23 @@ export class MayJuneZuijiReviewCmp implements OnInit {
     return `${month}月（${review.effectiveYyyyMm}）`;
   }
 
+  isJuneRaise(review: MayJuneZuijiReviewItem): boolean {
+    return Number(review.raiseMonthYyyyMm.slice(5, 7)) === 6;
+  }
+
+  reviewNote(review: MayJuneZuijiReviewItem): string {
+    if (this.isJuneRaise(review)) {
+      return (
+        '承認すると6月の定時決定（9月適用）は取り消され、仮随時が生成されます。' +
+        '随時改定は3ヶ月分のデータが揃った計算時に自動確定されます。'
+      );
+    }
+    return (
+      '承認すると6月の定時決定は省略されます。' +
+      '随時改定は3ヶ月分のデータが揃った計算時に自動確定されます。'
+    );
+  }
+
   async approve(review: MayJuneZuijiReviewItem): Promise<void> {
     const tid = this.tenant.currentTid();
     if (!tid) return;
@@ -55,7 +72,9 @@ export class MayJuneZuijiReviewCmp implements OnInit {
         data: {
           message:
             `${review.employeeDisplayName || '対象従業員'}様の随時改定を承認しました。` +
-            `7月の定時決定は省略されます。` +
+            (this.isJuneRaise(review)
+              ? '6月の定時決定（9月適用）は取り消されました。'
+              : '6月の定時決定は省略されます。') +
             `随時改定は${this.effectiveMonthLabel(review)}の適用に向け、データが揃った計算時に確定されます。`,
         },
       });
@@ -84,7 +103,9 @@ export class MayJuneZuijiReviewCmp implements OnInit {
         data: {
           message:
             `${review.employeeDisplayName || '対象従業員'}様の随時改定を却下しました。` +
-            `7月の定時決定が行われます。`,
+            (this.isJuneRaise(review)
+              ? '6月の定時決定が採用されます。'
+              : '6月の定時決定が行われます。'),
         },
       });
       await this.reload();

@@ -139,6 +139,7 @@ export class MonthlyListBulkEditService {
     const allowanceType = allowanceTypeFromColumnKey(column);
     const patch: {
       basicSalary?: number;
+      fringeBenefits?: number;
       allowances?: Record<string, number>;
       retroactivePay?: number | null;
       bonusRelatedRemuneration?: number;
@@ -154,6 +155,8 @@ export class MonthlyListBulkEditService {
       patch.allowances = allowances;
     } else if (column === 'basicSalary') {
       patch.basicSalary = value === null ? 0 : value;
+    } else if (column === 'fringeBenefits') {
+      patch.fringeBenefits = value === null ? 0 : value;
     } else if (column === 'retroactivePay') {
       patch.retroactivePay = value;
     } else if (column === 'bonusRelatedRemuneration') {
@@ -169,6 +172,9 @@ export class MonthlyListBulkEditService {
 
     if (patch.basicSalary !== undefined) {
       update['payrollData.basicSalary'] = patch.basicSalary;
+    }
+    if (patch.fringeBenefits !== undefined) {
+      update['payrollData.fringeBenefits'] = patch.fringeBenefits;
     }
     if (patch.retroactivePay !== undefined) {
       update['payrollData.retroactivePay'] =

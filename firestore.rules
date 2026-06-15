@@ -96,6 +96,24 @@ service cloud.firestore {
         && request.resource.data.tid == resource.data.tid;
     }
 
+    function memberReadableSetting(settingId) {
+      return settingId == 'monthlyListSetting'
+        || settingId == 'monthlySetting'
+        || settingId == 'bonusListSetting'
+        || settingId == 'bonusSetting'
+        || settingId == 'allowanceKindSetting';
+    }
+
+    function isLockedMonthlyPeriod(tid, yyyyMm) {
+      return get(/databases/$(database)/documents/tenants/$(tid)/monthly-records/$(yyyyMm))
+        .data.get('locked', false) == true;
+    }
+
+    function isLockedBonusPeriod(tid, yyyyMm) {
+      return get(/databases/$(database)/documents/tenants/$(tid)/bonus-records/$(yyyyMm))
+        .data.get('locked', false) == true;
+    }
+
     function accountSelfUpdateValid() {
       let keys = request.resource.data.diff(resource.data).affectedKeys();
       return keys.hasOnly(['personalInfo', 'currentTenantId', 'lastView', 'updatedAt'])
@@ -207,7 +225,9 @@ service cloud.firestore {
       }
 
       match /settings/{settingId} {
-        allow read, write: if isTenantAdmin(tid);
+        allow read: if isTenantAdmin(tid)
+          || (isActiveTenantMember(tid) && memberReadableSetting(settingId));
+        allow write: if isTenantAdmin(tid);
       }
 
       match /insuranceRates/{rateId} {
@@ -215,18 +235,30 @@ service cloud.firestore {
       }
 
       match /monthly-records/{yyyyMm} {
-        allow read, write: if isTenantAdmin(tid);
+        allow read: if isTenantAdmin(tid)
+          || (isActiveTenantMember(tid) && resource.data.get('locked', false) == true);
+        allow write: if isTenantAdmin(tid);
 
         match /employees/{eid} {
-          allow read, write: if isTenantAdmin(tid);
+          allow read: if isTenantAdmin(tid)
+            || (isActiveTenantMember(tid)
+              && isOwnEmployee(tid, eid)
+              && isLockedMonthlyPeriod(tid, yyyyMm));
+          allow write: if isTenantAdmin(tid);
         }
       }
 
       match /bonus-records/{yyyyMm} {
-        allow read, write: if isTenantAdmin(tid);
+        allow read: if isTenantAdmin(tid)
+          || (isActiveTenantMember(tid) && resource.data.get('locked', false) == true);
+        allow write: if isTenantAdmin(tid);
 
         match /employees/{eid} {
-          allow read, write: if isTenantAdmin(tid);
+          allow read: if isTenantAdmin(tid)
+            || (isActiveTenantMember(tid)
+              && isOwnEmployee(tid, eid)
+              && isLockedBonusPeriod(tid, yyyyMm));
+          allow write: if isTenantAdmin(tid);
         }
       }
 
@@ -251,6 +283,11 @@ service cloud.firestore {
         allow read: if isTenantAdmin(tid)
           || (isActiveTenantMember(tid) && resource.data.eid == ownEmployeeId(tid));
         allow write: if false;
+      }
+
+      match /registrationFilings/{filingId} {
+        allow read, create: if isTenantAdmin(tid);
+        allow update, delete: if false;
       }
     }
 

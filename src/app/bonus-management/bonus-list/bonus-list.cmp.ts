@@ -26,7 +26,9 @@ import { ErrorDialogCmp, mapFirebaseError } from '../../error-dialog/error-dialo
 import { SuccessDialogCmp } from '../../success-dialog/success-dialog.cmp';
 import { BonusSettingDataService } from '../bonus-setting/bonus-setting-data.service';
 import { BonusListImportService } from './bonus-list-import.service';
+import { BonusListExportService } from './bonus-list-export.service';
 import { BonusListDataService } from './bonus-list-data.service';
+import { downloadCsvFile } from '../../csv/csv-file.util';
 import { HelpContentCmp } from '../../help-content/help-content.cmp';
 import { BonusPremiumCalculateFacade } from '../bonus-premium/bonus-premium-calculate.facade';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -61,6 +63,7 @@ export class BonusListCmp implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly bulkEditService = inject(BonusListBulkEditService);
   private readonly importService = inject(BonusListImportService);
+  private readonly exportService = inject(BonusListExportService);
   private readonly listDataService = inject(BonusListDataService);
 
   readonly visibleColumns = computed(() => this.bonusSettingDataService.visibleColumns());
@@ -524,6 +527,23 @@ export class BonusListCmp implements OnInit {
       this.bulkSaving = false;
       input.value = '';
     }
+  }
+
+  async exportData(): Promise<void> {
+    const tid = this.currentTenantService.currentTid();
+    const ym = this.yyyyMm();
+    if (!tid || !ym) return;
+
+    const bonusDefinitions = this.bonusManagementDataService.bonusTypeDefinitions();
+    await this.bonusSettingDataService.loadSettings(tid, bonusDefinitions);
+    const csv = this.exportService.buildCsv(
+      ym,
+      this.visibleColumns(),
+      this.dataSource.data,
+      this.bonusSettingDataService.importHeaders(),
+      bonusDefinitions,
+    );
+    downloadCsvFile(`${ym}.csv`, csv);
   }
 
   async calculatePremiums(): Promise<void> {

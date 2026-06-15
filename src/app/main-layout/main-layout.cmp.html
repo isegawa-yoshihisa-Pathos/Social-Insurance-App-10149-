@@ -102,6 +102,13 @@
                 (click)="navigateToPaymentManagement()"
                 [class.selected]="isSelected() === 'paymentManagement'"
             >給与管理</button>
+            <button
+                mat-flat-button
+                class="menu-button"
+                type="button"
+                (click)="navigateToRegistrationManagement()"
+                [class.selected]="isSelected() === 'registrationManagement'"
+            >届出管理</button>
             }
             
             <hr class="menu-divider" />

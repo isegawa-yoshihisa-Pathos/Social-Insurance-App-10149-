@@ -1,0 +1,61 @@
+<div class="payment-section">
+  @if (loadingPeriods()) {
+    <div class="loading-container">
+      <mat-spinner diameter="32"></mat-spinner>
+    </div>
+  } @else if (!hasLockedPeriods()) {
+    <p class="empty-message">
+      @if (scope === 'monthly') {
+        締切済みの給与明細はありません。
+      } @else {
+        締切済みの賞与明細はありません。
+      }
+    </p>
+  } @else {
+    <div class="header-container">
+      <mat-form-field appearance="outline" class="period-select">
+        <mat-label>対象月</mat-label>
+        <mat-select
+          [ngModel]="selectedYyyyMm()"
+          (ngModelChange)="onPeriodSelected($event)"
+        >
+          @for (yyyyMm of lockedPeriods(); track yyyyMm) {
+            <mat-option [value]="yyyyMm">{{ formatPeriodLabel(yyyyMm) }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <div class="action-buttons">
+        <button
+          mat-icon-button
+          matTooltip="CSVファイルをダウンロード"
+          [disabled]="!hasRow() || exporting() || loadingRow()"
+          (click)="exportData()"
+        >
+          <mat-icon>download</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    @if (loadingRow()) {
+      <div class="loading-container">
+        <mat-spinner diameter="32"></mat-spinner>
+      </div>
+    } @else if (!hasRow()) {
+      <p class="empty-message">データがありません。</p>
+    } @else {
+      <div class="table-scroll-container is-readonly">
+        <table mat-table [dataSource]="tableDataSource" class="payment-table">
+          @for (col of tableColumns(); track col) {
+            <ng-container [matColumnDef]="col">
+              <th mat-header-cell *matHeaderCellDef>{{ getColumnLabel(col) }}</th>
+              <td mat-cell *matCellDef="let row">{{ formatCellValue(row, col) }}</td>
+            </ng-container>
+          }
+          <tr mat-header-row *matHeaderRowDef="tableColumns()"></tr>
+          <tr mat-row *matRowDef="let row; columns: tableColumns()"></tr>
+        </table>
+      </div>
+    }
+  }
+</div>

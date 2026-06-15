@@ -21,6 +21,9 @@ export class CurrentTenantService {
 
   readonly affiliations = signal<AffiliationDocument[]>([]);
   readonly currentTid = signal<string | null>(null);
+  /** Firestore employees ドキュメント ID */
+  readonly currentEid = signal('');
+  /** 社員番号（employeeEmployInfo.employeeId） */
   readonly currentEmployeeId = signal('');
   readonly loading = signal<boolean>(false);
 
@@ -41,6 +44,7 @@ export class CurrentTenantService {
   signOut(): void {
     this.affiliations.set([]);
     this.currentTid.set(null);
+    this.currentEid.set('');
     this.currentEmployeeId.set('');
   }
 
@@ -126,6 +130,7 @@ export class CurrentTenantService {
     accountData?: AccountDocument,
   ): Promise<void> {
     if (!tid) {
+      this.currentEid.set('');
       this.currentEmployeeId.set('');
       return;
     }
@@ -134,6 +139,7 @@ export class CurrentTenantService {
     if (!account) {
       const accountSnap = await getDoc(doc(this.firestore, 'accounts', uid));
       if (!accountSnap.exists()) {
+        this.currentEid.set('');
         this.currentEmployeeId.set('');
         return;
       }
@@ -143,6 +149,7 @@ export class CurrentTenantService {
     const affiliation = this.affiliations().find((aff) => aff.tid === tid);
     const eid = account.affiliations?.[tid] ?? affiliation?.eid;
     if (!eid) {
+      this.currentEid.set('');
       this.currentEmployeeId.set('');
       return;
     }
@@ -151,11 +158,13 @@ export class CurrentTenantService {
       doc(this.firestore, 'tenants', tid, 'employees', eid),
     );
     if (!employeeSnap.exists()) {
+      this.currentEid.set('');
       this.currentEmployeeId.set('');
       return;
     }
 
     const data = employeeSnap.data() as Partial<EmployeeDocument>;
+    this.currentEid.set(eid);
     this.currentEmployeeId.set(data.employeeEmployInfo?.employeeId ?? '');
   }
 

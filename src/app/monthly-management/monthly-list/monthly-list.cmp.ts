@@ -25,7 +25,9 @@ import { ErrorDialogCmp, mapFirebaseError } from '../../error-dialog/error-dialo
 import { SuccessDialogCmp } from '../../success-dialog/success-dialog.cmp';
 import { MonthlySettingDataService } from '../monthly-setting/monthly-setting-data.service';
 import { MonthlyListImportService } from './monthly-list-import.service';
+import { MonthlyListExportService } from './monthly-list-export.service';
 import { MonthlyListDataService } from './monthly-list-data.service';
+import { downloadCsvFile } from '../../csv/csv-file.util';
 import { HelpContentCmp } from '../../help-content/help-content.cmp';
 import { MonthlyPremiumCalculateFacade } from '../monthly-premium/monthly-premium-calculate.facade';
 import { PaymentManagementDataService } from '../../payment-management/payment-management-data.service';
@@ -60,6 +62,7 @@ export class MonthlyListCmp implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly bulkEditService = inject(MonthlyListBulkEditService);
   private readonly importService = inject(MonthlyListImportService);
+  private readonly exportService = inject(MonthlyListExportService);
   private readonly listDataService = inject(MonthlyListDataService);
   private readonly paymentManagementDataService = inject(PaymentManagementDataService);
 
@@ -401,6 +404,7 @@ export class MonthlyListCmp implements OnInit {
       return {
         eid,
         basicSalary: row?.basicSalary ?? 0,
+        fringeBenefits: row?.fringeBenefits ?? 0,
         allowances: row?.allowances ?? {},
         retroactivePay: row?.retroactivePay ?? null,
       };
@@ -536,6 +540,22 @@ export class MonthlyListCmp implements OnInit {
       this.bulkSaving = false;
       input.value = '';
     }
+  }
+
+  async exportData(): Promise<void> {
+    const tid = this.currentTenantService.currentTid();
+    const ym = this.yyyyMm();
+    if (!tid || !ym) return;
+
+    await this.monthlySettingDataService.loadSettings(tid);
+    const csv = this.exportService.buildCsv(
+      ym,
+      this.visibleColumns(),
+      this.dataSource.data,
+      this.monthlySettingDataService.importHeaders(),
+      this.paymentManagementDataService.allowanceTypeDefinitions(),
+    );
+    downloadCsvFile(`${ym}.csv`, csv);
   }
 
   async calculatePremiums(): Promise<void> {

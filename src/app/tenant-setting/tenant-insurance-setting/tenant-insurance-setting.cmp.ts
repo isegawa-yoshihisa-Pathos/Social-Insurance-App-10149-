@@ -6,6 +6,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
 import { HelpContentCmp } from '../../help-content/help-content.cmp';
 import { TenantSettingDataService } from '../tenant-setting-data.service';
+import { shouldShowResignPremiumCollectionSetting } from '../../../../shared/social-insurance/premium/resign-premium-collection';
 
 @Component({
   selector: 'app-tenant-insurance-setting',
@@ -41,5 +42,11 @@ export class TenantInsuranceSettingCmp {
 
   get isPensionInsuranceTenantRecordNumberMissing(): boolean {
     return !this.form.socialInsuranceSettings.pensionInsuranceTenantRecordNumber?.trim();
+  }
+
+  get showResignPremiumCollectionSetting(): boolean {
+    return shouldShowResignPremiumCollectionSetting(
+      this.form.socialInsuranceSettings.socialInsuranceCollectionMonth,
+    );
   }
 }

@@ -1,14 +1,19 @@
-@if (isAdmin) {
-    <div class="task-board-container">
-        <app-tenant-task />
-    </div>
-}
-<div class="task-board-container">
-    <app-personal-task />
-</div>
-<div class="task-board-container">
-    <router-outlet />
-</div>
-<div class="task-board-container">
-    <app-application-list />
-</div>
+<nav mat-tab-nav-bar [tabPanel]="tabPanel" animationDuration="0ms">
+  <a
+    mat-tab-link
+    [routerLink]="['/task-board', 'personal']"
+    [active]="isPersonalActive"
+  >個人</a>
+  @if (tenant.isAdmin()) {
+    <a
+      mat-tab-link
+      [routerLink]="['/task-board', 'tenant']"
+      [active]="isTenantActive"
+    >事業所</a>
+  }
+</nav>
+<mat-tab-nav-panel #tabPanel>
+  <div class="task-board">
+    <router-outlet></router-outlet>
+  </div>
+</mat-tab-nav-panel>

@@ -41,6 +41,7 @@ export const DEFAULT_PAYMENT_LIST_COLUMNS: PaymentListColumnKey[] = [
   'displayName',
   'employeeId',
   'basicSalary',
+  'fringeBenefits',
   'fixedWage',
   'variableWage',
   'bonus',
@@ -76,6 +77,7 @@ export function getOptionalPaymentListColumns(
     { key: 'employeeId', label: '社員番号' },
     { key: 'paymentBaseDays', label: '支払基礎日数' },
     { key: 'basicSalary', label: '基本給与' },
+    { key: 'fringeBenefits', label: '現物給与' },
     { key: 'fixedWage', label: '固定的賃金' },
     { key: 'variableWage', label: '非固定的賃金' },
     ...allowanceColumns,
@@ -146,6 +148,7 @@ export interface PaymentListRow {
   displayName: string;
   paymentBaseDays: number;
   basicSalary: number;
+  fringeBenefits: number;
   fixedWage: number | null;
   variableWage: number | null;
   allowances: AllowanceData;

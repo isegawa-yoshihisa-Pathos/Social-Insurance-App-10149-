@@ -11,6 +11,7 @@ import { MatDatepickerToggle } from '@angular/material/datepicker';
 import { TenantInsuranceRateSettingDataService, type InsuranceRateEditForm } from '../tenant-insurance-rate-setting-data.service';
 import { TenantSettingDataService } from '../../tenant-setting-data.service';
 import { buildAssociationInsuranceRatePayload, CURRENT_ASSOCIATION_RATE_TABLE } from '../../../social-insurance/insurance-rates/association';
+import { toFormDate, toYyyyMmDd } from '../../../date-utils';
 import { roundPercent, roundRate } from '../../../social-insurance/premium/rounding';
 
 @Component({
@@ -39,9 +40,11 @@ export class TenantInsuranceRateSettingEditCmp implements OnInit {
 
   readonly prefectures = CURRENT_ASSOCIATION_RATE_TABLE.prefectures;
 
+  effectiveFromDate: Date | null = null;
 
   async ngOnInit(): Promise<void> {
     await this.dataService.initEditForm();
+    this.effectiveFromDate = toFormDate(this.dataService.editForm().effectiveFrom);
   }
 
   private updateForm(updater: (form: InsuranceRateEditForm) => void): void {
@@ -55,8 +58,16 @@ export class TenantInsuranceRateSettingEditCmp implements OnInit {
     this.dataService.editForm.set(next);
   }
 
-  get effectiveFrom(): string { return this.dataService.editForm().effectiveFrom; }
-  set effectiveFrom(val: string) { this.updateForm(f => f.effectiveFrom = val); }
+  onEffectiveFromDateChange(date: Date | null): void {
+    this.effectiveFromDate = date;
+    const next = date ? toYyyyMmDd(date) : '';
+    if (next === this.dataService.editForm().effectiveFrom) {
+      return;
+    }
+    this.updateForm((f) => {
+      f.effectiveFrom = next;
+    });
+  }
 
   get label(): string { return this.dataService.editForm().label; }
   set label(val: string) { this.updateForm(f => f.label = val); }

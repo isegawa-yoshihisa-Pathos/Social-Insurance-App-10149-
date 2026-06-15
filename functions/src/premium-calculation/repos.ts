@@ -137,6 +137,11 @@ export async function getEmployee(
 export interface TenantDocumentForCalculation {
   socialInsuranceSettings?: {
     specificInsuranceCollectionType?: string;
+    socialInsuranceCollectionMonth?:
+      | 'currentMonth'
+      | 'nextMonth'
+      | 'nextNextMonth';
+    resignPremiumCollection?: 'bulk' | 'monthly';
   };
 }
 
@@ -309,6 +314,20 @@ export async function getLatestConfirmedStandardRemuneration(
       item.yyyyMm <= yyyyMm && isConfirmedStandardRemunerationSource(item.doc.source),
   );
   return found?.doc ?? null;
+}
+
+/** 当年9月適用の定時決定（source=teiji）を削除する。存在しなければ false。 */
+export async function deleteTeijiStandardRemunerationForYear(
+  db: admin.firestore.Firestore,
+  tid: string,
+  eid: string,
+  teijiYear: number,
+): Promise<boolean> {
+  const yyyyMm = `${teijiYear}-09`;
+  const existing = await getStandardRemuneration(db, tid, eid, yyyyMm);
+  if (!existing || existing.source !== 'teiji') return false;
+  await standardRemunerationRef(db, tid, eid, yyyyMm).delete();
+  return true;
 }
 
 export async function saveStandardRemuneration(

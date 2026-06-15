@@ -8,7 +8,7 @@
           <div class="info-grid">
             <div class="info-item">
               <span class="info-label">適用開始日</span>
-              <span class="info-value">{{ rate.doc.effectiveFrom }}</span>
+              <span class="info-value">{{ formatEffectiveFrom(rate.doc.effectiveFrom) }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">ラベル</span>
@@ -72,7 +72,7 @@
           
           <ng-container matColumnDef="effectiveFrom">
             <th mat-header-cell *matHeaderCellDef>適用開始日</th>
-            <td mat-cell *matCellDef="let row">{{ row.doc.effectiveFrom }}</td>
+            <td mat-cell *matCellDef="let row">{{ formatEffectiveFrom(row.doc.effectiveFrom) }}</td>
           </ng-container>
   
           <ng-container matColumnDef="label">

@@ -17,6 +17,7 @@ export { validateInvitationToken } from './invitation/invitation-accept-function
 export { acceptInvitation } from './invitation/invitation-accept-functions';
 export { startPremiumCalculationBatch } from './premium-calculation/batch';
 export { calculatePremiumTask } from './premium-calculation/task';
+export { recalculatePremiumsAfterResign } from './premium-calculation/recalculate-after-resign';
 export { approveMayJuneZuijiReview, rejectMayJuneZuijiReview } from './premium-calculation/may-june-zuiji-review';
 export {
   submitRemunerationConsentReview,

@@ -1,15 +1,24 @@
 <div class="main-page">
+  @if (dataService.loading) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else {
     <div class="info-container">
-        <h2>雇用情報</h2>
-        <app-employee-employ-detail></app-employee-employ-detail>
+      <h2>雇用情報</h2>
+      <app-employee-employ-detail></app-employee-employ-detail>
     </div>
     <div class="info-container">
-        <h2>勤務情報</h2>
-        <app-employee-status></app-employee-status>
+      <h2>勤務情報</h2>
+      <app-employee-status></app-employee-status>
     </div>
     <div class="info-container">
-        <p>ここに人事アプリの各画面が表示されます。</p>
+      <h2>給与明細</h2>
+      <app-monthly-payment [scope]="'monthly'" [eid]="dataService.eid"></app-monthly-payment>
     </div>
     <div class="info-container">
-        <p>ここに人事アプリの各画面が表示されます。</p>
+      <h2>賞与明細</h2>
+      <app-monthly-payment [scope]="'bonus'" [eid]="dataService.eid"></app-monthly-payment>
     </div>
+  }
+</div>

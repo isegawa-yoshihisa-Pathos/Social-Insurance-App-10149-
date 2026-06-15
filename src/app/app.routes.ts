@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './auth.guard';
 import { adminGuard } from './admin.guard';
+import { taskBoardTenantGuard } from './task-board/task-board-tenant.guard';
 import { HomeCmp } from './home/home.cmp';
 import { SigninCmp } from './signin/signin.cmp';
 import { SignupCmp } from './signup/signup.cmp';
@@ -33,21 +34,63 @@ export const routes: Routes = [
         loadComponent: () => import('./main-page/main-page.cmp').then(m => m.MainPageCmp),
       },
       {
-        path: 'task-board', 
-        loadComponent: () => import('./task-board/task-board.cmp').then(m => m.TaskBoardCmp), 
+        path: 'task-board',
+        loadComponent: () => import('./task-board/task-board.cmp').then(m => m.TaskBoardCmp),
         children: [
           {
+            path: '',
+            pathMatch: 'full',
+            redirectTo: 'personal',
+          },
+          {
             path: 'allowance-application',
-            loadComponent: () => import('./task-board/personal-task/allowance-application/allowance-application.cmp').then(m => m.AllowanceApplicationCmp),
+            pathMatch: 'full',
+            redirectTo: 'personal/allowance-application',
           },
           {
             path: 'leave-application',
-            loadComponent: () => import('./task-board/personal-task/leave-application/leave-application.cmp').then(m => m.LeaveApplicationCmp),
+            pathMatch: 'full',
+            redirectTo: 'personal/leave-application',
           },
           {
             path: 'resign-application',
-            loadComponent: () => import('./task-board/personal-task/resign-application/resign-application.cmp').then(m => m.ResignApplicationCmp),
-          }
+            pathMatch: 'full',
+            redirectTo: 'personal/resign-application',
+          },
+          {
+            path: 'personal',
+            loadComponent: () =>
+              import('./task-board/task-board-personal.cmp').then(m => m.TaskBoardPersonalCmp),
+            children: [
+              {
+                path: 'allowance-application',
+                loadComponent: () =>
+                  import('./task-board/personal-task/allowance-application/allowance-application.cmp').then(
+                    m => m.AllowanceApplicationCmp,
+                  ),
+              },
+              {
+                path: 'leave-application',
+                loadComponent: () =>
+                  import('./task-board/personal-task/leave-application/leave-application.cmp').then(
+                    m => m.LeaveApplicationCmp,
+                  ),
+              },
+              {
+                path: 'resign-application',
+                loadComponent: () =>
+                  import('./task-board/personal-task/resign-application/resign-application.cmp').then(
+                    m => m.ResignApplicationCmp,
+                  ),
+              },
+            ],
+          },
+          {
+            path: 'tenant',
+            canActivate: [taskBoardTenantGuard],
+            loadComponent: () =>
+              import('./task-board/task-board-tenant.cmp').then(m => m.TaskBoardTenantCmp),
+          },
         ],
       },
       {
@@ -204,6 +247,11 @@ export const routes: Routes = [
             loadComponent: () => import('./payment-management/payment-setting/payment-setting.cmp').then(m => m.PaymentSettingCmp),
           },
         ],
+      },
+      {
+        path: 'registration-management',
+        loadComponent: () => import('./registration-management/registration-management.cmp').then(m => m.RegistrationManagementCmp),
+        canActivate: [adminGuard],
       },
       {
         path: 'virtual-mail-checker',

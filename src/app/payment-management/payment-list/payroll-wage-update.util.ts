@@ -3,6 +3,7 @@ import { computeWageSummary } from './wage-summary.util';
 
 export interface PayrollWagePatchInput {
   basicSalary?: number;
+  fringeBenefits?: number;
   allowances?: Record<string, number>;
   retroactivePay?: number | null;
 }
@@ -10,6 +11,7 @@ export interface PayrollWagePatchInput {
 export function buildPayrollWageFields(
   current: {
     basicSalary: number;
+    fringeBenefits: number;
     allowances: Record<string, number>;
     retroactivePay: number | null;
   },
@@ -18,6 +20,7 @@ export function buildPayrollWageFields(
 ): { fixedWage: number; variableWage: number } {
   const merged = {
     basicSalary: patch.basicSalary ?? current.basicSalary,
+    fringeBenefits: patch.fringeBenefits ?? current.fringeBenefits,
     allowances: patch.allowances ?? current.allowances,
     retroactivePay:
       patch.retroactivePay !== undefined ? patch.retroactivePay : current.retroactivePay,

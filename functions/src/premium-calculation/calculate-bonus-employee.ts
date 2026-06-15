@@ -73,6 +73,7 @@ export async function calculateBonusEmployee(
     birthDate: ctx.birthDate,
     licenceStartAt: toFormDate(ctx.employee.employeeEmployInfo?.licenseStartAt),
     resignAt: toFormDate(ctx.employee.employeeEmployInfo?.resignAt),
+    licenseEndAt: toFormDate(ctx.employee.employeeEmployInfo?.licenseEndAt),
     leaveRecords: employeeLeaveRecordsToPeriodInputs(ctx.employee.leaveInfo),
     ...careInsuranceCollection,
     standardBonus: standardBonus.standardBonus,

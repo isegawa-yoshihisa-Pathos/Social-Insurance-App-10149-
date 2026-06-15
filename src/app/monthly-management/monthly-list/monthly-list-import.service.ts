@@ -19,6 +19,7 @@ import { MonthlyListRow } from './monthly-list-columns';
 import { EmployeeLookupEntry, MonthlyListDataService } from './monthly-list-data.service';
 import { PaymentManagementDataService } from '../../payment-management/payment-management-data.service';
 import { buildPayrollWageFields } from '../../payment-management/payment-list/payroll-wage-update.util';
+import { resolveCsvImportLayout } from '../../csv/csv-file.util';
 
 export interface MonthlyCsvImportOptions {
   yyyyMm: string;
@@ -34,6 +35,7 @@ export interface MonthlyCsvImportResult {
 
 interface PayrollImportPatch {
   basicSalary?: number;
+  fringeBenefits?: number;
   paymentBaseDays?: number;
   bonusRelatedRemuneration?: number;
   allowances?: Record<string, number>;
@@ -52,7 +54,15 @@ export class MonthlyListImportService {
     file: File,
     options: MonthlyCsvImportOptions,
   ): Promise<MonthlyCsvImportResult> {
-    if (await this.listDataService.isPeriodLocked(tid, options.yyyyMm)) {
+    const csvText = await file.text();
+    const rows = this.parseCsvRows(csvText);
+    const layout = resolveCsvImportLayout(rows);
+    if (rows.length < layout.dataStartIndex + 1) {
+      throw new Error('CSVにデータ行がありません。');
+    }
+    const targetYyyyMm = layout.yyyyMmFromFile ?? options.yyyyMm;
+
+    if (await this.listDataService.isPeriodLocked(tid, targetYyyyMm)) {
       throw new Error('この月は締切済みのため、インポートできません。');
     }
 
@@ -64,13 +74,7 @@ export class MonthlyListImportService {
     const columnDefs = buildMonthlyImportColumnDefs(
       this.paymentManagementDataService.allowanceTypeDefinitions(),
     );
-    const csvText = await file.text();
-    const rows = this.parseCsvRows(csvText);
-    if (rows.length < 2) {
-      throw new Error('CSVにデータ行がありません。');
-    }
-
-    const headers = rows[0].map((h) => h.trim());
+    const headers = rows[layout.headerRowIndex].map((h) => h.trim());
     const headerIndex = this.buildHeaderIndexMap(headers, columnDefs);
 
     const employeeIdIdx = headerIndex['employeeId'] ?? -1;
@@ -94,15 +98,15 @@ export class MonthlyListImportService {
     };
 
     const existingRecordsSnapshot = await getDocs(
-      collection(this.firestore, 'tenants', tid, 'monthly-records', options.yyyyMm, 'employees')
+      collection(this.firestore, 'tenants', tid, 'monthly-records', targetYyyyMm, 'employees')
     );
     const existingRows = existingRecordsSnapshot.docs.map(doc => ({ ...doc.data() as MonthlyListRow }));
     const previousBonusMap = await this.listDataService.loadPreviousBonusRelatedRemunerationMap(
       tid,
-      options.yyyyMm,
+      targetYyyyMm,
     );
 
-    for (let i = 1; i < rows.length; i++) {
+    for (let i = layout.dataStartIndex; i < rows.length; i++) {
       const cols = rows[i];
       if (cols.every((c) => !c.trim())) continue;
 
@@ -143,7 +147,7 @@ export class MonthlyListImportService {
         'tenants',
         tid,
         'monthly-records',
-        options.yyyyMm,
+        targetYyyyMm,
         'employees',
         matched,
       );
@@ -183,7 +187,7 @@ export class MonthlyListImportService {
       }
     }
 
-    this.listDataService.touchPeriodInBatch(batch, tid, options.yyyyMm);
+    this.listDataService.touchPeriodInBatch(batch, tid, targetYyyyMm);
 
     await batch.commit();
     return result;
@@ -239,6 +243,7 @@ export class MonthlyListImportService {
   ): PayrollImportPatch | null {
     const current = {
       basicSalary: existingRow?.basicSalary ?? 0,
+      fringeBenefits: existingRow?.fringeBenefits ?? 0,
       paymentBaseDays: existingRow?.paymentBaseDays ?? 0,
       bonusRelatedRemuneration: existingRow?.bonusRelatedRemuneration ?? 0,
       allowances: { ...(existingRow?.allowances ?? {}) },
@@ -262,6 +267,9 @@ export class MonthlyListImportService {
 
       if (col.key === 'basicSalary') {
         patch.basicSalary = num;
+        hasUpdate = true;
+      } else if (col.key === 'fringeBenefits') {
+        patch.fringeBenefits = num;
         hasUpdate = true;
       } else if (col.key === 'retroactivePay') {
         patch.retroactivePay = num;
@@ -290,6 +298,7 @@ export class MonthlyListImportService {
   ): UpdateData<DocumentData> {
     const current = {
       basicSalary: existingRow.basicSalary ?? 0,
+      fringeBenefits: existingRow.fringeBenefits ?? 0,
       allowances: { ...(existingRow.allowances ?? {}) },
       retroactivePay: existingRow.retroactivePay ?? null,
     };
@@ -303,6 +312,9 @@ export class MonthlyListImportService {
 
     if (payrollPatch.basicSalary !== undefined) {
       update['payrollData.basicSalary'] = payrollPatch.basicSalary;
+    }
+    if (payrollPatch.fringeBenefits !== undefined) {
+      update['payrollData.fringeBenefits'] = payrollPatch.fringeBenefits;
     }
     if (payrollPatch.paymentBaseDays !== undefined) {
       update['payrollData.paymentBaseDays'] = payrollPatch.paymentBaseDays;
@@ -337,6 +349,7 @@ export class MonthlyListImportService {
   } {
     const current = {
       basicSalary: 0,
+      fringeBenefits: 0,
       paymentBaseDays: 0,
       allowances: {},
       retroactivePay: null,
@@ -346,6 +359,7 @@ export class MonthlyListImportService {
 
     const payrollData: PayrollData = {
       basicSalary: payrollPatch.basicSalary ?? 0,
+      fringeBenefits: payrollPatch.fringeBenefits ?? 0,
       fixedWage: wages.fixedWage,
       variableWage: wages.variableWage,
       allowances: payrollPatch.allowances ?? {},

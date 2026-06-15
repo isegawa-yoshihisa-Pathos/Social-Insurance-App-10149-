@@ -18,6 +18,7 @@ import {
 import { buildBonusData } from './bonus-data.util';
 import { BonusListRow } from './bonus-list-columns';
 import { BonusListDataService, EmployeeLookupEntry } from './bonus-list-data.service';
+import { resolveCsvImportLayout } from '../../csv/csv-file.util';
 
 export interface BonusCsvImportOptions {
   yyyyMm: string;
@@ -51,8 +52,16 @@ export class BonusListImportService {
     file: File,
     options: BonusCsvImportOptions,
   ): Promise<BonusCsvImportResult> {
-    if (await this.listDataService.isPeriodLocked(tid, options.yyyyMm)) {
-      throw new Error(`${options.yyyyMm} は締切済みのため、インポートできません。`);
+    const csvText = await file.text();
+    const rows = this.parseCsvRows(csvText);
+    const layout = resolveCsvImportLayout(rows);
+    if (rows.length < layout.dataStartIndex + 1) {
+      throw new Error('CSVにデータ行がありません。');
+    }
+    const targetYyyyMm = layout.yyyyMmFromFile ?? options.yyyyMm;
+
+    if (await this.listDataService.isPeriodLocked(tid, targetYyyyMm)) {
+      throw new Error(`${targetYyyyMm} は締切済みのため、インポートできません。`);
     }
 
     await this.bonusManagementDataService.loadBonusSettings(tid);
@@ -60,13 +69,7 @@ export class BonusListImportService {
     await this.bonusSettingDataService.loadSettings(tid, bonusDefinitions);
 
     const columnDefs = buildBonusImportColumnDefs(bonusDefinitions);
-    const csvText = await file.text();
-    const rows = this.parseCsvRows(csvText);
-    if (rows.length < 2) {
-      throw new Error('CSVにデータ行がありません。');
-    }
-
-    const headers = rows[0].map((h) => h.trim());
+    const headers = rows[layout.headerRowIndex].map((h) => h.trim());
     const headerIndex = this.buildHeaderIndexMap(headers, columnDefs);
 
     const employeeIdIdx = headerIndex['employeeId'] ?? -1;
@@ -92,7 +95,7 @@ export class BonusListImportService {
       skippedEmpty: 0,
     };
 
-    for (let i = 1; i < rows.length; i++) {
+    for (let i = layout.dataStartIndex; i < rows.length; i++) {
       const cols = rows[i];
       if (cols.every((c) => !c.trim())) continue;
 
@@ -138,7 +141,7 @@ export class BonusListImportService {
         'tenants',
         tid,
         'bonus-records',
-        options.yyyyMm,
+        targetYyyyMm,
         'employees',
         matched,
       );
@@ -157,7 +160,7 @@ export class BonusListImportService {
       }
     }
 
-    this.listDataService.touchPeriodInBatch(batch, tid, options.yyyyMm);
+    this.listDataService.touchPeriodInBatch(batch, tid, targetYyyyMm);
 
     await batch.commit();
     return result;

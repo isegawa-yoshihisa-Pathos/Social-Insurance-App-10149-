@@ -6,6 +6,7 @@ import {
 
 export interface WageSummaryInput {
   basicSalary: number;
+  fringeBenefits: number;
   allowances: AllowanceData;
   retroactivePay: number | null;
 }
@@ -34,7 +35,7 @@ export function computeWageSummary(
   }
 
   return {
-    fixedWage: payroll.basicSalary + fixedAllowances,
+    fixedWage: payroll.basicSalary + payroll.fringeBenefits + fixedAllowances,
     variableWage: variableAllowances,
   };
 }

@@ -51,7 +51,8 @@ export class MainLayoutCmp {
     | 'monthlyManagement'
     | 'bonusManagement'
     | 'paymentManagement'
-    | 'virtualMailChecker' {
+    | 'virtualMailChecker'
+    | 'registrationManagement' {
     if (url.startsWith('/personal-setting')) return 'personalSetting';
     if (url.startsWith('/task-board')) return 'taskBoard';
     if (url.startsWith('/notifications')) return 'notifications';
@@ -63,6 +64,7 @@ export class MainLayoutCmp {
     if (url.startsWith('/bonus-management')) return 'bonusManagement';
     if (url.startsWith('/payment-management')) return 'paymentManagement';
     if (url.startsWith('/virtual-mail-checker')) return 'virtualMailChecker';
+    if (url.startsWith('/registration-management')) return 'registrationManagement';
     return 'myPage';
   }
 
@@ -132,5 +134,9 @@ export class MainLayoutCmp {
 
   navigateToVirtualMailChecker(): void {
     this.routesService.redirectToVirtualMailChecker();
+  }
+
+  navigateToRegistrationManagement(): void {
+    this.routesService.redirectToRegistrationManagement();
   }
 } 

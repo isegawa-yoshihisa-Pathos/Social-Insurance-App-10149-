@@ -11,6 +11,10 @@ import {
   isMonthlyPremiumExemptForLeave,
   type LeavePeriodInput,
 } from './leave-premium-exemption';
+import {
+  isInsurancePeriodTargetByLicenseEnd,
+  licenseEndAtFromResignAt,
+} from './insurance-period';
 
 export interface InsuranceRatesInput {
   healthInsuranceRate: number;
@@ -29,6 +33,7 @@ export interface PremiumCalculationInput extends CareInsuranceCollectionInput {
   birthDate: Date | null;
   licenceStartAt: Date | null | undefined;
   resignAt: Date | null | undefined;
+  licenseEndAt?: Date | null | undefined;
   leaveRecords?: readonly LeavePeriodInput[];
   applyLeavePremiumExemption?: boolean;
   standardRemuneration: {
@@ -43,30 +48,16 @@ export interface PremiumCalculationInput extends CareInsuranceCollectionInput {
 export function isInsurancePeriodTarget(
   licenceStartAt: Date | null | undefined,
   resignAt: Date | null | undefined,
-  yyyyMm: string
+  yyyyMm: string,
+  licenseEndAt?: Date | null | undefined,
 ): boolean {
-  if (!licenceStartAt) {
-    return false;
-  }
-
-  const licenceStartYyyyMm = `${licenceStartAt.getFullYear()}-${String(licenceStartAt.getMonth() + 1).padStart(2, '0')}`;
-  if (yyyyMm < licenceStartYyyyMm) {
-    return false;
-  }
-
-  if (resignAt) {
-    const licenceEndAt = new Date(resignAt.getTime());
-    licenceEndAt.setDate(licenceEndAt.getDate() + 1);
-
-    const isSameMonthLicenceStartAndEnd =
-      licenceStartAt.getFullYear() === licenceEndAt.getFullYear() &&
-      licenceStartAt.getMonth() === licenceEndAt.getMonth();
-
-    if (isSameMonthLicenceStartAndEnd) {
-      return yyyyMm === licenceStartYyyyMm;
-    }
-  }
-  return true;
+  const resolvedLicenseEndAt =
+    licenseEndAt ?? (resignAt ? licenseEndAtFromResignAt(resignAt) : null);
+  return isInsurancePeriodTargetByLicenseEnd(
+    licenceStartAt,
+    resolvedLicenseEndAt,
+    yyyyMm,
+  );
 }
 
 export function ageAtEndOfMonth(birthDate: Date, year: number, month: number): number {
@@ -196,6 +187,7 @@ export interface BonusPremiumCalculationInput extends CareInsuranceCollectionInp
   birthDate: Date | null;
   licenceStartAt: Date | null | undefined;
   resignAt: Date | null | undefined;
+  licenseEndAt?: Date | null | undefined;
   leaveRecords?: readonly LeavePeriodInput[];
   standardBonus: {
     health: number;
@@ -224,6 +216,7 @@ export function calculateBonusPremium(input: BonusPremiumCalculationInput): Prem
     birthDate: input.birthDate,
     licenceStartAt: input.licenceStartAt,
     resignAt: input.resignAt,
+    licenseEndAt: input.licenseEndAt,
     applyLeavePremiumExemption: false,
     specificInsuranceCollectionType: input.specificInsuranceCollectionType,
     hasDependents: input.hasDependents,
@@ -236,7 +229,15 @@ export function calculateBonusPremium(input: BonusPremiumCalculationInput): Prem
 }
 
 export function calculateMonthlyPremium(input: PremiumCalculationInput): PremiumData {
-  const { rates, standardRemuneration, yyyyMm, birthDate, licenceStartAt, resignAt } = input;
+  const {
+    rates,
+    standardRemuneration,
+    yyyyMm,
+    birthDate,
+    licenceStartAt,
+    resignAt,
+    licenseEndAt,
+  } = input;
   const rate = normalizeEmployeeRate(input.employeeRate);
   const rounding = normalizeRoundingBy(input.roundingBy);
 
@@ -262,7 +263,7 @@ export function calculateMonthlyPremium(input: PremiumCalculationInput): Premium
     return emptyPremiumData();
   }
 
-  if (isInsurancePeriodTarget(licenceStartAt, resignAt, yyyyMm)) {
+  if (isInsurancePeriodTarget(licenceStartAt, resignAt, yyyyMm, licenseEndAt)) {
     if (isHealthInsuranceTarget(birthDate, yyyyMm)) {
       const healthSplit = premiumFromStandardRemuneration(
         standardRemuneration.health,

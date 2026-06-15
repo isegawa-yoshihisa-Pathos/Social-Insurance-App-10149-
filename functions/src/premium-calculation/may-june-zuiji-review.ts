@@ -25,6 +25,7 @@ import {
   getStandardRemuneration,
   getLatestConfirmedStandardRemuneration,
   saveStandardRemuneration,
+  deleteTeijiStandardRemunerationForYear,
   isConfirmedStandardRemunerationSource,
   type StandardRemunerationSavePayload,
 } from './repos';
@@ -161,9 +162,9 @@ async function loadMonthSourcesForMayJuneZuiji(
   if (zuijiSources.some((s) => s == null)) return null;
 
   const priorPayroll =
-    priorMonthly.payrollData.fixedWage ?? priorMonthly.payrollData.basicSalary;
+    priorMonthly.payrollData.fixedWage ?? priorMonthly.payrollData.basicSalary + priorMonthly.payrollData.fringeBenefits;
   const raisePayroll =
-    zuijiSources[0]!.payroll.fixedWage ?? zuijiSources[0]!.payroll.basicSalary;
+    zuijiSources[0]!.payroll.fixedWage ?? zuijiSources[0]!.payroll.basicSalary + zuijiSources[0]!.payroll.fringeBenefits;
   if (priorPayroll === raisePayroll) return null;
 
   const previous = await getPreviousGrades(db, tid, eid, priorMonthKey);
@@ -268,7 +269,7 @@ export async function saveProvisionalMayJuneZuijiOnApproval(
 }
 
 /**
- * 承認済み仮随時を、3ヶ月データが揃ったスクリーニング月に本随時へ確定する。
+ * 承認済み仮随時を、3ヶ月データが揃った確定月に本随時へ確定する。
  * 5月昇給→7月、6月昇給→8月の計算時に実行。
  */
 export async function tryFinalizeApprovedMayJuneZuiji(
@@ -403,6 +404,8 @@ export const approveMayJuneZuijiReview = onCall<ReviewActionInput>(
       throw new HttpsError('failed-precondition', '却下済みの確認依頼です。');
     }
 
+    const { year: teijiYear } = parseYyyyMm(raiseMonthYyyyMm);
+    await deleteTeijiStandardRemunerationForYear(db, tid, eid, teijiYear);
     await saveProvisionalMayJuneZuijiOnApproval(db, tid, eid, raiseMonthYyyyMm);
 
     await ref.set(

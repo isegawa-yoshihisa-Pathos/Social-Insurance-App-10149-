@@ -179,6 +179,21 @@
             </mat-select>
         </mat-form-field>
     </div>
+    @if (showResignPremiumCollectionSetting) {
+        <div class="field-container">
+            <label class="label-name">退職時の保険料徴収：</label>
+            <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+                <mat-label>退職時の保険料徴収</mat-label>
+                <mat-select [(ngModel)]="form.socialInsuranceSettings.resignPremiumCollection">
+                    <mat-option value="monthly">月次徴収</mat-option>
+                    <mat-option value="bulk">一括徴収</mat-option>
+                </mat-select>
+            </mat-form-field>
+            <div class="comment-text">
+                ※一括徴収：退職月給与で、通常は退職月以降に徴収予定だった社会保険料を合算して徴収します
+            </div>
+        </div>
+    }
     <div class="field-container">
         <label class="label-name">特定被保険者徴収区分：</label>
         <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">

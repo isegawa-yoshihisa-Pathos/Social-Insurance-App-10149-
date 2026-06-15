@@ -1,5 +1,5 @@
 import type { PayrollData } from '../../monthly-document';
-import { computeFixedWageFromPayroll } from './fixed-wage';
+import { computeTotalRemunerationFromPayroll } from './fixed-wage';
 import {
   CURRENT_GRADE_TABLE,
   resolveGradesFromRemuneration,
@@ -22,7 +22,7 @@ export function determineInitial(
   bonusRelatedRemuneration: number,
   gradeTable: RemunerationGradeTableSet = CURRENT_GRADE_TABLE,
 ): InitialDeterminationOutcome {
-  const remuneration = computeFixedWageFromPayroll(payroll) + bonusRelatedRemuneration;
+  const remuneration = computeTotalRemunerationFromPayroll(payroll) + bonusRelatedRemuneration;
   const grades = resolveGradesFromRemuneration(gradeTable, remuneration);
 
   if (!grades) {

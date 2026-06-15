@@ -34,6 +34,7 @@ export function toPaymentListRow(
     displayName: monthlyData?.displayName ?? bonusData?.displayName ?? '',
     paymentBaseDays: monthlyData?.paymentBaseDays ?? 0,
     basicSalary: payroll?.basicSalary ?? 0,
+    fringeBenefits: payroll?.fringeBenefits ?? 0,
     fixedWage: payroll?.fixedWage ?? null,
     variableWage: payroll?.variableWage ?? null,
     allowances: payroll?.allowances ?? {},

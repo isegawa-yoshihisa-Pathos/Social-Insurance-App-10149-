@@ -5,5 +5,5 @@ export function computeFixedWageFromPayroll(payroll: PayrollData): number {
     return payroll.fixedWage;
   }
 
-  return payroll.basicSalary;
+  return payroll.basicSalary + payroll.fringeBenefits;
 }

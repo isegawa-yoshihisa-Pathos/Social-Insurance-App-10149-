@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTableModule } from '@angular/material/table';
 import { TenantInsuranceRateSettingDataService } from '../tenant-insurance-rate-setting-data.service';
+import { formatJapaneseDate } from '../../../date-utils';
 
 @Component({
   selector: 'app-tenant-insurance-rate-setting-display',
@@ -43,8 +44,8 @@ export class TenantInsuranceRateSettingDisplayCmp implements OnInit {
     return activeRates[0] || null;
   });
 
-  ngOnInit(): void {
-    this.dataService.loadRates();
+  async ngOnInit(): Promise<void> {
+    await this.dataService.loadRates();
   }
 
   getRateSourceLabel(source: string): string {
@@ -63,5 +64,16 @@ export class TenantInsuranceRateSettingDisplayCmp implements OnInit {
     const m = `${d.getMonth() + 1}`.padStart(2, '0');
     const day = `${d.getDate()}`.padStart(2, '0');
     return `${y}-${m}-${day}`;
+  }
+
+  formatEffectiveFrom(yyyyMmDd: string): string {
+    if (!yyyyMmDd) {
+      return '';
+    }
+    const [year, month, day] = yyyyMmDd.split('-').map(Number);
+    if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+      return yyyyMmDd;
+    }
+    return formatJapaneseDate(new Date(year, month - 1, day));
   }
 }

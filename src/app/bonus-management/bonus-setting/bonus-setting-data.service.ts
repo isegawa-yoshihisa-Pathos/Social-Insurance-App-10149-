@@ -20,6 +20,7 @@ export interface BonusSettingDocument {
 
   /** @deprecated importHeaders へ移行 */
   basicSalaryHeader?: string;
+  fringeBenefitsHeader?: string;
   overtimePayHeader?: string;
   commuterAllowanceHeader?: string;
   otherAllowanceHeader?: string;

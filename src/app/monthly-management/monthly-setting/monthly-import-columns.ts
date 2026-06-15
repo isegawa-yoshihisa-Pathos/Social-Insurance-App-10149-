@@ -7,6 +7,7 @@ export type StaticMonthlyImportFieldKey = keyof Pick<
   | 'employeeId'
   | 'paymentBaseDays'
   | 'basicSalary'
+  | 'fringeBenefits'
   | 'bonusRelatedRemuneration'
   | 'retroactivePay'
 >;
@@ -45,6 +46,12 @@ export const STATIC_MONTHLY_IMPORT_COLUMNS: MonthlyImportColumnDef[] = [
     key: 'basicSalary',
     label: '基本給与',
     defaultHeader: 'basicSalary',
+    kind: 'number',
+  },
+  {
+    key: 'fringeBenefits',
+    label: '現物給与',
+    defaultHeader: 'fringeBenefits',
     kind: 'number',
   },
   {

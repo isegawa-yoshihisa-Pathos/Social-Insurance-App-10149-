@@ -80,12 +80,15 @@
               >
                 複数月のデータをインポート
               </button>
-            </mat-menu>
-          </button>
-          <button
-            mat-icon-button
-            type="button"
-            class="calculate-premiums-button"
+          </mat-menu>
+        </button>
+        <button mat-icon-button matTooltip="CSVファイルをダウンロード" (click)="exportData()">
+          <mat-icon>download</mat-icon>
+        </button>
+        <button
+          mat-icon-button
+          type="button"
+          class="calculate-premiums-button"
             [disabled]="bulkSaving || premiumRecalculating || !bonusRecordExists() || locked()"
             [class.disabled]="bulkSaving || premiumRecalculating || !bonusRecordExists() || locked()"
             (click)="calculatePremiums()"

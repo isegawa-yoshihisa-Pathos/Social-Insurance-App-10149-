@@ -1,0 +1,125 @@
+:host {
+  display: block;
+}
+
+.registration-container {
+  width: 100%;
+  padding: 20px;
+  background-color: white;
+  box-sizing: border-box;
+  box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.registration-content-label {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 24px;
+  border-left: 4px solid #673ab7;
+  padding-left: 8px;
+}
+
+.registration-content-container {
+  display: flex;
+  width: 50%;
+  min-width: 280px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.registration-button-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.registration-button-container button {
+  width: 100%;
+}
+
+.registration-description {
+  font-size: 14px;
+  color: #333;
+  margin-top: 10px;
+  text-align: center;
+}
+
+.registration-subtitle {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 16px;
+}
+
+.registration-back-link {
+  margin-top: 8px;
+}
+
+.registration-create-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.registration-create-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.registration-create-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: bold;
+  text-align: center;
+  color: #333;
+}
+
+.registration-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #666;
+}
+
+.registration-empty-message,
+.registration-tenant-form-message {
+  margin: 0;
+  color: #666;
+}
+
+.registration-table-scroll {
+  overflow-x: auto;
+}
+
+.registration-table {
+  width: 100%;
+}
+
+.check-col {
+  width: 48px;
+}
+
+.registration-row {
+  cursor: pointer;
+}
+
+.registration-row.selected-row {
+  background-color: rgba(103, 58, 183, 0.08);
+}
+
+.registration-row:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.registration-row.selected-row:hover {
+  background-color: rgba(103, 58, 183, 0.12);
+}

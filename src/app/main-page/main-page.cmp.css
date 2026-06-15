@@ -2,6 +2,12 @@
   display: block;
 }
 
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 40px;
+}
+
 .info-container {
   width: 100%;
   padding: 20px;

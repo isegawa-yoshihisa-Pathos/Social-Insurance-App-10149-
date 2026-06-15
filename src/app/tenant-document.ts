@@ -11,6 +11,8 @@ export interface SocialInsuranceSettings {
   closingDay: string,
   payrollBaseDaysStandard: 'closingDay' | 'calendarDay',
   socialInsuranceCollectionMonth: 'currentMonth' | 'nextMonth' | 'nextNextMonth',
+  /** 退職時の保険料徴収（翌月・翌々月徴収の場合のみ有効） */
+  resignPremiumCollection?: 'bulk' | 'monthly',
   specificInsuranceCollectionType: string,
 }
 

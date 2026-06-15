@@ -63,6 +63,25 @@ export class EmployeeDetailDataService {
     }
   }
 
+  async loadForCurrentUser(force = false): Promise<void> {
+    const uid = this.authService.uid();
+    if (!uid) throw new Error('ユーザーが見つかりません。');
+
+    const tid = this.tenant.currentTid();
+    if (!tid) throw new Error('事業所が見つかりません。');
+
+    const accountSnap = await getDoc(doc(this.firestore, 'accounts', uid));
+    if (!accountSnap.exists()) throw new Error('アカウント情報が見つかりません。');
+
+    const account = accountSnap.data();
+    const eid =
+      (account['affiliations']?.[tid] as string | undefined) ??
+      this.tenant.currentAffiliation()?.eid;
+    if (!eid) throw new Error('従業員情報が見つかりません。');
+
+    await this.load(eid, force);
+  }
+
   signOut(): void {
     this.reset();
   }

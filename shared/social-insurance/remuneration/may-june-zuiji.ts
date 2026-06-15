@@ -13,7 +13,7 @@ import { computeFixedWageFromPayroll } from './fixed-wage';
 
 export interface MayJuneZuijiSchedule {
   raiseMonthYyyyMm: string;
-  /** 単月スクリーニング・通知を行う月（昇給月+2） */
+  /** 3ヶ月平均による随時改定の確定を行う月（昇給月+2） */
   screeningYyyyMm: string;
   /** 3ヶ月平均による随時改定の適用開始月（昇給月+3） */
   effectiveYyyyMm: string;
@@ -47,7 +47,7 @@ export function getMayJuneZuijiSchedule(raiseMonthYyyyMm: string): MayJuneZuijiS
 export function computeTotalRemunerationFromMonthlySource(
   source: MonthlyRemunerationSource,
 ): number {
-  const fixed = source.payroll.fixedWage ?? source.payroll.basicSalary ?? 0;
+  const fixed = source.payroll.fixedWage ?? source.payroll.basicSalary + source.payroll.fringeBenefits ?? 0;
   const variable = source.payroll.variableWage ?? 0;
   return fixed + variable;
 }
@@ -159,7 +159,8 @@ export function buildMayJuneZuijiPendingNotificationBody(
   return (
     `${employeeName}様は${raiseMonth}月に固定的賃金の変動がありました。` +
     `単月の報酬で試算した結果、随時改定の要件を満たす可能性があります。` +
-    `${effectiveLabel}（${effectiveYyyyMm}）からの随時改定適用可否をタスクボードでご確認ください。` +
-    `承認すると7月の定時決定は省略されます。随時改定は${effectiveLabel}の適用に向け、データが揃った計算時に確定されます。`
+    `タスクボードで承認してください。承認すると6月の定時決定は省略されます` +
+    `（6月昇給で定時決定が既に作成されている場合は取り消されます）。` +
+    `随時改定は${effectiveLabel}（${effectiveYyyyMm}）の適用に向け、3ヶ月分のデータが揃った計算時に確定されます。`
   );
 }

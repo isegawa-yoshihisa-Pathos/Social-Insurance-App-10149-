@@ -1,0 +1,108 @@
+<div class="registration-container">
+  <h2 class="registration-content-label">届出管理</h2>
+
+  @if (view() === 'categories') {
+    <div class="registration-content-container">
+      @for (category of categories; track category.id) {
+        <div class="registration-button-container">
+          <button mat-flat-button color="primary" (click)="openCategory(category)">
+            {{ category.label }}
+          </button>
+          <div class="registration-description">{{ category.description }}</div>
+        </div>
+      }
+    </div>
+  }
+
+  @if (view() === 'formTypes' && selectedCategory(); as category) {
+    <div class="registration-content-container">
+      <div class="registration-subtitle">{{ category.label }}</div>
+      @for (form of category.forms; track form.formType) {
+        <div class="registration-button-container">
+          <button mat-flat-button color="primary" (click)="openForm(form)">
+            {{ form.label }}
+          </button>
+        </div>
+      }
+      <button mat-button class="registration-back-link" (click)="goBack()">戻る</button>
+    </div>
+  }
+
+  @if (view() === 'create' && selectedForm(); as form) {
+    <div class="registration-create-container">
+      <div class="registration-create-header">
+        <button mat-button (click)="goBack()">
+          <mat-icon>arrow_back</mat-icon>
+          戻る
+        </button>
+        <h3 class="registration-create-title">{{ form.label }}</h3>
+        <button
+          mat-flat-button
+          color="primary"
+          [disabled]="creating() || !canCreate()"
+          (click)="createDocuments()"
+        >
+          @if (creating()) {
+            作成中...
+          } @else {
+            作成
+          }
+        </button>
+      </div>
+
+      @if (requiresEmployeeSelection()) {
+        @if (loading()) {
+          <div class="registration-loading">
+            <mat-spinner diameter="32"></mat-spinner>
+            <span>従業員を読み込んでいます...</span>
+          </div>
+        } @else if (employees().length === 0) {
+          <p class="registration-empty-message">従業員が登録されていません。</p>
+        } @else {
+          <div class="registration-table-scroll">
+            <table mat-table [dataSource]="employees()" class="registration-table">
+              <ng-container matColumnDef="selected">
+                <th mat-header-cell *matHeaderCellDef class="check-col">
+                  <mat-checkbox
+                    [checked]="isAllSelected()"
+                    (change)="toggleAll($event.checked)"
+                    (click)="$event.stopPropagation()"
+                  />
+                </th>
+                <td mat-cell *matCellDef="let row" class="check-col" (click)="$event.stopPropagation()">
+                  <mat-checkbox
+                    [checked]="isSelected(row.eid)"
+                    (change)="toggleSelection(row.eid, $event.checked)"
+                  />
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="displayName">
+                <th mat-header-cell *matHeaderCellDef>従業員名</th>
+                <td mat-cell *matCellDef="let row">{{ row.displayName }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="employeeId">
+                <th mat-header-cell *matHeaderCellDef>employeeId</th>
+                <td mat-cell *matCellDef="let row">{{ row.employeeId }}</td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+              <tr
+                mat-row
+                *matRowDef="let row; columns: displayedColumns"
+                class="registration-row"
+                [class.selected-row]="isSelected(row.eid)"
+                (click)="onRowClick(row)"
+              ></tr>
+            </table>
+          </div>
+        }
+      } @else {
+        <p class="registration-tenant-form-message">
+          事業所情報をもとに{{ form.label }}を作成します。
+        </p>
+      }
+    </div>
+  }
+</div>

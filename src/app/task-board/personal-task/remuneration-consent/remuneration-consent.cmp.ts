@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, effect, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { CurrentTenantService } from '../../../current-tenant.service';
@@ -17,7 +17,7 @@ import {
   templateUrl: './remuneration-consent.cmp.html',
   styleUrl: './remuneration-consent.cmp.css',
 })
-export class RemunerationConsentCmp implements OnInit {
+export class RemunerationConsentCmp {
   private readonly consentDataService = inject(RemunerationConsentDataService);
   private readonly tenant = inject(CurrentTenantService);
   private readonly functionsService = inject(FunctionsService);
@@ -28,8 +28,16 @@ export class RemunerationConsentCmp implements OnInit {
   reviews: RemunerationConsentReviewItem[] = [];
   readonly typeLabel = remunerationConsentTypeLabel;
 
-  async ngOnInit(): Promise<void> {
-    await this.reload();
+  constructor() {
+    effect(() => {
+      const tid = this.tenant.currentTid();
+      const eid = this.tenant.currentEid();
+      if (!tid || !eid) {
+        this.reviews = [];
+        return;
+      }
+      void this.reload(tid, eid);
+    });
   }
 
   async agree(review: RemunerationConsentReviewItem): Promise<void> {
@@ -56,7 +64,10 @@ export class RemunerationConsentCmp implements OnInit {
         consent,
       });
       this.dialog.open(SuccessDialogCmp, { data: { message: successMessage } });
-      await this.reload();
+      const eid = this.tenant.currentEid();
+      if (eid) {
+        await this.reload(tid, eid);
+      }
     } catch (error) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: mapFirebaseError(error) },
@@ -66,11 +77,7 @@ export class RemunerationConsentCmp implements OnInit {
     }
   }
 
-  private async reload(): Promise<void> {
-    const tid = this.tenant.currentTid();
-    const eid = this.tenant.currentEmployeeId();
-    if (!tid || !eid) return;
-
+  private async reload(tid: string, eid: string): Promise<void> {
     this.loading = true;
     try {
       this.reviews = await this.consentDataService.listPendingEmployeeConsents(tid, eid);

@@ -15,8 +15,12 @@ import { formatPaymentListCellValue, isSummablePaymentListColumn, paymentListNum
 import { YEAR_OPTIONS, MONTH_OPTIONS } from '../../datePicker';
 import { PaymentSettingDataService } from '../payment-setting/payment-setting-data.service';
 import { PaymentListDataService } from './payment-list-data.service';
+import { PaymentListExportService } from './payment-list-export.service';
 import { PaymentManagementDataService } from '../payment-management-data.service';
 import { BonusManagementDataService } from '../../bonus-management/bonus-management-data.service';
+import { MonthlySettingDataService } from '../../monthly-management/monthly-setting/monthly-setting-data.service';
+import { BonusSettingDataService } from '../../bonus-management/bonus-setting/bonus-setting-data.service';
+import { downloadCsvFile } from '../../csv/csv-file.util';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Format } from '../../format-number-jp';
 
@@ -43,6 +47,9 @@ export class PaymentListCmp implements OnInit {
   private readonly paymentManagementDataService = inject(PaymentManagementDataService);
   private readonly bonusManagementDataService = inject(BonusManagementDataService);
   private readonly listDataService = inject(PaymentListDataService);
+  private readonly exportService = inject(PaymentListExportService);
+  private readonly monthlySettingDataService = inject(MonthlySettingDataService);
+  private readonly bonusSettingDataService = inject(BonusSettingDataService);
 
   readonly visibleColumns = computed(() => this.paymentSettingDataService.visibleColumns());
   readonly tableColumns = computed(() => this.visibleColumns());
@@ -231,6 +238,29 @@ export class PaymentListCmp implements OnInit {
       this.paymentManagementDataService.allowanceTypeDefinitions(),
       this.bonusManagementDataService.bonusTypeDefinitions(),
     );
+  }
+
+  async exportData(): Promise<void> {
+    const tid = this.currentTenantService.currentTid();
+    const ym = this.yyyyMm();
+    if (!tid || !ym || !this.hasRecords()) return;
+
+    const bonusDefinitions = this.bonusManagementDataService.bonusTypeDefinitions();
+    await Promise.all([
+      this.monthlySettingDataService.loadSettings(tid),
+      this.bonusSettingDataService.loadSettings(tid, bonusDefinitions),
+    ]);
+
+    const csv = this.exportService.buildCsv(
+      ym,
+      this.visibleColumns(),
+      this.dataSource.data,
+      this.monthlySettingDataService.importHeaders(),
+      this.bonusSettingDataService.importHeaders(),
+      this.paymentManagementDataService.allowanceTypeDefinitions(),
+      bonusDefinitions,
+    );
+    downloadCsvFile(`${ym}.csv`, csv);
   }
 
   getColumnLabel(column: PaymentListColumnKey): string {
