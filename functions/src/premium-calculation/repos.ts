@@ -4,6 +4,7 @@ import type { EmployeeDocument } from '../../../shared/employee-document';
 import type { MonthlyDocument, MonthlyPeriodDocument } from '../../../shared/monthly-document';
 import { lastDayOfYyyyMm } from '../../../shared/social-insurance/monthly/social-insurance-data.util';
 import { DEFAULT_BONUS_TYPE_DEFINITIONS, type BonusTypeDefinition } from '../../../shared/bonus-document';
+import { hasBonusData } from '../../../shared/bonus-data.util';
 import type { BonusRecordInPeriod } from '../../../shared/social-insurance/remuneration/bonus-remuneration-addition';
 
 export type StandardRemunerationSource =
@@ -141,6 +142,7 @@ export interface TenantDocumentForCalculation {
       | 'currentMonth'
       | 'nextMonth'
       | 'nextNextMonth';
+    payrollPaymentMonth?: 'currentMonth' | 'nextMonth';
     resignPremiumCollection?: 'bulk' | 'monthly';
   };
 }
@@ -468,8 +470,9 @@ export async function listBonusRecordsInRange(
     const empSnap = await periodDoc.ref.collection('employees').doc(eid).get();
     if (!empSnap.exists) continue;
     const bonus = empSnap.data() as BonusDocument;
-    if (bonus.bonusData?.total) {
-      results.push({ yyyyMm, bonusData: bonus.bonusData });
+    const bonusData = bonus.bonusData;
+    if (bonusData !== undefined && hasBonusData(bonusData)) {
+      results.push({ yyyyMm, bonusData });
     }
   }
   return results.sort((a, b) => a.yyyyMm.localeCompare(b.yyyyMm));

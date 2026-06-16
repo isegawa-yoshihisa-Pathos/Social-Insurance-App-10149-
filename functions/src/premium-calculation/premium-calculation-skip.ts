@@ -108,3 +108,15 @@ export async function skipBonusPremiumCalculationIfResigned(
   await clearBonusPremiumFields(db, tid, eid, yyyyMm);
   return true;
 }
+
+export function isMissingRequiredFields(employee: EmployeeDocument): string {
+  const personalInfo = employee.employeePersonalInfo;
+  const employInfo = employee.employeeEmployInfo;
+  if (!personalInfo.birthDate) {
+    return '生年月日が未入力';
+  }
+  if (!employInfo.licenseStartAt) {
+    return '雇用開始日が未入力';
+  }
+  return '';
+}

@@ -4,7 +4,7 @@ import { PREMIUM_BONUS_LIST_COLUMN_KEYS } from '../bonus-premium/bonus-premium-c
 const RESERVED_COLUMN_KEYS = new Set<string>([
   'displayName',
   'employeeId',
-  'bonus',
+  'netPayment',
   ...PREMIUM_BONUS_LIST_COLUMN_KEYS,
 ]);
 

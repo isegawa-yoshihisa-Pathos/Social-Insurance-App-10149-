@@ -35,7 +35,7 @@ export const calculatePremiumTask = onTaskDispatched<CalculatePremiumTaskPayload
     const itemSnap = await itemRef.get();
     if (!itemSnap.exists) {
       console.error('premium calculation item not found', { tid, jobId, eid });
-      await recordTaskResult(db, tid, jobId, eid, false, createdBy, kind, yyyyMm);
+      await recordTaskResult(db, tid, jobId, eid, false, createdBy, kind, yyyyMm, '対象の計算アイテムが見つかりませんでした。');
       return;
     }
 
@@ -50,6 +50,8 @@ export const calculatePremiumTask = onTaskDispatched<CalculatePremiumTaskPayload
     });
 
     let succeeded = false;
+    let taskErrorMessage: string | undefined = undefined;
+
     try {
       if (kind === 'monthly') {
         await calculateMonthlyEmployee(db, tid, eid, yyyyMm);
@@ -63,18 +65,18 @@ export const calculatePremiumTask = onTaskDispatched<CalculatePremiumTaskPayload
       });
       succeeded = true;
     } catch (error: unknown) {
-      const errorMessage =
+      taskErrorMessage =
         error instanceof Error ? error.message : '保険料計算に失敗しました。';
 
       await itemRef.update({
         status: 'failed',
-        errorMessage,
+        errorMessage: taskErrorMessage,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
       succeeded = false;
       throw error;
     } finally {
-      await recordTaskResult(db, tid, jobId, eid, succeeded, createdBy, kind, yyyyMm);
+      await recordTaskResult(db, tid, jobId, eid, succeeded, createdBy, kind, yyyyMm, taskErrorMessage);
     }
   },
 );
@@ -88,6 +90,7 @@ async function recordTaskResult(
   createdBy: string,
   kind: CalculatePremiumTaskPayload['kind'],
   yyyyMm: string,
+  errorMessage?: string,
 ): Promise<void> {
   const jobRef = db
     .collection('tenants')
@@ -110,6 +113,26 @@ async function recordTaskResult(
     const nextSucceeded = Number(job.succeeded ?? 0) + (succeeded ? 1 : 0);
     const nextFailed = Number(job.failed ?? 0) + (succeeded ? 0 : 1);
 
+    const done = nextSucceeded + nextFailed >= total;
+    let failedMessages: string[] = [];
+    let adminUids: string[] = [];
+
+    if (done && job.notificationSent !== true) {
+      if (nextFailed > 0) {
+        const failedItemsQuery = jobRef.collection('items').where('status', '==', 'failed');
+        const failedItemsSnap = await tx.get(failedItemsQuery);
+        failedMessages = failedItemsSnap.docs.map((doc) => doc.data()?.errorMessage ?? '').filter(Boolean);
+      }
+
+      if (!succeeded && errorMessage && !failedMessages.includes(errorMessage)) {
+        failedMessages.push(errorMessage);
+      }
+
+      const adminsQuery = db.collection('tenants').doc(tid).collection('employees').where('role', '==', 'admin');
+      const adminsSnap = await tx.get(adminsQuery);
+      adminUids = adminsSnap.docs.map((doc) => doc.data()?.uid).filter(Boolean);
+    }
+
     if (itemSnap.exists) {
       tx.update(itemRef, {
         jobResultRecorded: true,
@@ -123,22 +146,24 @@ async function recordTaskResult(
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    const done = nextSucceeded + nextFailed >= total;
     if (!done || job.notificationSent === true) {
       return;
     }
 
-    const admins = await db.collection('tenants').doc(tid).collection('employees').where('role', '==', 'admin').get();
-    const adminUids = admins.docs.map((doc) => doc.data()?.uid);
-
     const label = kind === 'monthly' ? '月次' : '賞与';
+
+    const uniqueMessages = Array.from(new Set(failedMessages));
+    let bodyText = `${yyyyMm} / ${total}件中 ${nextSucceeded}件成功、${nextFailed}件失敗`;
+    if (uniqueMessages.length > 0) {
+      bodyText += `\n失敗理由:\n ${uniqueMessages.join('\n・ ')}`;
+    }
 
     const notifDoc = {
       scope: 'tenant',
       type: 'premium_calculation_completed',
       jobId,
       title: `${label}保険料計算が完了しました`,
-      body: `${yyyyMm} / ${total}件中 ${nextSucceeded}件成功、${nextFailed}件失敗`,
+      body: bodyText,
       totals: {
         total,
         succeeded: nextSucceeded,

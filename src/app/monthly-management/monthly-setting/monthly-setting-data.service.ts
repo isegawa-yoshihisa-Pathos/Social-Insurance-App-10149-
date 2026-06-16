@@ -13,6 +13,7 @@ import {
 import { allowanceColumnKey, allowanceTypeFromColumnKey } from '../../payment-management/payment-list/allowance-display.util';
 import { PaymentManagementDataService } from '../../payment-management/payment-management-data.service';
 import { AuditLogService } from '../../audit-log/audit-log.service';
+import { normalizeVisibleColumnOrder } from '../../list-column-order.util';
 
 export interface MonthlySettingDocument {
   importHeaders?: Partial<Record<string, string>>;
@@ -61,13 +62,13 @@ export class MonthlySettingDataService {
     const settingsSnap = await getDoc(settingsRef);
 
     if (!settingsSnap.exists()) {
-      this.setVisibleColumns([...DEFAULT_MONTHLY_LIST_COLUMNS], allowanceDefinitions);
+      this.setVisibleColumnsInternal([...DEFAULT_MONTHLY_LIST_COLUMNS], allowanceDefinitions);
       this.listSettingsLoadedTid = tid;
       return;
     }
 
     const data = settingsSnap.data() as { visibleColumns?: MonthlyListColumnKey[] };
-    this.setVisibleColumns(
+    this.setVisibleColumnsInternal(
       data.visibleColumns?.length ? data.visibleColumns : [...DEFAULT_MONTHLY_LIST_COLUMNS],
       allowanceDefinitions,
     );
@@ -104,6 +105,11 @@ export class MonthlySettingDataService {
     }
   }
 
+  setVisibleColumns(cols: MonthlyListColumnKey[]): void {
+    const allowanceDefinitions = this.paymentManagementDataService.allowanceTypeDefinitions();
+    this.setVisibleColumnsInternal(cols, allowanceDefinitions);
+  }
+
   isColumnVisible(key: MonthlyListColumnKey): boolean {
     return this.visibleColumns().includes(key);
   }
@@ -118,7 +124,7 @@ export class MonthlySettingDataService {
     this.listSettingsLoadedTid = null;
   }
 
-  private setVisibleColumns(
+  private setVisibleColumnsInternal(
     cols: MonthlyListColumnKey[],
     allowanceDefinitions: AllowanceTypeDefinition[] = this.paymentManagementDataService.allowanceTypeDefinitions(),
   ): void {
@@ -140,17 +146,11 @@ export class MonthlySettingDataService {
     allowanceDefinitions: AllowanceTypeDefinition[],
   ): MonthlyListColumnKey[] {
     const canonicalOrder = getAllMonthlyListColumnKeys(allowanceDefinitions);
-    const valid = new Set<string>(canonicalOrder);
-    const selected = new Set<MonthlyListColumnKey>();
-
-    for (const col of cols) {
-      const resolved = this.resolveColumnKey(col, valid, allowanceDefinitions);
-      if (resolved) {
-        selected.add(resolved);
-      }
-    }
-
-    return canonicalOrder.filter((col) => selected.has(col));
+    return normalizeVisibleColumnOrder(
+      cols,
+      canonicalOrder,
+      (col) => this.resolveColumnKey(col, new Set(canonicalOrder), allowanceDefinitions),
+    );
   }
 
   private resolveColumnKey(

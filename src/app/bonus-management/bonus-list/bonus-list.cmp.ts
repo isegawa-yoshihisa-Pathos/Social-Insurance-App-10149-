@@ -20,7 +20,7 @@ import { BonusDocument } from '../../bonus-document';
 import { BulkColumnEditDialogCmp, BulkColumnEditDialogData } from './bulk-column-edit-dialog/bulk-column-edit-dialog.cmp';
 import { BulkEditableColumn, BulkEditValue, isEditableColumn } from './bonus-bulk-edit.types';
 import { BonusListBulkEditService } from './bonus-list-bulk-edit.service';
-import { formatBonusListCellValue, getBonusListEditValue, isSummableBonusListColumn, bonusListNumericValue, bonusListSearchText, bonusListSortValue, toBonusListRow } from './bonus-list-row.mapper';
+import { formatBonusListCellValue, getBonusListEditValue, isSummableBonusListColumn, bonusListEmployerBurden, bonusListNumericValue, bonusListSearchText, bonusListSortValue, toBonusListRow } from './bonus-list-row.mapper';
 import { YEAR_OPTIONS, MONTH_OPTIONS } from '../../datePicker';
 import { ErrorDialogCmp, mapFirebaseError } from '../../error-dialog/error-dialog.cmp';
 import { SuccessDialogCmp } from '../../success-dialog/success-dialog.cmp';
@@ -33,7 +33,7 @@ import { HelpContentCmp } from '../../help-content/help-content.cmp';
 import { BonusPremiumCalculateFacade } from '../bonus-premium/bonus-premium-calculate.facade';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Format } from '../../format-number-jp';
-
+import { AuditLogService } from '../../audit-log/audit-log.service';
 @Component({
   selector: 'app-bonus-list',
   imports: [
@@ -65,6 +65,7 @@ export class BonusListCmp implements OnInit {
   private readonly importService = inject(BonusListImportService);
   private readonly exportService = inject(BonusListExportService);
   private readonly listDataService = inject(BonusListDataService);
+  private readonly auditLogService = inject(AuditLogService);
 
   readonly visibleColumns = computed(() => this.bonusSettingDataService.visibleColumns());
   readonly tableColumns = computed(() => ['selected', ...this.visibleColumns()]);
@@ -87,10 +88,29 @@ export class BonusListCmp implements OnInit {
   searchTargetColumn: BonusListColumnKey = 'employeeId';
   searchQuery = '';
 
-  readonly hasBonusRecords = computed(() => this.dataSource.data.length > 0);
-  readonly isFilterActive = computed(() => !!this.searchQuery.trim());
-  readonly hasFilteredResults = computed(() => this.dataSource.filteredData.length > 0);
+  private readonly tableViewRevision = signal(0);
+
+  readonly hasBonusRecords = computed(() => {
+    this.tableViewRevision();
+    return this.dataSource.data.length > 0;
+  });
+  readonly isFilterActive = computed(() => {
+    this.tableViewRevision();
+    return !!this.searchQuery.trim();
+  });
+  readonly hasFilteredResults = computed(() => {
+    this.tableViewRevision();
+    return this.dataSource.filteredData.length > 0;
+  });
   readonly bonusRecordExists = signal<boolean>(false);
+
+  readonly tenantEmployerBurden = computed(() => {
+    this.tableViewRevision();
+    return this.dataSource.filteredData.reduce(
+      (sum, row) => sum + bonusListEmployerBurden(row),
+      0,
+    );
+  });
 
   premiumRecalculating = false;
 
@@ -112,6 +132,10 @@ export class BonusListCmp implements OnInit {
 
   private getDisplayedRows(): BonusListRow[] {
     return this.dataSource.filteredData;
+  }
+
+  private refreshTableView(): void {
+    this.tableViewRevision.update((value) => value + 1);
   }
 
   formatFooterValue(col: BonusListColumnKey): string {
@@ -202,6 +226,7 @@ export class BonusListCmp implements OnInit {
       const ym = this.yyyyMm();
       if (!tid || !ym) {
         this.dataSource.data = [];
+        this.refreshTableView();
         this.selectedEids.clear();
         this.settingsLoadedTid = null;
         this.loading = false;
@@ -227,6 +252,7 @@ export class BonusListCmp implements OnInit {
     this.loading = true;
     this.searchQuery = '';
     this.dataSource.filter = '';
+    this.refreshTableView();
     try {
       if (this.settingsLoadedTid !== tid) {
         await this.bonusSettingDataService.loadListSettings(tid);
@@ -276,6 +302,7 @@ export class BonusListCmp implements OnInit {
       await this.listDataService.ensurePeriodDocument(tid, yyyyMm);
     }
     this.dataSource.data = data;
+    this.refreshTableView();
     const alive = new Set(data.map((r) => r.eid));
     this.selectedEids = new Set([...this.selectedEids].filter((eid) => alive.has(eid)));
   }
@@ -285,6 +312,7 @@ export class BonusListCmp implements OnInit {
       column: this.searchTargetColumn,
       query: this.searchQuery.toLowerCase(),
     });
+    this.refreshTableView();
   }
 
   isSelected(eid: string): boolean {
@@ -326,7 +354,7 @@ export class BonusListCmp implements OnInit {
     }
     if (this.locked()) return;
 
-    if (col === 'bonus' || !isEditableColumn(col)) {
+    if (!isEditableColumn(col)) {
       return;
     }
 
@@ -536,10 +564,14 @@ export class BonusListCmp implements OnInit {
 
     const bonusDefinitions = this.bonusManagementDataService.bonusTypeDefinitions();
     await this.bonusSettingDataService.loadSettings(tid, bonusDefinitions);
+    const filtered = this.dataSource.filteredData;
+    const sortedAndFilteredData = this.dataSource.sort 
+      ? this.dataSource.sortData(filtered, this.dataSource.sort)
+      : filtered;
     const csv = this.exportService.buildCsv(
       ym,
       this.visibleColumns(),
-      this.dataSource.data,
+      sortedAndFilteredData,
       this.bonusSettingDataService.importHeaders(),
       bonusDefinitions,
     );
@@ -561,8 +593,19 @@ export class BonusListCmp implements OnInit {
       await this.premiumCalculateFacade.calculateMonth(tid, ym, () =>
         this.loadBonusRecords(tid, ym),
       );
+      await this.auditLogService.record({
+        tid,
+        action: 'create',
+        category: 'premium.calculate',
+        summary: '賞与保険料を計算',
+        target: this.auditLogService.monthlyTarget(ym),
+      });
     } finally {
       this.premiumRecalculating = false;
     }
+  }
+
+  formatAmount(amount: number): string {
+    return amount === 0 ? '0' : Format(amount);
   }
 }

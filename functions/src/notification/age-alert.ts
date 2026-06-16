@@ -13,7 +13,7 @@ export const checkAgeAttainmentAlerts = onSchedule(
     // 分(0-59) 時(0-23) 日(1-31) 月(1-12) 曜日(0-6)
     // 15分ごとに実行 */15 * * * *
     // 平日9時と18時に実行 0 9,18 * * 1-5
-    schedule: '30 10 * * *',
+    schedule: '0 0 1 * *',
     timeZone: 'Asia/Tokyo',
     region: 'asia-northeast1',
   },

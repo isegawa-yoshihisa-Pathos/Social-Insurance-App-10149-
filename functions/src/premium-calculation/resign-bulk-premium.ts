@@ -42,13 +42,14 @@ export async function clearPremiumFieldsAfterResign(
   tid: string,
   eid: string,
   licenseEndAt: Date,
+  resignAt?: Date | null,
 ): Promise<void> {
   const records = await listEmployeeMonthlyRecords(db, tid, eid);
   const batch = db.batch();
   let hasUpdates = false;
 
   for (const { yyyyMm, doc } of records) {
-    if (!shouldClearPremiumForMonth(licenseEndAt, yyyyMm)) {
+    if (!shouldClearPremiumForMonth(licenseEndAt, yyyyMm, resignAt)) {
       continue;
     }
     if (!doc.premiumData && !doc.calculationSnapshot) {
@@ -78,10 +79,12 @@ export async function clearPremiumFieldsAfterResign(
 
 function resolveTenantPremiumSettings(tenant: TenantDocumentForCalculation | null): {
   collectionMonth: SocialInsuranceCollectionMonth | undefined;
+  payrollPaymentMonth: 'currentMonth' | 'nextMonth' | undefined;
   resignPremiumCollection: ResignPremiumCollectionType | undefined;
 } {
   return {
     collectionMonth: tenant?.socialInsuranceSettings?.socialInsuranceCollectionMonth,
+    payrollPaymentMonth: tenant?.socialInsuranceSettings?.payrollPaymentMonth,
     resignPremiumCollection:
       tenant?.socialInsuranceSettings?.resignPremiumCollection ?? 'monthly',
   };
@@ -115,6 +118,7 @@ export async function updateResignBulkPremiumForEmployee(
     licenseEndAt,
     resignAt,
     collectionMonth: settings.collectionMonth,
+    payrollPaymentMonth: settings.payrollPaymentMonth,
     resignPremiumCollection: settings.resignPremiumCollection,
     premiumByMonth,
   });

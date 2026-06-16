@@ -1,35 +1,63 @@
 <div class="payment-detail-container">
-    <div class="payment-detail-content">
-      <div class="payment-detail-header">
-        <button mat-icon-button (click)="redirectToPaymentManagement()" matTooltip="支給一覧に戻る">
-          <mat-icon>arrow_back</mat-icon>
+  <div class="payment-detail-content">
+    <div class="payment-detail-header">
+      <button mat-icon-button (click)="redirectToPaymentManagement()" matTooltip="支給一覧に戻る">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      @if (!loading()) {
+        <button mat-button [matMenuTriggerFor]="employeeMenu">
+          <span class="meta-value-name">{{ employeeName() || '未登録' }}</span>
+          <div class="meta-item">
+            <span class="meta-label">社員番号:</span>
+            <span class="meta-value-id">{{ employeeId() || '---' }}</span>
+          </div>
         </button>
-        @if (!loading()) {
-          <button mat-button [matMenuTriggerFor]="employeeMenu">
-            <span class="meta-value-name">{{ employeeName() || '未登録' }}</span>
-            <div class="meta-item">
-              <span class="meta-label">社員番号:</span>
-              <span class="meta-value-id">{{ employeeId() || '---' }}</span>
-            </div>
-          </button>
-          <mat-menu #employeeMenu="matMenu">
-            @for (employee of employees(); track employee.eid) {
-              <button mat-menu-item (click)="switchEmployee(employee.eid)">
-                <span class="meta-value-name">{{ employee.displayName || '未登録' }}</span>
-                <div class="meta-item">
-                  <span class="meta-label">社員番号:</span>
-                  <span class="meta-value-id">{{ employee.employeeId || '---' }}</span>
-                </div>
-              </button>
-            }
-          </mat-menu>
-        }
+        <mat-menu #employeeMenu="matMenu">
+          @for (employee of employees(); track employee.eid) {
+            <button mat-menu-item (click)="switchEmployee(employee.eid)">
+              <span class="meta-value-name">{{ employee.displayName || '未登録' }}</span>
+              <div class="meta-item">
+                <span class="meta-label">社員番号:</span>
+                <span class="meta-value-id">{{ employee.employeeId || '---' }}</span>
+              </div>
+            </button>
+          }
+        </mat-menu>
+      }
+    </div>
+
+    @if (loading()) {
+      <p class="loading-message">読み込み中...</p>
+    } @else if (dataSource.data.length === 0) {
+      <p class="empty-message">支給レコードが見つかりません。</p>
+    } @else {
+      <div class="toolbar-container">
+        <div class="search-container">
+          <mat-form-field appearance="outline">
+            <mat-label>検索項目</mat-label>
+            <mat-select [(ngModel)]="searchTargetColumn" (ngModelChange)="search()">
+              @for (col of visibleColumns(); track col) {
+                <mat-option [value]="col">{{ getColumnLabel(col) }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="search-query-field">
+            <mat-label>検索ワード</mat-label>
+            <input
+              matInput
+              [(ngModel)]="searchQuery"
+              (ngModelChange)="search()"
+              placeholder="キーワードを入力"
+            />
+          </mat-form-field>
+        </div>
+        <button mat-icon-button matTooltip="CSVファイルをダウンロード" (click)="exportData()">
+          <mat-icon>download</mat-icon>
+        </button>
       </div>
-  
-      @if (loading()) {
-        <p class="loading-message">読み込み中...</p>
-      } @else if (dataSource.data.length === 0) {
-        <p class="empty-message">月次レコードが見つかりません。</p>
+
+      @if (isFilterActive() && !hasFilteredResults()) {
+        <p class="empty-message">検索結果がありません。</p>
       } @else {
         <div class="table-scroll-container">
           <table mat-table [dataSource]="dataSource" matSort class="payment-table">
@@ -43,12 +71,12 @@
                 </td>
               </ng-container>
             }
-  
+
             <tr mat-header-row *matHeaderRowDef="visibleColumns()"></tr>
             <tr mat-row *matRowDef="let row; columns: visibleColumns()"></tr>
           </table>
         </div>
       }
-    </div>
+    }
   </div>
-  
+</div>

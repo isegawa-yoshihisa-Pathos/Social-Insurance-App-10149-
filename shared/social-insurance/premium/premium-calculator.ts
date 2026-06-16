@@ -57,6 +57,7 @@ export function isInsurancePeriodTarget(
     licenceStartAt,
     resolvedLicenseEndAt,
     yyyyMm,
+    resignAt,
   );
 }
 

@@ -48,8 +48,6 @@ export function createDefaultSocialInsuranceSettings(): SocialInsuranceSettings 
     healthInsuranceTenantRecordNumber: '',
     pensionInsuranceTenantNumber: '',
     pensionInsuranceTenantRecordNumber: '',
-    closingDay: '',
-    payrollBaseDaysStandard: 'calendarDay',
     socialInsuranceCollectionMonth: 'nextMonth',
     payrollPaymentMonth: 'currentMonth',
     resignPremiumCollection: 'monthly',

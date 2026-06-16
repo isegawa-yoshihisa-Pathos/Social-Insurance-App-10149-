@@ -16,6 +16,10 @@ import {
   BASE_PAYMENT_LIST_COLUMN_KEYS,
   BasePaymentListColumnKey,
   STATIC_PAYMENT_LIST_COLUMN_LABELS,
+  PAYMENT_SUMMARY_COLUMN_KEYS,
+  PAYMENT_SUMMARY_COLUMN_LABELS,
+  isPaymentSummaryColumn,
+  PaymentSummaryColumnKey,
 } from './payment-list-column-keys';
 
 export { BASE_PAYMENT_LIST_COLUMN_KEYS } from './payment-list-column-keys';
@@ -32,6 +36,7 @@ export type PaymentListColumnKey =
   | 'fixedWage'
   | 'variableWage'
   | 'bonus'
+  | PaymentSummaryColumnKey
   | AllowanceColumnKey
   | BonusColumnKey
   | PremiumMonthlyPaymentListColumnKey
@@ -45,6 +50,9 @@ export const DEFAULT_PAYMENT_LIST_COLUMNS: PaymentListColumnKey[] = [
   'fixedWage',
   'variableWage',
   'bonus',
+  'monthlyNetPayment',
+  'bonusNetPayment',
+  'totalNetPayment',
 ];
 
 export function getAllPaymentListColumnKeys(
@@ -56,6 +64,7 @@ export function getAllPaymentListColumnKeys(
     ...allowanceDefinitions.map((def) => allowanceColumnKey(def.type)),
     ...bonusDefinitions.map((def) => bonusColumnKey(def.type)),
     ...PREMIUM_PAYMENT_LIST_COLUMN_KEYS,
+    ...PAYMENT_SUMMARY_COLUMN_KEYS,
   ] as PaymentListColumnKey[];
 }
 
@@ -85,6 +94,10 @@ export function getOptionalPaymentListColumns(
     { key: 'bonus', label: '賞与合計' },
     ...bonusColumns,
     ...getOptionalPremiumColumns(),
+    ...PAYMENT_SUMMARY_COLUMN_KEYS.map((key) => ({
+      key: key as PaymentListColumnKey,
+      label: PAYMENT_SUMMARY_COLUMN_LABELS[key],
+    })),
   ];
 }
 
@@ -139,6 +152,10 @@ export function getPaymentListColumnLabel(
     return getPremiumColumnLabel(column);
   }
 
+  if (isPaymentSummaryColumn(column)) {
+    return PAYMENT_SUMMARY_COLUMN_LABELS[column];
+  }
+
   return STATIC_PAYMENT_LIST_COLUMN_LABELS[column as BasePaymentListColumnKey] ?? column;
 }
 
@@ -149,6 +166,7 @@ export interface PaymentListRow {
   paymentBaseDays: number;
   basicSalary: number;
   fringeBenefits: number;
+  bonusRelatedRemuneration: number;
   fixedWage: number | null;
   variableWage: number | null;
   allowances: AllowanceData;

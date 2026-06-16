@@ -1,7 +1,9 @@
+import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { Component, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog } from '@angular/material/dialog';
 import { ErrorDialogCmp, mapFirebaseError } from '../../../error-dialog/error-dialog.cmp';
@@ -13,12 +15,24 @@ import {
   getOptionalMonthlyListColumns,
   MonthlyListColumnKey,
 } from '../../monthly-list/monthly-list-columns';
+import {
+  buildOrderedColumnOptions,
+  OrderedListColumnOption,
+  visibleColumnsFromOrder,
+} from '../../../list-column-order.util';
 
 @Component({
   selector: 'app-monthly-list-header-setting',
-  imports: [FormsModule, MatButtonModule, MatCheckboxModule, MatProgressSpinnerModule],
+  imports: [
+    FormsModule,
+    MatButtonModule,
+    MatCheckboxModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    DragDropModule,
+  ],
   templateUrl: './monthly-list-header-setting.cmp.html',
-  styleUrl: './monthly-list-header-setting.cmp.css',
+  styleUrls: ['./monthly-list-header-setting.cmp.css', '../../../list-header-setting.cmp.css'],
 })
 export class MonthlyListHeaderSettingCmp implements OnInit {
   private readonly monthlySettingDataService = inject(MonthlySettingDataService);
@@ -31,6 +45,7 @@ export class MonthlyListHeaderSettingCmp implements OnInit {
     getOptionalMonthlyListColumns(this.paymentManagementDataService.allowanceTypeDefinitions()),
   );
 
+  orderedColumns: OrderedListColumnOption<MonthlyListColumnKey>[] = [];
   loading = false;
   saveBusy = false;
 
@@ -44,6 +59,7 @@ export class MonthlyListHeaderSettingCmp implements OnInit {
     try {
       await this.paymentManagementDataService.loadPaymentSettings(tid);
       await this.monthlySettingDataService.loadListSettings(tid);
+      this.refreshOrderedColumns();
     } catch (e) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: mapFirebaseError(e) },
@@ -53,20 +69,22 @@ export class MonthlyListHeaderSettingCmp implements OnInit {
     }
   }
 
-  isChecked(key: MonthlyListColumnKey): boolean {
-    return this.monthlySettingDataService.isColumnVisible(key);
+  drop(event: CdkDragDrop<OrderedListColumnOption<MonthlyListColumnKey>[]>): void {
+    moveItemInArray(this.orderedColumns, event.previousIndex, event.currentIndex);
+    this.syncVisibleColumns();
   }
 
-  onOptionalChange(key: MonthlyListColumnKey, checked: boolean): void {
-    this.monthlySettingDataService.toggleOptionalColumn(key, checked);
+  onCheckedChange(): void {
+    this.syncVisibleColumns();
   }
 
   isAllSelected(): boolean {
-    return this.optionalColumns().every((col) => this.isChecked(col.key));
+    return this.orderedColumns.length > 0 && this.orderedColumns.every((col) => col.checked);
   }
 
   toggleAll(checked: boolean): void {
-    this.optionalColumns().forEach((col) => this.onOptionalChange(col.key, checked));
+    this.orderedColumns = this.orderedColumns.map((col) => ({ ...col, checked }));
+    this.syncVisibleColumns();
   }
 
   async save(): Promise<void> {
@@ -82,5 +100,18 @@ export class MonthlyListHeaderSettingCmp implements OnInit {
     } finally {
       this.saveBusy = false;
     }
+  }
+
+  private refreshOrderedColumns(): void {
+    this.orderedColumns = buildOrderedColumnOptions(
+      this.optionalColumns(),
+      this.monthlySettingDataService.visibleColumns(),
+    );
+  }
+
+  private syncVisibleColumns(): void {
+    this.monthlySettingDataService.setVisibleColumns(
+      visibleColumnsFromOrder(this.orderedColumns),
+    );
   }
 }

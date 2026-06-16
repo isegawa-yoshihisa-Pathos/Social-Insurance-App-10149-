@@ -77,3 +77,23 @@
   margin-bottom: 4px;
   color: #444;
 }
+
+.net-payment-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 12px 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.net-payment-summary .label {
+  color: #555;
+}
+
+.net-payment-summary .amount {
+  font-size: 20px;
+  font-weight: 600;
+}

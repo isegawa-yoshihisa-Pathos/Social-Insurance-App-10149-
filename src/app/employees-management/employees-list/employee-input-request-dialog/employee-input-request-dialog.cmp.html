@@ -1,0 +1,22 @@
+<h2 mat-dialog-title>従業員に対して入力を依頼する</h2>
+
+<mat-dialog-content>
+  @if (data.displayName) {
+    <p class="target-name">{{ data.displayName }} さん</p>
+  }
+  <p>
+    「{{ data.fieldLabel }}」の入力を
+    @if (data.selectedCount > 1) {
+      <strong>{{ data.selectedCount }}名</strong>の従業員に
+    } @else {
+      従業員に
+    }
+    依頼します。
+  </p>
+  <p class="note">依頼すると、対象従業員に通知が送信されます。</p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()">キャンセル</button>
+  <button mat-flat-button color="primary" type="button" (click)="confirm()">依頼する</button>
+</mat-dialog-actions>

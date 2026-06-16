@@ -125,48 +125,6 @@
     </div>
 
     <hr class="separator grid-full-width">
-    
-    <div class="field-container">
-        <label class="label-name">支払基礎日数基準：</label>
-        <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
-            <mat-label>支払基礎日数基準</mat-label>
-            <mat-select [(ngModel)]="form.socialInsuranceSettings.payrollBaseDaysStandard">
-                <mat-option value="calendarDay">暦日基準</mat-option>
-                <mat-option value="closingDay">締め日基準</mat-option>
-            </mat-select>
-        </mat-form-field>
-        <app-help-content key="payrollBaseDaysStandard"></app-help-content>
-    </div>
-    @if(form.socialInsuranceSettings.payrollBaseDaysStandard === 'closingDay'){
-        <div class="field-container">
-            <label class="label-name">
-                給与締め日：
-            </label>
-            <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
-                <mat-label>給与締め日</mat-label>
-                <input 
-                    matInput 
-                    type="text" 
-                    placeholder="（例）25日" 
-                    [(ngModel)]="form.socialInsuranceSettings.closingDay"
-                    #closingDayRef="ngModel"
-                    name="closingDay" 
-                    pattern="^(末日|[0-9]{1,2}日)$"
-                />
-                @if(closingDayRef.invalid && (closingDayRef.touched || closingDayRef.dirty)){
-                    @if(closingDayRef.errors?.['required']){
-                        <p class="error-message">給与締め日は必須です</p>
-                    }
-                    @if(closingDayRef.errors?.['pattern']){
-                        <p class="error-message">「日」を含めて入力してください</p>
-                    }
-                }
-            </mat-form-field>
-            <div class="comment-text">※月末締めの場合は「末日」と入力してください</div>
-        </div>
-    }
-
-    <hr class="separator grid-full-width">
 
     <div class="field-container">
         <label class="label-name">給与支給月：</label>
@@ -200,9 +158,6 @@
                     <mat-option value="bulk">一括徴収</mat-option>
                 </mat-select>
             </mat-form-field>
-            <div class="comment-text">
-                ※一括徴収：退職月給与で、通常は退職月以降に徴収予定だった社会保険料を合算して徴収します
-            </div>
         </div>
     }
     <div class="field-container">

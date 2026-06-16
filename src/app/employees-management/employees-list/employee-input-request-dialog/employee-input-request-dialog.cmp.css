@@ -1,0 +1,10 @@
+.target-name {
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+
+.note {
+  margin-bottom: 0;
+  color: #555;
+  font-size: 14px;
+}

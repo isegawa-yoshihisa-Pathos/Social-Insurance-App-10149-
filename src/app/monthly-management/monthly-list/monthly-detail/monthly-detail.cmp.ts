@@ -1,49 +1,46 @@
-import { Component, computed, effect, inject, signal, ViewChild } from '@angular/core';
+import { Component, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { MatSort, MatSortModule } from '@angular/material/sort';
+import { ActivatedRoute, NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
+import { filter, map } from 'rxjs';
+import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatDialog } from '@angular/material/dialog';
 import { MatMenuModule } from '@angular/material/menu';
-import { map } from 'rxjs';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatDialog } from '@angular/material/dialog';
 import { CurrentTenantService } from '../../../current-tenant.service';
-import { MonthlySettingDataService } from '../../monthly-setting/monthly-setting-data.service';
-import { PaymentManagementDataService } from '../../../payment-management/payment-management-data.service';
-import { MonthlyDetailRow, EmployeeLookupEntry, MonthlyListDataService } from '../monthly-list-data.service';
-import { MonthlyListColumnKey, getMonthlyListColumnLabel } from '../monthly-list-columns';
-import { formatMonthlyListCellValue, monthlyListSortValue } from '../monthly-list-row.mapper';
+import { MonthlyListDataService, EmployeeLookupEntry } from '../monthly-list-data.service';
 import { ErrorDialogCmp, mapFirebaseError } from '../../../error-dialog/error-dialog.cmp';
 import { RoutesService } from '../../../routes.service';
+
+type MonthlyDetailTab = 'list' | 'standard-remuneration';
 
 @Component({
   selector: 'app-monthly-detail',
   imports: [
-    MatTableModule,
-    MatSortModule,
+    MatTabsModule,
+    MatProgressSpinnerModule,
+    RouterOutlet,
+    RouterLink,
     MatButtonModule,
     MatIconModule,
-    RouterModule,
-    MatTooltipModule,
     MatMenuModule,
+    MatTooltipModule,
   ],
   templateUrl: './monthly-detail.cmp.html',
-  styleUrl: './monthly-detail.cmp.css',
+  styleUrls: ['./monthly-detail.cmp.css', '../../../personal-setting/personal-setting.cmp.css'],
 })
 export class MonthlyDetailCmp {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly currentTenantService = inject(CurrentTenantService);
-  private readonly monthlySettingDataService = inject(MonthlySettingDataService);
-  private readonly paymentManagementDataService = inject(PaymentManagementDataService);
   private readonly listDataService = inject(MonthlyListDataService);
   private readonly dialog = inject(MatDialog);
   private readonly routesService = inject(RoutesService);
 
   private loadToken = 0;
-  private settingsLoadedTid: string | null = null;
+  private employeesLoadedTid: string | null = null;
 
   readonly eid = toSignal(
     this.route.paramMap.pipe(map((params) => params.get('eid'))),
@@ -55,37 +52,22 @@ export class MonthlyDetailCmp {
   readonly employees = signal<EmployeeLookupEntry[]>([]);
   readonly loading = signal(true);
 
-  dataSource = new MatTableDataSource<MonthlyDetailRow>([]);
-
-  @ViewChild(MatSort) set matSort(sort: MatSort) {
-    if (sort) {
-      this.dataSource.sort = sort;
-    }
-  }
-
-  readonly visibleColumns = computed(() => {
-    const baseColumns = this.monthlySettingDataService.visibleColumns();
-    const filtered = baseColumns.filter(
-      (col) => col !== 'displayName' && col !== 'employeeId',
-    );
-    return ['yyyyMm', ...filtered];
-  });
+  isActive: MonthlyDetailTab = 'list';
 
   constructor() {
-    this.dataSource.sortingDataAccessor = (row, property) => {
-      if (property === 'yyyyMm') return row.yyyyMm;
-      return monthlyListSortValue(row, property as MonthlyListColumnKey);
-    };
+    this.updateTabActive(this.router.url);
+    this.router.events
+      .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
+      .subscribe((e) => this.updateTabActive(e.urlAfterRedirects));
 
     effect(() => {
       const tid = this.currentTenantService.currentTid();
       const eid = this.eid();
       if (!tid || !eid) {
-        this.dataSource.data = [];
         this.employeeName.set('');
         this.employeeId.set('');
         this.employees.set([]);
-        this.settingsLoadedTid = null;
+        this.employeesLoadedTid = null;
         this.loading.set(false);
         return;
       }
@@ -98,25 +80,18 @@ export class MonthlyDetailCmp {
   private async loadForEmployee(tid: string, eid: string, token: number): Promise<void> {
     this.loading.set(true);
     try {
-      if (this.settingsLoadedTid !== tid) {
-        await Promise.all([
-          this.paymentManagementDataService.loadPaymentSettings(tid),
-          this.monthlySettingDataService.loadListSettings(tid),
-        ]);
+      if (this.employeesLoadedTid !== tid) {
+        const employeeLookup = await this.listDataService.loadEmployeeLookup(tid);
         if (token !== this.loadToken) return;
-        this.settingsLoadedTid = tid;
+        this.employees.set(this.sortEmployees([...employeeLookup.values()]));
+        this.employeesLoadedTid = tid;
       }
 
-      const [result, employeeLookup] = await Promise.all([
-        this.listDataService.loadEmployeeMonthlyHistory(tid, eid),
-        this.listDataService.loadEmployeeLookup(tid),
-      ]);
+      const result = await this.listDataService.loadEmployeeMonthlyHistory(tid, eid);
       if (token !== this.loadToken) return;
 
-      this.employees.set(this.sortEmployees([...employeeLookup.values()]));
       this.employeeName.set(result.displayName);
       this.employeeId.set(result.employeeId);
-      this.dataSource.data = result.rows;
     } catch (error) {
       if (token !== this.loadToken) return;
       this.dialog.open(ErrorDialogCmp, {
@@ -129,33 +104,21 @@ export class MonthlyDetailCmp {
     }
   }
 
-  getColumnLabel(column: string): string {
-    if (column === 'yyyyMm') return '対象月';
-    return getMonthlyListColumnLabel(
-      column as MonthlyListColumnKey,
-      this.paymentManagementDataService.allowanceTypeDefinitions(),
-    );
-  }
-
-  formatCellValue(row: MonthlyDetailRow, col: string): string {
-    if (col === 'yyyyMm') {
-      const [year, month] = row.yyyyMm.split('-');
-      return `${year}年${parseInt(month, 10)}月`;
+  private updateTabActive(url: string): void {
+    if (url.includes('/standard-remuneration')) {
+      this.isActive = 'standard-remuneration';
+      return;
     }
-    return formatMonthlyListCellValue(
-      row,
-      col as MonthlyListColumnKey,
-      this.paymentManagementDataService.allowanceTypeDefinitions(),
-    );
+    this.isActive = 'list';
   }
 
   redirectToMonthlyManagement(): void {
     void this.routesService.redirectToMonthlyManagement();
   }
 
-  switchEmployee(eid: string): void {
-    if (!eid || eid === this.eid()) return;
-    void this.router.navigate(['/monthly-management', 'detail', eid]);
+  switchEmployee(nextEid: string): void {
+    if (!nextEid || nextEid === this.eid()) return;
+    void this.router.navigate(['/monthly-management', 'detail', nextEid, this.isActive]);
   }
 
   private sortEmployees(employees: EmployeeLookupEntry[]): EmployeeLookupEntry[] {

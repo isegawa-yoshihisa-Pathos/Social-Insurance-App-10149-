@@ -1,6 +1,7 @@
 import { Component, computed, effect, inject, signal, ViewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
@@ -8,21 +9,34 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog } from '@angular/material/dialog';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+import { MatInputModule } from '@angular/material/input';
 import { map } from 'rxjs';
 import { CurrentTenantService } from '../../../current-tenant.service';
 import { PaymentSettingDataService } from '../../payment-setting/payment-setting-data.service';
 import { PaymentManagementDataService } from '../../../payment-management/payment-management-data.service';
 import { PaymentDetailRow, EmployeeLookupEntry, PaymentListDataService } from '../payment-list-data.service';
 import { PaymentListColumnKey, getPaymentListColumnLabel } from '../payment-list-columns';
-import { formatPaymentListCellValue, paymentListSortValue } from '../payment-list-row.mapper';
+import {
+  formatPaymentListCellValue,
+  paymentDetailSearchText,
+  paymentListSortValue,
+  type PaymentDetailColumnKey,
+} from '../payment-list-row.mapper';
+import { PaymentListExportService } from '../payment-list-export.service';
+import { downloadCsvFile } from '../../../csv/csv-file.util';
 import { ErrorDialogCmp, mapFirebaseError } from '../../../error-dialog/error-dialog.cmp';
 import { RoutesService } from '../../../routes.service';
 import { BonusManagementDataService } from '../../../bonus-management/bonus-management-data.service';
+import { BonusSettingDataService } from '../../../bonus-management/bonus-setting/bonus-setting-data.service';
+import { MonthlySettingDataService } from '../../../monthly-management/monthly-setting/monthly-setting-data.service';
 import { TenantSettingDataService } from '../../../tenant-setting/tenant-setting-data.service';
 
 @Component({
   selector: 'app-payment-detail',
   imports: [
+    FormsModule,
     MatTableModule,
     MatSortModule,
     MatButtonModule,
@@ -30,6 +44,9 @@ import { TenantSettingDataService } from '../../../tenant-setting/tenant-setting
     RouterModule,
     MatTooltipModule,
     MatMenuModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    MatInputModule,
   ],
   templateUrl: './payment-detail.cmp.html',
   styleUrl: './payment-detail.cmp.css',
@@ -41,7 +58,10 @@ export class PaymentDetailCmp {
   private readonly paymentSettingDataService = inject(PaymentSettingDataService);
   private readonly paymentManagementDataService = inject(PaymentManagementDataService);
   private readonly bonusManagementDataService = inject(BonusManagementDataService);
+  private readonly bonusSettingDataService = inject(BonusSettingDataService);
+  private readonly monthlySettingDataService = inject(MonthlySettingDataService);
   private readonly listDataService = inject(PaymentListDataService);
+  private readonly exportService = inject(PaymentListExportService);
   private readonly tenantSettingDataService = inject(TenantSettingDataService);
   private readonly dialog = inject(MatDialog);
   private readonly routesService = inject(RoutesService);
@@ -61,13 +81,19 @@ export class PaymentDetailCmp {
 
   dataSource = new MatTableDataSource<PaymentDetailRow>([]);
 
+  searchTargetColumn: PaymentDetailColumnKey = 'yyyyMm';
+  searchQuery = '';
+
+  readonly isFilterActive = computed(() => !!this.searchQuery.trim());
+  readonly hasFilteredResults = computed(() => this.dataSource.filteredData.length > 0);
+
   @ViewChild(MatSort) set matSort(sort: MatSort) {
     if (sort) {
       this.dataSource.sort = sort;
     }
   }
 
-  readonly visibleColumns = computed(() => {
+  readonly visibleColumns = computed((): PaymentDetailColumnKey[] => {
     const baseColumns = this.paymentSettingDataService.visibleColumns();
     const filtered = baseColumns.filter(
       (col) => col !== 'displayName' && col !== 'employeeId',
@@ -79,10 +105,25 @@ export class PaymentDetailCmp {
     this.dataSource.sortingDataAccessor = (row, property) => {
       if (property === 'yyyyMm') return row.yyyyMm;
       return paymentListSortValue(
-        row, 
-        property as PaymentListColumnKey, 
-        this.paymentManagementDataService.allowanceTypeDefinitions(), 
-        this.bonusManagementDataService.bonusTypeDefinitions());
+        row,
+        property as PaymentListColumnKey,
+        this.paymentManagementDataService.allowanceTypeDefinitions(),
+        this.bonusManagementDataService.bonusTypeDefinitions(),
+      );
+    };
+
+    this.dataSource.filterPredicate = (data, filter) => {
+      const searchCondition = JSON.parse(filter) as {
+        column: PaymentDetailColumnKey;
+        query: string;
+      };
+      const text = paymentDetailSearchText(
+        data,
+        searchCondition.column,
+        this.paymentManagementDataService.allowanceTypeDefinitions(),
+        this.bonusManagementDataService.bonusTypeDefinitions(),
+      ).toLowerCase();
+      return text.includes(searchCondition.query);
     };
 
     effect(() => {
@@ -105,11 +146,14 @@ export class PaymentDetailCmp {
 
   private async loadForEmployee(tid: string, eid: string, token: number): Promise<void> {
     this.loading.set(true);
+    this.searchQuery = '';
+    this.dataSource.filter = '';
     try {
       if (this.settingsLoadedTid !== tid) {
         await Promise.all([
           this.paymentManagementDataService.loadPaymentSettings(tid),
           this.paymentSettingDataService.loadListSettings(tid),
+          this.bonusManagementDataService.loadBonusSettings(tid),
           this.tenantSettingDataService.loadAll(),
         ]);
         if (token !== this.loadToken) return;
@@ -158,6 +202,42 @@ export class PaymentDetailCmp {
       this.paymentManagementDataService.allowanceTypeDefinitions(),
       this.bonusManagementDataService.bonusTypeDefinitions(),
     );
+  }
+
+  search(): void {
+    this.dataSource.filter = JSON.stringify({
+      column: this.searchTargetColumn,
+      query: this.searchQuery.toLowerCase(),
+    });
+  }
+
+  async exportData(): Promise<void> {
+    const tid = this.currentTenantService.currentTid();
+    const eid = this.eid();
+    if (!tid || !eid || this.dataSource.data.length === 0) return;
+
+    const bonusDefinitions = this.bonusManagementDataService.bonusTypeDefinitions();
+    await Promise.all([
+      this.monthlySettingDataService.loadSettings(tid),
+      this.bonusSettingDataService.loadSettings(tid, bonusDefinitions),
+    ]);
+
+    const filtered = this.dataSource.filteredData;
+    const sortedAndFilteredData = this.dataSource.sort
+      ? this.dataSource.sortData(filtered, this.dataSource.sort)
+      : filtered;
+
+    const fileLabel = this.employeeId() || eid;
+    const csv = this.exportService.buildEmployeeHistoryCsv(
+      fileLabel,
+      this.visibleColumns(),
+      sortedAndFilteredData,
+      this.monthlySettingDataService.importHeaders(),
+      this.bonusSettingDataService.importHeaders(),
+      this.paymentManagementDataService.allowanceTypeDefinitions(),
+      bonusDefinitions,
+    );
+    downloadCsvFile(`payment-${fileLabel}.csv`, csv);
   }
 
   redirectToPaymentManagement(): void {

@@ -59,8 +59,12 @@ import {
   ensureZuijiAnnualAverageConsentReview,
   ensureLeaveReturnConsentReview,
 } from './remuneration-consent-review';
+import {
+  ensureTeijiRetroactiveReview,
+  ensureTeijiAnnualAverageRetroactiveReview,
+} from './retroactive-remuneration-review';
 import { updateResignBulkPremiumForEmployee } from './resign-bulk-premium';
-import { skipMonthlyPremiumCalculationIfResigned } from './premium-calculation-skip';
+import { isMissingRequiredFields, skipMonthlyPremiumCalculationIfResigned } from './premium-calculation-skip';
 import {
   ensureStandardZuijiApplicableAlert,
   ensureTeijiNonTargetAlert,
@@ -86,8 +90,12 @@ export async function calculateMonthlyEmployee(
     loadContext(db, tid, eid, yyyyMm),
     getTenant(db, tid),
   ]);
+  const errorMessage = isMissingRequiredFields(ctx.employee);
+  if (errorMessage) {
+    throw new Error(`従業員${ctx.employee.employeePersonalInfo?.displayName}は${errorMessage}です。`);
+  }
   if (await skipMonthlyPremiumCalculationIfResigned(db, tid, eid, yyyyMm, ctx.employee)) {
-    return;
+    throw new Error(`従業員${ctx.employee.employeePersonalInfo?.displayName}は資格取得前または資格喪失後です。`);
   }
   await ensureBonusRelatedRemunerationCarriedForward(db, tid, eid, yyyyMm, ctx);
   const personalInfo = ctx.employee.employeePersonalInfo;
@@ -512,6 +520,16 @@ async function tryTeiji(
   const outcome = determineTeiji(ctx.employmentType, teijiSources);
   if (outcome.kind !== 'invalid') {
     await notifyAnnualAverageIfNeeded(db, tid, eid, yyyyMm, year, ctx, outcome, prior ?? null);
+    await notifyTeijiRetroactiveIfNeeded(
+      db,
+      tid,
+      eid,
+      yyyyMm,
+      year,
+      ctx,
+      outcome,
+      prior ?? null,
+    );
   }
   if (outcome.kind === 'invalid') {
     await ensureTeijiNonTargetAlert(
@@ -730,6 +748,63 @@ async function ensureBonusRelatedRemunerationCarriedForward(
   ctx.monthly.bonusRelatedRemuneration = previousValue;
 }
 
+async function notifyTeijiRetroactiveIfNeeded(
+  db: admin.firestore.Firestore,
+  tid: string,
+  eid: string,
+  yyyyMm: string,
+  year: number,
+  ctx: CalculationContext,
+  teijiOutcome: TeijiDeterminationOutcome,
+  prior: StandardRemunerationListItem | null,
+): Promise<void> {
+  try {
+    const effectiveFrom = `${year}-09`;
+    let originalGrades: {
+      healthGrade: number;
+      pensionGrade: number;
+      healthStandardRemuneration: number;
+      pensionStandardRemuneration: number;
+      remuneration: number;
+      effectiveFrom: string;
+    } | null = null;
+
+    if (teijiOutcome.kind === 'calculated') {
+      originalGrades = {
+        healthGrade: teijiOutcome.grades.health.grade,
+        pensionGrade: teijiOutcome.grades.pension.grade,
+        healthStandardRemuneration: teijiOutcome.grades.health.standardRemuneration,
+        pensionStandardRemuneration: teijiOutcome.grades.pension.standardRemuneration,
+        remuneration: teijiOutcome.grades.remuneration,
+        effectiveFrom,
+      };
+    } else if (teijiOutcome.kind === 'continue_previous' && prior) {
+      originalGrades = {
+        healthGrade: prior.doc.healthGrade,
+        pensionGrade: prior.doc.pensionGrade,
+        healthStandardRemuneration: prior.doc.standardRemuneration.health,
+        pensionStandardRemuneration: prior.doc.standardRemuneration.pension,
+        remuneration: prior.doc.remuneration ?? 0,
+        effectiveFrom,
+      };
+    }
+
+    if (!originalGrades) return;
+
+    await ensureTeijiRetroactiveReview(
+      db,
+      tid,
+      eid,
+      year,
+      yyyyMm,
+      ctx.employee.employeePersonalInfo?.displayName ?? '対象従業員',
+      originalGrades,
+    );
+  } catch (err) {
+    console.error('[retroactive] teiji review failed', { tid, eid, yyyyMm, err });
+  }
+}
+
 async function notifyAnnualAverageIfNeeded(
   db: admin.firestore.Firestore,
   tid: string,
@@ -744,7 +819,7 @@ async function notifyAnnualAverageIfNeeded(
     const teijiGrades = teijiGradesFromOutcome(teijiOutcome, prior);
     if (!teijiGrades) return;
 
-    await ensureTeijiAnnualAverageConsentReview(
+    const consentResult = await ensureTeijiAnnualAverageConsentReview(
       db,
       tid,
       eid,
@@ -756,6 +831,28 @@ async function notifyAnnualAverageIfNeeded(
       teijiGrades.teijiHealthGrade,
       teijiGrades.teijiPensionGrade,
     );
+
+    if (consentResult.created && consentResult.annualGrades) {
+      const grades = consentResult.annualGrades;
+      await ensureTeijiAnnualAverageRetroactiveReview(
+        db,
+        tid,
+        eid,
+        year,
+        yyyyMm,
+        ctx.employee.employeePersonalInfo?.displayName ?? '対象従業員',
+        teijiGrades.teijiHealthGrade,
+        teijiGrades.teijiPensionGrade,
+        {
+          healthGrade: grades.health.grade,
+          pensionGrade: grades.pension.grade,
+          healthStandardRemuneration: grades.health.standardRemuneration,
+          pensionStandardRemuneration: grades.pension.standardRemuneration,
+          remuneration: grades.remuneration,
+          effectiveFrom: `${year}-09`,
+        },
+      );
+    }
   } catch (err) {
     console.error('[annual-average] consent review failed', { tid, eid, yyyyMm, err });
   }

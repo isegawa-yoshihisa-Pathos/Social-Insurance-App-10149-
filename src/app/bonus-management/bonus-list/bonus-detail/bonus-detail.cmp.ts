@@ -1,6 +1,7 @@
 import { Component, computed, effect, inject, signal, ViewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
@@ -8,19 +9,30 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog } from '@angular/material/dialog';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+import { MatInputModule } from '@angular/material/input';
 import { map } from 'rxjs';
 import { CurrentTenantService } from '../../../current-tenant.service';
 import { BonusManagementDataService } from '../../bonus-management-data.service';
 import { BonusSettingDataService } from '../../bonus-setting/bonus-setting-data.service';
 import { BonusDetailRow, BonusListDataService, EmployeeLookupEntry } from '../bonus-list-data.service';
 import { BonusListColumnKey, getBonusListColumnLabel } from '../bonus-list-columns';
-import { formatBonusListCellValue, bonusListSortValue } from '../bonus-list-row.mapper';
+import {
+  bonusDetailSearchText,
+  bonusListSortValue,
+  formatBonusListCellValue,
+  type BonusDetailColumnKey,
+} from '../bonus-list-row.mapper';
+import { BonusListExportService } from '../bonus-list-export.service';
+import { downloadCsvFile } from '../../../csv/csv-file.util';
 import { ErrorDialogCmp, mapFirebaseError } from '../../../error-dialog/error-dialog.cmp';
 import { RoutesService } from '../../../routes.service';
 
 @Component({
   selector: 'app-bonus-detail',
   imports: [
+    FormsModule,
     MatTableModule,
     MatSortModule,
     MatButtonModule,
@@ -28,6 +40,9 @@ import { RoutesService } from '../../../routes.service';
     RouterModule,
     MatTooltipModule,
     MatMenuModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    MatInputModule,
   ],
   templateUrl: './bonus-detail.cmp.html',
   styleUrl: './bonus-detail.cmp.css',
@@ -39,6 +54,7 @@ export class BonusDetailCmp {
   private readonly bonusManagementDataService = inject(BonusManagementDataService);
   private readonly bonusSettingDataService = inject(BonusSettingDataService);
   private readonly listDataService = inject(BonusListDataService);
+  private readonly exportService = inject(BonusListExportService);
   private readonly dialog = inject(MatDialog);
   private readonly routesService = inject(RoutesService);
 
@@ -57,13 +73,19 @@ export class BonusDetailCmp {
 
   dataSource = new MatTableDataSource<BonusDetailRow>([]);
 
+  searchTargetColumn: BonusDetailColumnKey = 'yyyyMm';
+  searchQuery = '';
+
+  readonly isFilterActive = computed(() => !!this.searchQuery.trim());
+  readonly hasFilteredResults = computed(() => this.dataSource.filteredData.length > 0);
+
   @ViewChild(MatSort) set matSort(sort: MatSort) {
     if (sort) {
       this.dataSource.sort = sort;
     }
   }
 
-  readonly visibleColumns = computed(() => {
+  readonly visibleColumns = computed((): BonusDetailColumnKey[] => {
     const baseColumns = this.bonusSettingDataService.visibleColumns();
     const filtered = baseColumns.filter(
       (col) => col !== 'displayName' && col !== 'employeeId',
@@ -75,6 +97,15 @@ export class BonusDetailCmp {
     this.dataSource.sortingDataAccessor = (row, property) => {
       if (property === 'yyyyMm') return row.yyyyMm;
       return bonusListSortValue(row, property as BonusListColumnKey);
+    };
+
+    this.dataSource.filterPredicate = (data, filter) => {
+      const searchCondition = JSON.parse(filter) as {
+        column: BonusDetailColumnKey;
+        query: string;
+      };
+      const text = bonusDetailSearchText(data, searchCondition.column).toLowerCase();
+      return text.includes(searchCondition.query);
     };
 
     effect(() => {
@@ -97,6 +128,8 @@ export class BonusDetailCmp {
 
   private async loadForEmployee(tid: string, eid: string, token: number): Promise<void> {
     this.loading.set(true);
+    this.searchQuery = '';
+    this.dataSource.filter = '';
     try {
       if (this.settingsLoadedTid !== tid) {
         await Promise.all([
@@ -145,13 +178,43 @@ export class BonusDetailCmp {
     return formatBonusListCellValue(row, col as BonusListColumnKey);
   }
 
+  search(): void {
+    this.dataSource.filter = JSON.stringify({
+      column: this.searchTargetColumn,
+      query: this.searchQuery.toLowerCase(),
+    });
+  }
+
+  async exportData(): Promise<void> {
+    const tid = this.currentTenantService.currentTid();
+    const eid = this.eid();
+    if (!tid || !eid || this.dataSource.data.length === 0) return;
+
+    const bonusDefinitions = this.bonusManagementDataService.bonusTypeDefinitions();
+    await this.bonusSettingDataService.loadSettings(tid, bonusDefinitions);
+    const filtered = this.dataSource.filteredData;
+    const sortedAndFilteredData = this.dataSource.sort
+      ? this.dataSource.sortData(filtered, this.dataSource.sort)
+      : filtered;
+
+    const fileLabel = this.employeeId() || eid;
+    const csv = this.exportService.buildEmployeeHistoryCsv(
+      fileLabel,
+      this.visibleColumns(),
+      sortedAndFilteredData,
+      this.bonusSettingDataService.importHeaders(),
+      bonusDefinitions,
+    );
+    downloadCsvFile(`bonus-${fileLabel}.csv`, csv);
+  }
+
   redirectToBonusManagement(): void {
     void this.routesService.redirectToBonusManagement();
   }
 
   switchEmployee(eid: string): void {
     if (!eid || eid === this.eid()) return;
-    void this.router.navigate(['/monthly-management', 'detail', eid]);
+    void this.router.navigate(['/bonus-management', 'detail', eid]);
   }
 
   private sortEmployees(employees: EmployeeLookupEntry[]): EmployeeLookupEntry[] {

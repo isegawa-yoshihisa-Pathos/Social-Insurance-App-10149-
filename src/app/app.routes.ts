@@ -42,7 +42,7 @@ export const routes: Routes = [
           {
             path: '',
             pathMatch: 'full',
-            redirectTo: 'personal',
+            redirectTo: 'tenant',
           },
           {
             path: 'allowance-application',
@@ -204,6 +204,27 @@ export const routes: Routes = [
           {
             path: 'detail/:eid',
             loadComponent: () => import('./monthly-management/monthly-list/monthly-detail/monthly-detail.cmp').then(m => m.MonthlyDetailCmp),
+            children: [
+              {
+                path: '',
+                pathMatch: 'full',
+                redirectTo: 'list',
+              },
+              {
+                path: 'list',
+                loadComponent: () =>
+                  import('./monthly-management/monthly-list/monthly-detail/monthly-detail-list/monthly-detail-list.cmp').then(
+                    (m) => m.MonthlyDetailListCmp,
+                  ),
+              },
+              {
+                path: 'standard-remuneration',
+                loadComponent: () =>
+                  import('./monthly-management/monthly-list/monthly-detail/standard-remuneration-list/standard-remuneration-list.cmp').then(
+                    (m) => m.StandardRemunerationListCmp,
+                  ),
+              },
+            ],
           },
           {
             path: 'setting',

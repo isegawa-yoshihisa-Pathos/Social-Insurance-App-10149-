@@ -3,6 +3,7 @@ import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { CurrentTenantService } from '../current-tenant.service';
 import { ProfileCompletionService } from '../profile-completion.service';
 import { RoutesService } from '../routes.service';
@@ -11,10 +12,11 @@ import { Auth } from '@angular/fire/auth';
 import { filter, map, startWith } from 'rxjs';
 import { AuthService } from '../auth.service';
 import { NotificationService } from '../notifications/notification.service';
+import { TaskBoardBadgeService } from '../task-board/task-board-badge.service';
 
 @Component({
   selector: 'app-main-layout',
-  imports: [MatSidenavModule, MatIconModule, MatButtonModule, RouterOutlet],
+  imports: [MatSidenavModule, MatIconModule, MatButtonModule, RouterOutlet, MatTooltipModule],
   templateUrl: './main-layout.cmp.html',
   styleUrl: './main-layout.cmp.css',
 })
@@ -26,6 +28,7 @@ export class MainLayoutCmp {
   readonly routesService = inject(RoutesService);
   readonly authService = inject(AuthService);
   readonly notificationService = inject(NotificationService);
+  readonly taskBoardBadgeService = inject(TaskBoardBadgeService);
   readonly currentAffiliation = this.tenant.currentAffiliation;
   readonly isAdmin = this.tenant.isAdmin;
   readonly completion = this.profile.state;
@@ -85,6 +88,18 @@ export class MainLayoutCmp {
         return;
       }
       this.profile.refresh(uid, tid);
+    });
+
+    effect((onCleanup) => {
+      const tid = this.tenant.currentTid();
+      const eid = this.tenant.currentEid() || null;
+      const isAdmin = this.tenant.isAdmin();
+      if (!tid) {
+        this.taskBoardBadgeService.unsubscribe();
+        return;
+      }
+      this.taskBoardBadgeService.subscribe({ tid, eid, isAdmin });
+      onCleanup(() => this.taskBoardBadgeService.unsubscribe());
     });
   }
 

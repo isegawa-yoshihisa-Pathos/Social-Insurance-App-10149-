@@ -8,8 +8,12 @@ import {
   orderBy,
   query,
 } from '@angular/fire/firestore';
-import { AuditLogDocument } from './log-document';
+import type { AuditLogDocument } from './log-document';
 import { formatAuditChangeValue } from '../../../shared/audit-log.util';
+import {
+  formatAuditLogCategory,
+  formatAuditLogChangeField,
+} from '../../../shared/audit-log-display.util';
 
 export interface AuditLogListItem {
   id: string;
@@ -80,60 +84,11 @@ export class LogDataService {
     return formatAuditChangeValue(value);
   }
 
+  formatCategory(category: string): string {
+    return formatAuditLogCategory(category);
+  }
+
   formatChangeField(field: string): string {
-    switch (field) {
-      case 'displayName':
-        return '氏名';
-      case 'employeeId':
-        return '社員番号';
-      case 'email':
-        return 'メールアドレス';
-      case 'phoneNumber':
-        return '電話番号';
-      case 'birthDate':
-        return '生年月日';
-      case 'joinedAt':
-        return '入社日';
-      case 'resignAt':
-        return '退職日';
-      case 'licenseStartAt':
-        return '資格取得日';
-      case 'licenseEndAt':
-        return '資格失効日';
-      case 'healthInsuranceRecordNumber':
-        return '健康保険証番号';
-      case 'pensionInsuranceRecordNumber':
-        return '厚生年金証番号';
-      case 'realName':
-        return '氏名';
-      case 'myNumber':
-        return '個人番号';
-      case 'basicPensionNumber':
-        return '厚生年金番号';
-      case 'zipcode':
-        return '郵便番号';
-      case 'address':
-        return '住所';
-      case 'position':
-        return '役職';
-      case 'department':
-        return '部署';
-      case 'payType':
-        return '給与区分';
-      case 'employmentType':
-        return '雇用形態';
-      case 'status':
-        return '勤務状況';
-      case 'joinedAt':
-        return '入社日';
-      case 'resignAt':
-        return '退職日';
-      case 'licenseStartAt':
-        return '資格取得日';
-      case 'licenseEndAt':
-        return '資格失効日';
-      default:
-        return field;
-    }
+    return formatAuditLogChangeField(field);
   }
 }

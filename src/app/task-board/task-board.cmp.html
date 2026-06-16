@@ -1,9 +1,4 @@
 <nav mat-tab-nav-bar [tabPanel]="tabPanel" animationDuration="0ms">
-  <a
-    mat-tab-link
-    [routerLink]="['/task-board', 'personal']"
-    [active]="isPersonalActive"
-  >個人</a>
   @if (tenant.isAdmin()) {
     <a
       mat-tab-link
@@ -11,6 +6,11 @@
       [active]="isTenantActive"
     >事業所</a>
   }
+  <a
+    mat-tab-link
+    [routerLink]="['/task-board', 'personal']"
+    [active]="isPersonalActive"
+  >個人</a>
 </nav>
 <mat-tab-nav-panel #tabPanel>
   <div class="task-board">

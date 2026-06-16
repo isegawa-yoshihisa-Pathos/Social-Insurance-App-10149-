@@ -12,13 +12,22 @@
   padding: 20px;
 }
 
-.invitation-button-container {
+.invitation-container {
   width: 100%;
   padding: 20px;
   background-color: white;
   box-sizing: border-box;
   box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
   border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.invitation-header {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  border-left: 4px solid #673ab7;
+  padding-left: 8px;
 }
 
 .invitation-form-container {

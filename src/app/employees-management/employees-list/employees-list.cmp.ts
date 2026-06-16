@@ -32,6 +32,12 @@ import { ErrorDialogCmp, mapFirebaseError } from '../../error-dialog/error-dialo
 import { SuccessDialogCmp } from '../../success-dialog/success-dialog.cmp';
 import { HelpContentCmp } from '../../help-content/help-content.cmp';
 import { formatEmployeeListValue } from './employee-list-data.util';
+import {
+  EmployeeInputRequestDialogCmp,
+  EmployeeInputRequestDialogData,
+} from './employee-input-request-dialog/employee-input-request-dialog.cmp';
+import { EmployeeInputRequestService } from './employee-input-request.service';
+import { isPersonalInputColumn } from './employee-input-request.util';
 
 @Component({
   selector: 'app-employees-list',
@@ -48,6 +54,7 @@ export class EmployeesListCmp {
   private readonly dialog = inject(MatDialog);
   private readonly bulkEditService = inject(EmployeesListBulkEditService);
   private readonly importService = inject(EmployeesListImportService);
+  private readonly inputRequestService = inject(EmployeeInputRequestService);
 
   readonly employeeListColumnLabels = EMPLOYEE_LIST_COLUMN_LABELS;
   readonly visibleColumns = computed(() => this.dataService.visibleColumns());
@@ -153,7 +160,8 @@ export class EmployeesListCmp {
       return;
     }
 
-    if (col === 'myNumber' || col === 'basicPensionNumber' || col === 'birthDate' || col === 'age' || col === 'hasDependents') {
+    if (isPersonalInputColumn(col)) {
+      this.openInputRequestDialog(row, col);
       return;
     }
 
@@ -170,9 +178,89 @@ export class EmployeesListCmp {
       return [eid];
     }
 
-    return this.selectedEids.has(eid) 
+    return this.selectedEids.has(eid)
       ? [...this.selectedEids]
       : [eid];
+  }
+
+  private openInputRequestDialog(row: EmployeeListRow, col: EmployeeListColumnKey): void {
+    const targetEids = this.resolveTargetEids(row.eid);
+    const fieldLabel = this.inputRequestService.fieldLabel(col);
+
+    const dialogRef = this.dialog.open<
+      EmployeeInputRequestDialogCmp,
+      EmployeeInputRequestDialogData,
+      boolean
+    >(EmployeeInputRequestDialogCmp, {
+      width: '420px',
+      data: {
+        fieldLabel,
+        selectedCount: targetEids.length,
+        displayName: targetEids.length === 1 ? row.displayName : undefined,
+      },
+    });
+
+    dialogRef.afterClosed().subscribe(async (confirmed) => {
+      if (!confirmed) return;
+      await this.submitInputRequest(col, targetEids);
+    });
+  }
+
+  private async submitInputRequest(
+    col: EmployeeListColumnKey,
+    targetEids: string[],
+  ): Promise<void> {
+    const tid = this.currentTenantService.currentTid();
+    if (!tid || targetEids.length === 0) return;
+
+    const employeeLabels = this.dataSource.data
+      .filter((row) => targetEids.includes(row.eid))
+      .map((row) => ({
+        eid: row.eid,
+        displayName: row.displayName,
+        employeeId: row.employeeId,
+      }));
+
+    this.bulkSaving = true;
+    try {
+      const result = await this.inputRequestService.requestInput({
+        tid,
+        eids: targetEids,
+        column: col,
+        employeeLabels,
+      });
+
+      if (result.notified === 0) {
+        this.dialog.open(ErrorDialogCmp, {
+          data: {
+            message:
+              '通知を送信できませんでした。対象従業員がアカウント未連携、または存在しない可能性があります。',
+          },
+        });
+        return;
+      }
+
+      let message = `${result.notified}件の従業員に通知を送信しました。`;
+      if (result.skippedNoAccount > 0) {
+        message += `\nアカウント未連携: ${result.skippedNoAccount}件`;
+      }
+      if (result.skippedNotFound > 0) {
+        message += `\n従業員未存在: ${result.skippedNotFound}件`;
+      }
+
+      this.dialog.open(SuccessDialogCmp, {
+        data: {
+          title: '入力依頼を送信しました',
+          message,
+        },
+      });
+    } catch (error) {
+      this.dialog.open(ErrorDialogCmp, {
+        data: { message: mapFirebaseError(error) },
+      });
+    } finally {
+      this.bulkSaving = false;
+    }
   }
 
   private openBulkEditDialog(column: BulkEditableColumn, initialValue: unknown, targetEids: string[], displayName?: string): void {

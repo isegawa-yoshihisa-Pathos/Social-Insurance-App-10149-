@@ -1,40 +1,63 @@
-<div class="employee-detail-header">
-    <h2 class="employee-name">{{ dataService.personalForm.displayName || '氏名未設定' }}</h2>
-    @if (dataService.employForm.employeeId) {
-        <p class="employee-id">社員番号：{{ dataService.employForm.employeeId }}</p>
-    }
+<div class="employee-detail-container">
+  <div class="employee-detail-header">
+      <button mat-icon-button (click)="redirectToEmployeesManagement()" matTooltip="従業員一覧に戻る">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      @if (!loading()) {
+        <button mat-button [matMenuTriggerFor]="employeeMenu">
+          <span class="meta-value-name">{{ employeeName() || '未登録' }}</span>
+          <div class="meta-item">
+            <span class="meta-label">社員番号:</span>
+            <span class="meta-value-id">{{ employeeId() || '---' }}</span>
+          </div>
+        </button>
+        <mat-menu #employeeMenu="matMenu">
+          @for (employee of employees(); track employee.eid) {
+            <button mat-menu-item (click)="switchEmployee(employee.eid)">
+              <span class="meta-value-name">{{ employee.displayName || '未登録' }}</span>
+              <div class="meta-item">
+                <span class="meta-label">社員番号:</span>
+                <span class="meta-value-id">{{ employee.employeeId || '---' }}</span>
+              </div>
+            </button>
+          }
+        </mat-menu>
+      }
+  </div>
+
+  <nav mat-tab-nav-bar [tabPanel]="tabPanel" animationDuration="0ms" class="setting-tabs">
+      @if (eid(); as currentEid) {
+      <a
+          mat-tab-link
+          [routerLink]="['/employees-management', 'detail', currentEid, 'employ']"
+          [active]="isActive === 'employ'"
+      >
+          <span>雇用情報</span>
+      </a>
+      <a
+          mat-tab-link
+          [routerLink]="['/employees-management', 'detail', currentEid, 'status']"
+          [active]="isActive === 'status'"
+      >
+          <span>勤務情報</span>
+      </a>
+      <a
+          mat-tab-link
+          [routerLink]="['/employees-management', 'detail', currentEid, 'personal']"
+          [active]="isActive === 'personal'"
+      >
+          <span>個人情報</span>
+      </a>
+      }
+  </nav>
+
+  <mat-tab-nav-panel #tabPanel>
+      <div class="setting-page">
+          @if (dataService.loading) {
+              <mat-spinner diameter="40"></mat-spinner>
+          } @else {
+              <router-outlet />
+          }
+      </div>
+  </mat-tab-nav-panel>
 </div>
-
-<nav mat-tab-nav-bar [tabPanel]="tabPanel" animationDuration="0ms" class="setting-tabs">
-    <a
-        mat-tab-link
-        [routerLink]="['/employees-management', 'detail', eid, 'employ']"
-        [active]="isActive === 'employ'"
-    >
-        <span>雇用情報</span>
-    </a>
-    <a
-        mat-tab-link
-        [routerLink]="['/employees-management', 'detail', eid, 'status']"
-        [active]="isActive === 'status'"
-    >
-        <span>勤務情報</span>
-    </a>
-    <a 
-        mat-tab-link
-        [routerLink]="['/employees-management', 'detail', eid, 'personal']"
-        [active]="isActive === 'personal'"
-    >
-        <span>個人情報</span>
-    </a>
-</nav>
-
-<mat-tab-nav-panel #tabPanel>
-    <div class="setting-page">
-        @if (dataService.loading) {
-            <mat-spinner diameter="40"></mat-spinner>
-        } @else {
-            <router-outlet />
-        }
-    </div>
-</mat-tab-nav-panel>

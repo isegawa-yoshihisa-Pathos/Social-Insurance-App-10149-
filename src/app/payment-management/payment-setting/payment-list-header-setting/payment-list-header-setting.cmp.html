@@ -5,29 +5,34 @@
 } @else {
   <section class="header-setting-section">
     <div class="payment-setting-label">
-      月次一覧の表示項目
+      給与一覧の表示項目
     </div>
 
-    <mat-checkbox 
+    <p class="order-hint">
+      チェックした項目が一覧に表示されます。ドラッグで並び順を変更できます。
+    </p>
+
+    <mat-checkbox
       [checked]="isAllSelected()"
-      (change)="toggleAll($event.checked)">
-        @if (isAllSelected()) {
-          すべて解除
-        } @else {
-          すべて選択
-        }
+      (change)="toggleAll($event.checked)"
+    >
+      @if (isAllSelected()) {
+        すべて解除
+      } @else {
+        すべて選択
+      }
     </mat-checkbox>
 
-    @for (col of optionalColumns(); track col.key) {
-      <div class="checkbox-row">
-        <mat-checkbox
-          [checked]="isChecked(col.key)"
-          (change)="onOptionalChange(col.key, $event.checked)"
-        >
-          {{ col.label }}
-        </mat-checkbox>
-      </div>
-    }
+    <div cdkDropList class="column-order-list" (cdkDropListDropped)="drop($event)">
+      @for (col of orderedColumns; track col.key) {
+        <div class="column-order-row" cdkDrag>
+          <mat-icon cdkDragHandle class="drag-handle">drag_indicator</mat-icon>
+          <mat-checkbox [(ngModel)]="col.checked" (ngModelChange)="onCheckedChange()">
+            {{ col.label }}
+          </mat-checkbox>
+        </div>
+      }
+    </div>
 
     <div class="actions">
       <button

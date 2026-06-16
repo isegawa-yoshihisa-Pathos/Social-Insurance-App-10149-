@@ -1,7 +1,9 @@
+import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { Component, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog } from '@angular/material/dialog';
 import { ErrorDialogCmp, mapFirebaseError } from '../../../error-dialog/error-dialog.cmp';
@@ -13,12 +15,24 @@ import {
   BonusListColumnKey,
 } from '../../bonus-list/bonus-list-columns';
 import { BonusManagementDataService } from '../../bonus-management-data.service';
+import {
+  buildOrderedColumnOptions,
+  OrderedListColumnOption,
+  visibleColumnsFromOrder,
+} from '../../../list-column-order.util';
 
 @Component({
   selector: 'app-bonus-list-header-setting',
-  imports: [FormsModule, MatButtonModule, MatCheckboxModule, MatProgressSpinnerModule],
+  imports: [
+    FormsModule,
+    MatButtonModule,
+    MatCheckboxModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    DragDropModule,
+  ],
   templateUrl: './bonus-list-header-setting.cmp.html',
-  styleUrl: './bonus-list-header-setting.cmp.css',
+  styleUrls: ['./bonus-list-header-setting.cmp.css', '../../../list-header-setting.cmp.css'],
 })
 export class BonusListHeaderSettingCmp implements OnInit {
   private readonly bonusSettingDataService = inject(BonusSettingDataService);
@@ -31,6 +45,7 @@ export class BonusListHeaderSettingCmp implements OnInit {
     getOptionalBonusListColumns(this.bonusManagementDataService.bonusTypeDefinitions()),
   );
 
+  orderedColumns: OrderedListColumnOption<BonusListColumnKey>[] = [];
   loading = false;
   saveBusy = false;
 
@@ -43,6 +58,7 @@ export class BonusListHeaderSettingCmp implements OnInit {
     this.loading = true;
     try {
       await this.bonusSettingDataService.loadListSettings(tid);
+      this.refreshOrderedColumns();
     } catch (e) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: mapFirebaseError(e) },
@@ -52,20 +68,22 @@ export class BonusListHeaderSettingCmp implements OnInit {
     }
   }
 
-  isChecked(key: BonusListColumnKey): boolean {
-    return this.bonusSettingDataService.isColumnVisible(key);
+  drop(event: CdkDragDrop<OrderedListColumnOption<BonusListColumnKey>[]>): void {
+    moveItemInArray(this.orderedColumns, event.previousIndex, event.currentIndex);
+    this.syncVisibleColumns();
   }
 
-  onOptionalChange(key: BonusListColumnKey, checked: boolean): void {
-    this.bonusSettingDataService.toggleOptionalColumn(key, checked);
+  onCheckedChange(): void {
+    this.syncVisibleColumns();
   }
 
   isAllSelected(): boolean {
-    return this.optionalColumns().every((col) => this.isChecked(col.key));
+    return this.orderedColumns.length > 0 && this.orderedColumns.every((col) => col.checked);
   }
 
   toggleAll(checked: boolean): void {
-    this.optionalColumns().forEach((col) => this.onOptionalChange(col.key, checked));
+    this.orderedColumns = this.orderedColumns.map((col) => ({ ...col, checked }));
+    this.syncVisibleColumns();
   }
 
   async save(): Promise<void> {
@@ -81,5 +99,18 @@ export class BonusListHeaderSettingCmp implements OnInit {
     } finally {
       this.saveBusy = false;
     }
+  }
+
+  private refreshOrderedColumns(): void {
+    this.orderedColumns = buildOrderedColumnOptions(
+      this.optionalColumns(),
+      this.bonusSettingDataService.visibleColumns(),
+    );
+  }
+
+  private syncVisibleColumns(): void {
+    this.bonusSettingDataService.setVisibleColumns(
+      visibleColumnsFromOrder(this.orderedColumns),
+    );
   }
 }

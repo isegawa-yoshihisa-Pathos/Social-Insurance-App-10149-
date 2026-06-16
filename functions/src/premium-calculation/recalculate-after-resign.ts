@@ -51,6 +51,7 @@ export const recalculatePremiumsAfterResign = onCall<RecalculatePremiumsAfterRes
     ]);
 
     const licenseEndAt = toFormDate(employee.employeeEmployInfo?.licenseEndAt);
+    const resignAt = toFormDate(employee.employeeEmployInfo?.resignAt);
     if (!licenseEndAt) {
       throw new HttpsError(
         'failed-precondition',
@@ -58,9 +59,9 @@ export const recalculatePremiumsAfterResign = onCall<RecalculatePremiumsAfterRes
       );
     }
 
-    await clearPremiumFieldsAfterResign(db, tid, eid, licenseEndAt);
+    await clearPremiumFieldsAfterResign(db, tid, eid, licenseEndAt, resignAt);
 
-    const lastPremium = lastPremiumMonthYyyyMm(licenseEndAt);
+    const lastPremium = lastPremiumMonthYyyyMm(licenseEndAt, resignAt);
     const records = await listEmployeeMonthlyRecords(db, tid, eid);
     const recalcTargets = records
       .filter(({ yyyyMm, doc }) => yyyyMm <= lastPremium && doc.payrollData)

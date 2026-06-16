@@ -20,7 +20,6 @@ export interface MonthlyDocument {
 
     payrollData: PayrollData;
     premiumData?: PremiumData;
-    /** 退職月給与で一括徴収する社会保険料（給与支払月の月次レコードに保存） */
     resignBulkPremiumData?: PremiumData;
     calculationSnapshot?: CalculationSnapshot;
 

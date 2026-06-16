@@ -12,12 +12,17 @@ import { AllowanceData } from '../../payment-document';
 
 export type MonthlyFormColumnKey = keyof MonthlyFormData;
 
+export const MONTHLY_NET_PAYMENT_COLUMN_KEY = 'netPayment' as const;
+
+export type MonthlySummaryColumnKey = typeof MONTHLY_NET_PAYMENT_COLUMN_KEY;
+
 export type AllowanceColumnKey = string;
 
 export type MonthlyListColumnKey =
   | MonthlyFormColumnKey
   | 'fixedWage'
   | 'variableWage'
+  | MonthlySummaryColumnKey
   | AllowanceColumnKey
   | PremiumMonthlyListColumnKey;
 
@@ -42,6 +47,7 @@ export const DEFAULT_MONTHLY_LIST_COLUMNS: MonthlyListColumnKey[] = [
   'basicSalary',
   'fringeBenefits',
   'bonusRelatedRemuneration',
+  'netPayment',
 ];
 
 const STATIC_COLUMN_LABELS: Record<BaseMonthlyListColumnKey, string> = {
@@ -63,6 +69,7 @@ export function getAllMonthlyListColumnKeys(
     ...BASE_MONTHLY_LIST_COLUMN_KEYS,
     ...definitions.map((def) => allowanceColumnKey(def.type)),
     ...PREMIUM_MONTHLY_LIST_COLUMN_KEYS,
+    MONTHLY_NET_PAYMENT_COLUMN_KEY,
   ];
 }
 
@@ -86,6 +93,7 @@ export function getOptionalMonthlyListColumns(
     ...allowanceColumns,
     { key: 'retroactivePay', label: '遡及支払' },
     ...getOptionalPremiumColumns(),
+    { key: MONTHLY_NET_PAYMENT_COLUMN_KEY, label: '月次総支払' },
   ];
 }
 
@@ -93,6 +101,10 @@ export function getMonthlyListColumnLabel(
   column: MonthlyListColumnKey,
   definitions: AllowanceTypeDefinition[],
 ): string {
+  if (column === MONTHLY_NET_PAYMENT_COLUMN_KEY) {
+    return '月次総支払';
+  }
+
   if (Object.hasOwn(STATIC_COLUMN_LABELS, column)) {
     return STATIC_COLUMN_LABELS[column as BaseMonthlyListColumnKey];
   }
@@ -129,4 +141,16 @@ export interface MonthlyListRow {
   careInsuranceEmployer: number | null;
   pensionInsuranceEmployee: number | null;
   pensionInsuranceEmployer: number | null;
+}
+
+export interface MonthlyListRowForEmployee {
+  totalPayment: number;
+  basicSalary: number;
+  fringeBenefits: number;
+  bonusRelatedRemuneration: number;
+  allowances: AllowanceData;
+  retroactivePay: number | null;
+  healthInsuranceEmployee: number | null;
+  careInsuranceEmployee: number | null;
+  pensionInsuranceEmployee: number | null;
 }

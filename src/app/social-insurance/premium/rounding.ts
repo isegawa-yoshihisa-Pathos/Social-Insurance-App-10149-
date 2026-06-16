@@ -10,7 +10,7 @@ export function roundPremium(
   roundingBy: number,
 ): number {
   const normalizedRoundingBy = normalizeRoundUp(roundingBy);
-  const totalSen = Math.round(amountYen * 100);
+  const totalSen = Math.floor(amountYen * 100);
   const yenPart = Math.floor(totalSen / 100);
   const senPart = totalSen % 100;
 

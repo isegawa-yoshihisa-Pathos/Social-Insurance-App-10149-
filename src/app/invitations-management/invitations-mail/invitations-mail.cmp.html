@@ -1,13 +1,13 @@
-<div class="invitation-button-container">
-    <div class="content-text">
-        招待する方のメールアドレスを入力してください。
-        <br>
-        一括で招待する際は「＋」ボタンを押して招待するメールアドレスを追加してください。
-        <br>
-        管理者権限を付与する場合は「管理者権限」チェックボックスをチェックしてください。
-        <br>
-        所定のCSVファイルでインポートできます。
+<div class="invitation-container">
+    <div class="invitation-header">
+        招待管理
     </div>
+    招待する方のメールアドレスを入力してください。<br>
+    一括で招待する際は「＋」ボタンを押して招待するメールアドレスを追加してください。<br>
+    管理者権限を付与する場合は「管理者権限」チェックボックスをチェックしてください。<br>
+    所定のCSVファイルでインポートできます。
+</div>
+<div class="invitation-container">
     <div class="invitation-form-container">
         <div class="invitation-form-list">
             @for (invitation of invitationsData; track $index) {

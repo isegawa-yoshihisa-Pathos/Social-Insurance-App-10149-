@@ -1,0 +1,93 @@
+<h2 mat-dialog-title>遡及支払の配分・再計算</h2>
+
+<mat-dialog-content class="dialog-content">
+  <p class="intro">
+    {{ review.employeeDisplayName }}様 /
+    {{ review.type === 'teiji' ? '定時決定' : '年間平均算定' }}（{{ review.teijiYear }}年）
+  </p>
+  <p class="note">
+    遡及額を対象期間へ配分できます。各配分行ごとに賃金区分を設定してください。
+  </p>
+
+  @if (validationError) {
+    <p class="validation-error">{{ validationError }}</p>
+  }
+
+  @for (item of items; track item.paymentYyyyMm) {
+    <section class="item-card">
+      <div class="item-header">
+        <mat-checkbox [(ngModel)]="item.included">
+          {{ item.paymentYyyyMm }} 支給の遡及 {{ Format(item.amount) }}円
+        </mat-checkbox>
+      </div>
+
+      @if (item.included) {
+        <div class="allocations">
+          <div class="allocations-header">対象月への配分</div>
+          @for (line of item.allocations; track $index) {
+            <div class="allocation-row">
+              <mat-form-field appearance="outline">
+                <mat-label>対象月</mat-label>
+                <mat-select [(ngModel)]="line.targetYyyyMm">
+                  @for (month of monthOptions; track month) {
+                    <mat-option [value]="month">{{ month }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>金額（円）</mat-label>
+                <input matInput type="number" [(ngModel)]="line.amount" min="0" />
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>賃金区分</mat-label>
+                <mat-select [(ngModel)]="line.wageKind">
+                  <mat-option value="fixed">固定的賃金</mat-option>
+                  <mat-option value="variable">非固定的賃金</mat-option>
+                </mat-select>
+              </mat-form-field>
+              <button
+                mat-button
+                type="button"
+                [disabled]="item.allocations.length <= 1"
+                (click)="removeAllocationLine(item, $index)"
+              >
+                削除
+              </button>
+            </div>
+          }
+          <button mat-button type="button" (click)="addAllocationLine(item)">配分行を追加</button>
+          <div
+            class="allocation-sum"
+            [class.is-over]="isOverAllocated(item)"
+            [class.is-partial]="isPartiallyAllocated(item)"
+          >
+            配分合計: {{ Format(allocationSum(item)) }}円 / 遡及額: {{ Format(item.amount) }}円
+            @if (isPartiallyAllocated(item)) {
+              <span class="partial-note">（一部のみ再計算に反映）</span>
+            }
+          </div>
+        </div>
+      }
+    </section>
+  }
+
+  @if (previewGrades) {
+    <section class="preview-box">
+      <div class="preview-title">プレビュー（再計算結果）</div>
+      <div>
+        健保 {{ previewGrades.healthGrade }}等級 /
+        厚年 {{ previewGrades.pensionGrade }}等級 /
+        報酬月額 {{ Format(previewGrades.remuneration) }}円
+        （{{ previewGrades.effectiveFrom }} 適用）
+      </div>
+    </section>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" [disabled]="busy" (click)="close()">閉じる</button>
+  <button mat-button type="button" [disabled]="busy" (click)="preview()">プレビュー</button>
+  <button mat-flat-button color="primary" type="button" [disabled]="busy" (click)="apply()">
+    適用・再計算
+  </button>
+</mat-dialog-actions>

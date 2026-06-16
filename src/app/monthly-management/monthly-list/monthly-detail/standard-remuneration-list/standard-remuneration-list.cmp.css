@@ -1,0 +1,28 @@
+:host {
+  display: block;
+}
+
+.loading-message,
+.empty-message {
+  margin: 16px 0;
+  color: #666;
+}
+
+.table-scroll-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.standard-remuneration-table {
+  width: max-content;
+  min-width: 100%;
+}
+
+.standard-remuneration-table th,
+.standard-remuneration-table td {
+  white-space: nowrap;
+}
+
+.numeric-cell {
+  text-align: right;
+}

@@ -69,6 +69,10 @@ const HELP_DATA: Record<string, { title: string, description: string }> = {
     title: '端数処理',
     description: '切り捨てる基準値を設定します。「50銭」を設定した場合、50銭以下を切り捨て、50銭を超える場合は切り上げます。\n法令で定められている端数処理は、給与（賞与）からの控除は「50銭」、現金での支払は「51銭」です。',
   },
+  'resignedCollection': {
+    title: '退職時の保険料徴収',
+    description: '退職後にも保険料の徴収がある場合に、退職月に「一括徴収」するか、通常通りの「月次徴収」を行うかを指定します。',
+  }
 };
 
 @Component({

@@ -1,12 +1,14 @@
 import { addMonths } from '../monthly/social-insurance-data.util';
+import { normalizeCalendarDate } from './leave-premium-exemption';
 
 export function toYyyyMmFromDate(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  const normalized = normalizeCalendarDate(date);
+  return `${normalized.getFullYear()}-${String(normalized.getMonth() + 1).padStart(2, '0')}`;
 }
 
 /** 退職日の翌日 = 資格喪失日 */
 export function licenseEndAtFromResignAt(resignAt: Date): Date {
-  const nextDay = new Date(resignAt.getTime());
+  const nextDay = normalizeCalendarDate(resignAt);
   nextDay.setDate(nextDay.getDate() + 1);
   return nextDay;
 }
@@ -16,8 +18,14 @@ export function licenseEndYyyyMm(licenseEndAt: Date): string {
   return toYyyyMmFromDate(licenseEndAt);
 }
 
-/** 最終保険料発生月（資格喪失月の前月） */
-export function lastPremiumMonthYyyyMm(licenseEndAt: Date): string {
+/** 最終保険料発生月（退職日が属する月。資格喪失日の前日まで被保険者） */
+export function lastPremiumMonthYyyyMm(
+  licenseEndAt: Date,
+  resignAt?: Date | null | undefined,
+): string {
+  if (resignAt) {
+    return resignPayMonthYyyyMm(resignAt);
+  }
   return addMonths(licenseEndYyyyMm(licenseEndAt), -1);
 }
 
@@ -25,11 +33,11 @@ export function resolveLicenseEndAt(
   licenseEndAt: Date | null | undefined,
   resignAt: Date | null | undefined,
 ): Date | null {
-  if (licenseEndAt) {
-    return licenseEndAt;
-  }
   if (resignAt) {
     return licenseEndAtFromResignAt(resignAt);
+  }
+  if (licenseEndAt) {
+    return normalizeCalendarDate(licenseEndAt);
   }
   return null;
 }
@@ -51,7 +59,12 @@ export function shouldSkipPremiumCalculationForResignedEmployee(
   if (!licenceStartAt) {
     return true;
   }
-  return !isInsurancePeriodTargetByLicenseEnd(licenceStartAt, resolvedEnd, yyyyMm);
+  return !isInsurancePeriodTargetByLicenseEnd(
+    licenceStartAt,
+    resolvedEnd,
+    yyyyMm,
+    resignAt,
+  );
 }
 
 /** 退職給与の支払月（退職日が属する月） */
@@ -61,12 +74,13 @@ export function resignPayMonthYyyyMm(resignAt: Date): string {
 
 /**
  * 対象月 yyyyMm が社会保険料の算定対象期間かどうか。
- * 資格取得月 ～ 資格喪失日の前月まで。同月得喪は取得月のみ。
+ * 資格取得月 ～ 退職月（最終保険料月）まで。同月得喪は取得月のみ。
  */
 export function isInsurancePeriodTargetByLicenseEnd(
   licenceStartAt: Date | null | undefined,
   licenseEndAt: Date | null | undefined,
   yyyyMm: string,
+  resignAt?: Date | null | undefined,
 ): boolean {
   if (!licenceStartAt) {
     return false;
@@ -86,6 +100,6 @@ export function isInsurancePeriodTargetByLicenseEnd(
     return yyyyMm === licenceStartYyyyMm;
   }
 
-  const lastPremium = lastPremiumMonthYyyyMm(licenseEndAt);
+  const lastPremium = lastPremiumMonthYyyyMm(licenseEndAt, resignAt);
   return yyyyMm <= lastPremium;
 }

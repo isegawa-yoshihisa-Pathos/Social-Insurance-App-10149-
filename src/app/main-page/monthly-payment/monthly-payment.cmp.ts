@@ -35,6 +35,8 @@ import {
   getBonusListColumnLabel,
 } from '../../bonus-management/bonus-list/bonus-list-columns';
 import { formatBonusListCellValue } from '../../bonus-management/bonus-list/bonus-list-row.mapper';
+import { bonusNetPayment, monthlyNetPayment } from '../../../../shared/payment-summary.util';
+import { Format } from '../../format-number-jp';
 
 type PaymentTableRow = MonthlyListRow | BonusListRow;
 
@@ -81,6 +83,31 @@ export class MonthlyPaymentCmp {
   readonly hasLockedPeriods = computed(() => this.lockedPeriods().length > 0);
   readonly hasRow = computed(() => this.tableDataSource.data.length > 0);
 
+  readonly netPayment = computed(() => {
+    const row = this.tableDataSource.data[0];
+    if (!row) return null;
+
+    if (this.scope === 'monthly') {
+      const monthlyRow = row as MonthlyListRow;
+      return monthlyNetPayment(monthlyRow, monthlyRow);
+    }
+
+    const bonusRow = row as BonusListRow;
+    return bonusNetPayment({
+      bonus: bonusRow.bonus,
+      bonusHealthInsuranceEmployee: bonusRow.healthInsuranceEmployee,
+      bonusCareInsuranceEmployee: bonusRow.careInsuranceEmployee,
+      bonusPensionInsuranceEmployee: bonusRow.pensionInsuranceEmployee,
+      bonusHealthInsuranceEmployer: bonusRow.healthInsuranceEmployer,
+      bonusCareInsuranceEmployer: bonusRow.careInsuranceEmployer,
+      bonusPensionInsuranceEmployer: bonusRow.pensionInsuranceEmployer,
+    });
+  });
+
+  readonly netPaymentLabel = computed(() =>
+    this.scope === 'monthly' ? '月次総支払' : '賞与総支払',
+  );
+
   readonly tableColumns = computed(() =>
     this.scope === 'monthly'
       ? getAllMonthlyListColumnKeys(
@@ -106,6 +133,10 @@ export class MonthlyPaymentCmp {
 
   formatPeriodLabel(yyyyMm: string): string {
     return formatPaymentPeriodLabel(yyyyMm);
+  }
+
+  formatAmount(amount: number): string {
+    return amount === 0 ? '0' : Format(amount);
   }
 
   onPeriodSelected(yyyyMm: string | null): void {

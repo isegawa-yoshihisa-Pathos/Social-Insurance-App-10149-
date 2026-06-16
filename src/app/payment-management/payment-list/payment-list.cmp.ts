@@ -12,6 +12,11 @@ import { RoutesService } from '../../routes.service';
 import { CurrentTenantService } from '../../current-tenant.service';
 import { PaymentListColumnKey, PaymentListRow, getPaymentListColumnLabel } from './payment-list-columns';
 import { formatPaymentListCellValue, isSummablePaymentListColumn, paymentListNumericValue, paymentListSearchText, paymentListSortValue } from './payment-list-row.mapper';
+import {
+  paymentListBonusEmployerBurden,
+  paymentListMonthlyEmployerBurden,
+  paymentListTotalEmployerBurden,
+} from './payment-list-summary.util';
 import { YEAR_OPTIONS, MONTH_OPTIONS } from '../../datePicker';
 import { PaymentSettingDataService } from '../payment-setting/payment-setting-data.service';
 import { PaymentListDataService } from './payment-list-data.service';
@@ -73,9 +78,30 @@ export class PaymentListCmp implements OnInit {
   searchTargetColumn: PaymentListColumnKey = 'employeeId';
   searchQuery = '';
 
-  readonly hasRecords = computed(() => this.dataSource.data.length > 0);
-  readonly isFilterActive = computed(() => !!this.searchQuery.trim());
-  readonly hasFilteredResults = computed(() => this.dataSource.filteredData.length > 0);
+  private readonly tableViewRevision = signal(0);
+
+  readonly hasRecords = computed(() => {
+    this.tableViewRevision();
+    return this.dataSource.data.length > 0;
+  });
+  readonly isFilterActive = computed(() => {
+    this.tableViewRevision();
+    return !!this.searchQuery.trim();
+  });
+  readonly hasFilteredResults = computed(() => {
+    this.tableViewRevision();
+    return this.dataSource.filteredData.length > 0;
+  });
+
+  readonly tenantEmployerSummary = computed(() => {
+    this.tableViewRevision();
+    const rows = this.dataSource.filteredData;
+    return {
+      monthly: rows.reduce((sum, row) => sum + paymentListMonthlyEmployerBurden(row), 0),
+      bonus: rows.reduce((sum, row) => sum + paymentListBonusEmployerBurden(row), 0),
+      total: rows.reduce((sum, row) => sum + paymentListTotalEmployerBurden(row), 0),
+    };
+  });
 
   readonly selectedYear = signal(new Date().getFullYear());
   readonly selectedMonth = signal(new Date().getMonth() + 1);
@@ -92,6 +118,10 @@ export class PaymentListCmp implements OnInit {
 
   private getDisplayedRows(): PaymentListRow[] {
     return this.dataSource.filteredData;
+  }
+
+  private refreshTableView(): void {
+    this.tableViewRevision.update((value) => value + 1);
   }
 
   formatFooterValue(col: PaymentListColumnKey): string {
@@ -168,6 +198,7 @@ export class PaymentListCmp implements OnInit {
       const ym = this.yyyyMm();
       if (!tid || !ym) {
         this.dataSource.data = [];
+        this.refreshTableView();
         this.settingsLoadedTid = null;
         this.loading = false;
         return;
@@ -197,6 +228,7 @@ export class PaymentListCmp implements OnInit {
     this.loading = true;
     this.searchQuery = '';
     this.dataSource.filter = '';
+    this.refreshTableView();
     try {
       if (this.settingsLoadedTid !== tid) {
         await Promise.all([
@@ -214,6 +246,7 @@ export class PaymentListCmp implements OnInit {
       );
       if (token !== this.loadToken) return;
       this.dataSource.data = data;
+      this.refreshTableView();
     } finally {
       if (token === this.loadToken) {
         this.loading = false;
@@ -226,12 +259,11 @@ export class PaymentListCmp implements OnInit {
       column: this.searchTargetColumn,
       query: this.searchQuery.toLowerCase(),
     });
+    this.refreshTableView();
   }
 
   onCellClick(row: PaymentListRow, col: PaymentListColumnKey): void {
-    if (col === 'displayName' || col === 'employeeId') {
-      this.routesService.redirectToPaymentDetail(row.eid);
-    }
+    this.routesService.redirectToPaymentDetail(row.eid);
   }
 
   formatCellValue(row: PaymentListRow, col: PaymentListColumnKey): string {
@@ -253,11 +285,15 @@ export class PaymentListCmp implements OnInit {
       this.monthlySettingDataService.loadSettings(tid),
       this.bonusSettingDataService.loadSettings(tid, bonusDefinitions),
     ]);
+    const filtered = this.dataSource.filteredData;
+    const sortedAndFilteredData = this.dataSource.sort 
+      ? this.dataSource.sortData(filtered, this.dataSource.sort)
+      : filtered;
 
     const csv = this.exportService.buildCsv(
       ym,
       this.visibleColumns(),
-      this.dataSource.data,
+      sortedAndFilteredData,
       this.monthlySettingDataService.importHeaders(),
       this.bonusSettingDataService.importHeaders(),
       this.paymentManagementDataService.allowanceTypeDefinitions(),
@@ -272,5 +308,9 @@ export class PaymentListCmp implements OnInit {
       this.paymentManagementDataService.allowanceTypeDefinitions(),
       this.bonusManagementDataService.bonusTypeDefinitions(),
     );
+  }
+
+  formatAmount(amount: number): string {
+    return amount === 0 ? '0' : Format(amount);
   }
 }

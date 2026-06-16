@@ -1,4 +1,16 @@
 <div class="employees-list-container">
+  <div class="employees-header-label">
+    従業員管理
+  </div>
+  <div class="employees-header-content">
+    各従業員データはcsvファイルからインポートしてください。各項目のセルをクリックすることで編集が可能です。<br>
+    チェックボックスで選択することで複数の従業員を一括で編集可能です。<br>
+    「個人番号」「基本年金番号」「生年月日」「年齢」「扶養家族」は管理者から編集できません。セルをクリックすると、従業員本人への入力依頼ダイアログが表示されます。<br>
+    「氏名」のセルをクリックすると、各従業員の詳細ページに移動できます。<br>
+    表示項目、ソート、フィルタを反映したcsvファイルをダウンロードできます。
+  </div>
+</div>
+<div class="employees-list-container">
   <div class="action-buttons">
     <app-help-content key="employeesImport"></app-help-content>
     <input
@@ -71,7 +83,8 @@
 
         @for (col of visibleColumns(); track col) {
           <ng-container matColumnDef="{{ col }}">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="header"
+            [class.personal]="col === 'myNumber' || col === 'basicPensionNumber' || col === 'birthDate' || col === 'age' || col === 'hasDependents'">
               {{ getColumnLabel(col) }}
             </th>
             <td mat-cell *matCellDef="let row" (click)="onCellClick(row, col)">

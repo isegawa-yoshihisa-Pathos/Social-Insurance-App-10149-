@@ -1,0 +1,60 @@
+<div class="accept-application">
+  <h3>遡及支払の配分・再計算</h3>
+
+  @if (loading) {
+    <p class="loading-message">読み込み中...</p>
+  } @else if (reviews.length === 0) {
+    <p class="empty-message">遡及支払の確認タスクはありません。</p>
+  } @else {
+    <div class="review-list">
+      @for (review of reviews; track review.id) {
+        <div class="review-item" [class.is-completed]="isCompleted(review)">
+          <div class="review-main">
+            <div class="review-name">{{ review.employeeDisplayName || '未登録' }}</div>
+            <div class="review-status">{{ statusLabel(review.status) }}</div>
+            <div class="review-detail">
+              {{ typeLabel(review.type) }} / {{ review.teijiYear }}年 / 遡及合計
+              {{ retroactiveTotal(review) | number }}円（{{ review.items.length }}件）
+            </div>
+            @if (review.originalGrades) {
+              <div class="review-detail">
+                当初: 健保 {{ review.originalGrades.healthGrade }}等級 /
+                厚年 {{ review.originalGrades.pensionGrade }}等級
+              </div>
+            }
+            @if (review.proposedGrades) {
+              <div class="review-detail">
+                再計算後: 健保 {{ review.proposedGrades.healthGrade }}等級 /
+                厚年 {{ review.proposedGrades.pensionGrade }}等級 /
+                報酬月額 {{ review.proposedGrades.remuneration | number }}円
+              </div>
+            }
+          </div>
+          <div class="review-actions">
+            @if (canAllocate(review)) {
+              <button
+                mat-button
+                color="primary"
+                [disabled]="busyId === review.id"
+                (click)="openAllocate(review)"
+              >
+                配分・再計算
+              </button>
+              <button mat-button [disabled]="busyId === review.id" (click)="skip(review)">
+                スキップ
+              </button>
+            }
+            <button
+              mat-button
+              color="warn"
+              [disabled]="busyId === review.id"
+              (click)="deleteReview(review)"
+            >
+              削除
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

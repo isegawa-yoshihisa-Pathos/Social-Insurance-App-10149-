@@ -17,7 +17,19 @@ import {
   premiumSortValue,
   premiumSearchText,
 } from '../payment-premium/payment-premium-row.mapper';
-import { extractBonusAmounts } from '../../bonus-management/bonus-list/bonus-data.util';
+import { extractBonusAmounts, sumBonusAmounts } from '../../bonus-management/bonus-list/bonus-data.util';
+import { isPaymentSummaryColumn } from './payment-list-column-keys';
+import {
+  paymentListBonusNetPayment,
+  paymentListMonthlyNetPayment,
+  paymentListTotalNetPayment,
+} from './payment-list-summary.util';
+
+function paymentSummaryValue(row: PaymentListRow, column: 'monthlyNetPayment' | 'bonusNetPayment' | 'totalNetPayment'): number {
+  if (column === 'monthlyNetPayment') return paymentListMonthlyNetPayment(row);
+  if (column === 'bonusNetPayment') return paymentListBonusNetPayment(row);
+  return paymentListTotalNetPayment(row);
+}
 
 export function toPaymentListRow(
   eid: string,
@@ -26,7 +38,7 @@ export function toPaymentListRow(
 ): PaymentListRow {
   const payroll = monthlyData?.payrollData;
   const bonus = bonusData?.bonusData ? extractBonusAmounts(bonusData.bonusData) : {};
-  const bonusTotal = Object.values(bonus).reduce((sum, amount) => sum + (amount ?? 0), 0);
+  const bonusTotal = sumBonusAmounts(bonus);
 
   const baseRow: PaymentListRow = {
     eid,
@@ -35,6 +47,7 @@ export function toPaymentListRow(
     paymentBaseDays: monthlyData?.paymentBaseDays ?? 0,
     basicSalary: payroll?.basicSalary ?? 0,
     fringeBenefits: payroll?.fringeBenefits ?? 0,
+    bonusRelatedRemuneration: monthlyData?.bonusRelatedRemuneration ?? 0,
     fixedWage: payroll?.fixedWage ?? null,
     variableWage: payroll?.variableWage ?? null,
     allowances: payroll?.allowances ?? {},
@@ -81,6 +94,10 @@ export function isSummablePaymentListColumn(
   return column !== 'displayName' && column !== 'employeeId';
 }
 
+function formatSummaryAmount(amount: number): string {
+  return amount === 0 ? '' : Format(amount);
+}
+
 export function formatPaymentListCellValue(
   row: PaymentListRow,
   column: PaymentListColumnKey,
@@ -89,6 +106,10 @@ export function formatPaymentListCellValue(
 ): string {
   if (isPremiumColumn(column)) {
     return formatPremiumCellValue(row, column);
+  }
+
+  if (isPaymentSummaryColumn(column)) {
+    return formatSummaryAmount(paymentSummaryValue(row, column));
   }
 
   if (column === 'displayName' || column === 'employeeId') {
@@ -127,6 +148,10 @@ export function paymentListSortValue(
     return premiumSortValue(row, column);
   }
 
+  if (isPaymentSummaryColumn(column)) {
+    return paymentSummaryValue(row, column);
+  }
+
   if (column === 'bonus') {
     return row.bonusTotal;
   }
@@ -147,6 +172,21 @@ export function paymentListSortValue(
   return String(value);
 }
 
+export type PaymentDetailColumnKey = PaymentListColumnKey | 'yyyyMm';
+
+export function paymentDetailSearchText(
+  row: { yyyyMm: string } & PaymentListRow,
+  column: PaymentDetailColumnKey,
+  allowanceDefinitions: AllowanceTypeDefinition[],
+  bonusDefinitions: BonusTypeDefinition[],
+): string {
+  if (column === 'yyyyMm') {
+    const [year, month] = row.yyyyMm.split('-');
+    return `${row.yyyyMm} ${year}年${parseInt(month, 10)}月`;
+  }
+  return paymentListSearchText(row, column, allowanceDefinitions, bonusDefinitions);
+}
+
 export function paymentListSearchText(
   row: PaymentListRow,
   column: PaymentListColumnKey,
@@ -155,6 +195,10 @@ export function paymentListSearchText(
 ): string {
   if (isPremiumColumn(column)) {
     return premiumSearchText(row, column);
+  }
+
+  if (isPaymentSummaryColumn(column)) {
+    return formatSummaryAmount(paymentSummaryValue(row, column));
   }
 
   if (column === 'bonus') {

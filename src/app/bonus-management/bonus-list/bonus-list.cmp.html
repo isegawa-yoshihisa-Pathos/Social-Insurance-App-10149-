@@ -1,5 +1,18 @@
-<div class="monthly-list-container">
-    <div class="monthly-list-content">
+<div class="bonus-list-container">
+  <div class="bonus-list-content">
+    <div class="bonus-header-label">
+      賞与管理
+    </div>
+    <div class="bonus-header-content">
+      表示している月に<strong>発生する</strong>従業員の賞与データを入力してください。<br>
+      各従業員データはcsvファイルからインポートしてください。各項目のセルをクリックすることで編集が可能です。<br>
+      チェックボックスで選択することで複数の従業員を一括で編集可能です。<br>
+      「氏名」または「社員番号」のセルをクリックすると、各従業員の詳細ページに移動できます。<br>
+      「締切」ボタンを押すと、当月のデータを締め切ることができます。管理者であっても変更はできません。<br>
+      表示項目、ソート、フィルタを反映したcsvファイルをダウンロードできます。
+    </div>
+  </div>
+    <div class="bonus-list-content">
       <div class="header-container">
         <div class="month-picker-container">
           <button mat-icon-button (click)="previousMonth()" matTooltip="前月">
@@ -125,7 +138,7 @@
         <p class="empty-message">検索結果がありません。</p>
       } @else {
         <div class="table-scroll-container" [class.is-locked]="locked()">
-          <table mat-table [dataSource]="dataSource" matSort class="monthly-table">
+          <table mat-table [dataSource]="dataSource" matSort class="bonus-table">
             <ng-container matColumnDef="selected">
               <th mat-header-cell *matHeaderCellDef class="check-col">
                 <mat-checkbox
@@ -161,9 +174,14 @@
             }
 
             <tr mat-header-row *matHeaderRowDef="tableColumns()"></tr>
-            <tr mat-row *matRowDef="let row; columns: tableColumns()" class="monthly-row"></tr>
+            <tr mat-row *matRowDef="let row; columns: tableColumns()" class="bonus-row"></tr>
             <tr mat-footer-row *matFooterRowDef="tableColumns()" class="footer-row"></tr>
           </table>
+        </div>
+
+        <div class="tenant-summary">
+          <h3>事業所負担（賞与保険料）</h3>
+          <p class="summary-total">{{ formatAmount(tenantEmployerBurden()) }}</p>
         </div>
       }
     </div>

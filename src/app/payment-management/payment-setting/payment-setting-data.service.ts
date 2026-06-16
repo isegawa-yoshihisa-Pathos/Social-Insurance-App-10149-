@@ -14,6 +14,7 @@ import { BonusManagementDataService } from '../../bonus-management/bonus-managem
 import { bonusColumnKey } from '../../bonus-management/bonus-list/bonus-display.util';
 import { BonusTypeDefinition } from '../../bonus-document';
 import { AuditLogService } from '../../audit-log/audit-log.service';
+import { normalizeVisibleColumnOrder } from '../../list-column-order.util';
 
 export interface PaymentSettingDocument {
   types?: AllowanceTypeDefinition[];
@@ -64,13 +65,17 @@ export class PaymentSettingDataService {
     const settingsSnap = await getDoc(settingsRef);
 
     if (!settingsSnap.exists()) {
-      this.setVisibleColumns([...DEFAULT_PAYMENT_LIST_COLUMNS], allowanceDefinitions, bonusDefinitions);
+      this.setVisibleColumnsInternal(
+        [...DEFAULT_PAYMENT_LIST_COLUMNS],
+        allowanceDefinitions,
+        bonusDefinitions,
+      );
       this.listSettingsLoadedTid = tid;
       return;
     }
 
     const data = settingsSnap.data() as { visibleColumns?: PaymentListColumnKey[] };
-    this.setVisibleColumns(
+    this.setVisibleColumnsInternal(
       data.visibleColumns?.length ? data.visibleColumns : [...DEFAULT_PAYMENT_LIST_COLUMNS],
       allowanceDefinitions,
       bonusDefinitions,
@@ -109,6 +114,14 @@ export class PaymentSettingDataService {
     }
   }
 
+  setVisibleColumns(cols: PaymentListColumnKey[]): void {
+    this.setVisibleColumnsInternal(
+      cols,
+      this.paymentManagementDataService.allowanceTypeDefinitions(),
+      this.bonusManagementDataService.bonusTypeDefinitions(),
+    );
+  }
+
   isColumnVisible(key: PaymentListColumnKey): boolean {
     return this.visibleColumns().includes(key);
   }
@@ -119,7 +132,7 @@ export class PaymentSettingDataService {
     this.listSettingsLoadedTid = null;
   }
 
-  private setVisibleColumns(
+  private setVisibleColumnsInternal(
     cols: PaymentListColumnKey[],
     allowanceDefinitions: AllowanceTypeDefinition[] = this.paymentManagementDataService.allowanceTypeDefinitions(),
     bonusDefinitions: BonusTypeDefinition[] = this.bonusManagementDataService.bonusTypeDefinitions(),
@@ -144,16 +157,9 @@ export class PaymentSettingDataService {
   ): PaymentListColumnKey[] {
     const canonicalOrder = getAllPaymentListColumnKeys(allowanceDefinitions, bonusDefinitions);
     const valid = new Set<string>(canonicalOrder);
-    const selected = new Set<PaymentListColumnKey>();
-
-    for (const col of cols) {
-      const resolved = this.resolveColumnKey(col, valid, allowanceDefinitions, bonusDefinitions);
-      if (resolved) {
-        selected.add(resolved);
-      }
-    }
-
-    return canonicalOrder.filter((col) => selected.has(col));
+    return normalizeVisibleColumnOrder(cols, canonicalOrder, (col) =>
+      this.resolveColumnKey(col, valid, allowanceDefinitions, bonusDefinitions),
+    );
   }
 
   private resolveColumnKey(

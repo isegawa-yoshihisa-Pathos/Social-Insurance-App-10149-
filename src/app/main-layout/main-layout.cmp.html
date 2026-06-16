@@ -41,6 +41,9 @@
                 (click)="navigateToTaskBoard()" 
                 [class.selected]="isSelected() === 'taskBoard'"
             >手続き一覧
+                @if (taskBoardBadgeService.pendingCount() > 0) {
+                    <span class="notification-badge">{{ taskBoardBadgeService.pendingCount() }}</span>
+                }
             </button>
             <button 
                 mat-flat-button 
@@ -81,6 +84,7 @@
                 type="button" 
                 (click)="navigateToEmployeesManagement()" 
                 [class.selected]="isSelected() === 'employeesManagement'"
+                matTooltip="従業員の一覧を表示"
             >従業員管理</button>
             <button 
                 mat-flat-button 
@@ -95,6 +99,7 @@
                 type="button"
                 (click)="navigateToMonthlyManagement()"
                 [class.selected]="isSelected() === 'monthlyManagement'"
+                matTooltip="毎月発生する給与を管理"
             >月次管理</button>
             <button
                 mat-flat-button
@@ -102,6 +107,7 @@
                 type="button"
                 (click)="navigateToBonusManagement()"
                 [class.selected]="isSelected() === 'bonusManagement'"
+                matTooltip="賞与の種類や金額を管理"
             >賞与管理</button>
             <button
                 mat-flat-button
@@ -109,6 +115,7 @@
                 type="button"
                 (click)="navigateToPaymentManagement()"
                 [class.selected]="isSelected() === 'paymentManagement'"
+                matTooltip="毎月支払う給与を管理"
             >給与管理</button>
             <button
                 mat-flat-button

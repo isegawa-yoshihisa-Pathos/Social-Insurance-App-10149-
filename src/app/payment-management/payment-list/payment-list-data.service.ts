@@ -62,6 +62,36 @@ export class PaymentListDataService {
     return getPayrollPaymentMonthOffset(this.payrollPaymentMonth);
   }
 
+  /** 最終月次データ月の保険料が給与管理に表示される対象月 */
+  private maxPremiumDisplayMonthForSalaryData(maxSalaryMonth: string): string {
+    return addMonths(maxSalaryMonth, -this.collectionMonth);
+  }
+
+  private resolvePaymentHistoryDisplayMonthRange(
+    minSalaryMonth: string,
+    maxSalaryMonth: string,
+    minBonusMonth: string | undefined,
+    maxBonusMonth: string | undefined,
+  ): { minDisplayMonth: string; maxDisplayMonth: string } {
+    const minDisplayMonth = [
+      getPaymentDisplayMonthForSalary(minSalaryMonth, this.payrollPaymentMonth),
+      minBonusMonth,
+    ]
+      .filter((month): month is string => !!month)
+      .sort()[0];
+
+    const maxDisplayMonth = [
+      getPaymentDisplayMonthForSalary(maxSalaryMonth, this.payrollPaymentMonth),
+      this.maxPremiumDisplayMonthForSalaryData(maxSalaryMonth),
+      maxBonusMonth ? addMonths(maxBonusMonth, -this.collectionMonth) : undefined,
+    ]
+      .filter((month): month is string => !!month)
+      .sort()
+      .at(-1)!;
+
+    return { minDisplayMonth, maxDisplayMonth };
+  }
+
   async loadEmployeeLookup(tid: string): Promise<Map<string, EmployeeLookupEntry>> {
     const employeesRef = collection(this.firestore, 'tenants', tid, 'employees');
     const employees = await getDocs(employeesRef);
@@ -203,20 +233,12 @@ export class PaymentListDataService {
       };
     }
 
-    const minDisplayMonth = [
-      getPaymentDisplayMonthForSalary(minSalaryMonth, this.payrollPaymentMonth),
+    const { minDisplayMonth, maxDisplayMonth } = this.resolvePaymentHistoryDisplayMonthRange(
+      minSalaryMonth,
+      maxSalaryMonth,
       minBonusMonth,
-    ]
-      .filter((month): month is string => !!month)
-      .sort()[0];
-
-    const maxDisplayMonth = [
-      getPaymentDisplayMonthForSalary(maxSalaryMonth, this.payrollPaymentMonth),
-      maxBonusMonth ? addMonths(maxBonusMonth, -this.collectionMonth) : undefined,
-    ]
-      .filter((month): month is string => !!month)
-      .sort()
-      .at(-1)!;
+      maxBonusMonth,
+    );
 
     const targetMonths = getTargetMonths(minDisplayMonth, maxDisplayMonth);
 

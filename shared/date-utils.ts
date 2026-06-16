@@ -1,3 +1,17 @@
+export function getCalendarDateInTimeZone(
+  timeZone: string,
+  date: Date = new Date(),
+): Date {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const [year, month, day] = formatter.format(date).split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
 export function toFormDate(value: unknown): Date | null {
   if (value == null || value === '') return null;
   if (value instanceof Date) return value;

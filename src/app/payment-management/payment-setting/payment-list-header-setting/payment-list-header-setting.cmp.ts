@@ -1,7 +1,9 @@
+import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { Component, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog } from '@angular/material/dialog';
 import { ErrorDialogCmp, mapFirebaseError } from '../../../error-dialog/error-dialog.cmp';
@@ -14,12 +16,24 @@ import {
   getOptionalPaymentListColumns,
   PaymentListColumnKey,
 } from '../../payment-list/payment-list-columns';
+import {
+  buildOrderedColumnOptions,
+  OrderedListColumnOption,
+  visibleColumnsFromOrder,
+} from '../../../list-column-order.util';
 
 @Component({
   selector: 'app-payment-list-header-setting',
-  imports: [FormsModule, MatButtonModule, MatCheckboxModule, MatProgressSpinnerModule],
+  imports: [
+    FormsModule,
+    MatButtonModule,
+    MatCheckboxModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    DragDropModule,
+  ],
   templateUrl: './payment-list-header-setting.cmp.html',
-  styleUrl: './payment-list-header-setting.cmp.css',
+  styleUrls: ['./payment-list-header-setting.cmp.css', '../../../list-header-setting.cmp.css'],
 })
 export class PaymentListHeaderSettingCmp implements OnInit {
   private readonly paymentSettingDataService = inject(PaymentSettingDataService);
@@ -36,6 +50,7 @@ export class PaymentListHeaderSettingCmp implements OnInit {
     ),
   );
 
+  orderedColumns: OrderedListColumnOption<PaymentListColumnKey>[] = [];
   loading = false;
   saveBusy = false;
 
@@ -52,6 +67,7 @@ export class PaymentListHeaderSettingCmp implements OnInit {
         this.bonusManagementDataService.loadBonusSettings(tid),
       ]);
       await this.paymentSettingDataService.loadListSettings(tid);
+      this.refreshOrderedColumns();
     } catch (e) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: mapFirebaseError(e) },
@@ -61,20 +77,22 @@ export class PaymentListHeaderSettingCmp implements OnInit {
     }
   }
 
-  isChecked(key: PaymentListColumnKey): boolean {
-    return this.paymentSettingDataService.isColumnVisible(key);
+  drop(event: CdkDragDrop<OrderedListColumnOption<PaymentListColumnKey>[]>): void {
+    moveItemInArray(this.orderedColumns, event.previousIndex, event.currentIndex);
+    this.syncVisibleColumns();
   }
 
-  onOptionalChange(key: PaymentListColumnKey, checked: boolean): void {
-    this.paymentSettingDataService.toggleOptionalColumn(key, checked);
+  onCheckedChange(): void {
+    this.syncVisibleColumns();
   }
 
   isAllSelected(): boolean {
-    return this.optionalColumns().every((col) => this.isChecked(col.key));
+    return this.orderedColumns.length > 0 && this.orderedColumns.every((col) => col.checked);
   }
 
   toggleAll(checked: boolean): void {
-    this.optionalColumns().forEach((col) => this.onOptionalChange(col.key, checked));
+    this.orderedColumns = this.orderedColumns.map((col) => ({ ...col, checked }));
+    this.syncVisibleColumns();
   }
 
   async save(): Promise<void> {
@@ -90,5 +108,18 @@ export class PaymentListHeaderSettingCmp implements OnInit {
     } finally {
       this.saveBusy = false;
     }
+  }
+
+  private refreshOrderedColumns(): void {
+    this.orderedColumns = buildOrderedColumnOptions(
+      this.optionalColumns(),
+      this.paymentSettingDataService.visibleColumns(),
+    );
+  }
+
+  private syncVisibleColumns(): void {
+    this.paymentSettingDataService.setVisibleColumns(
+      visibleColumnsFromOrder(this.orderedColumns),
+    );
   }
 }

@@ -14,8 +14,8 @@ export class TaskBoardCmp implements OnInit {
   private readonly router = inject(Router);
   readonly tenant = inject(CurrentTenantService);
 
-  isPersonalActive = true;
-  isTenantActive = false;
+  isPersonalActive = false;
+  isTenantActive = true;
 
   ngOnInit(): void {
     this.updateTabActive(this.router.url);

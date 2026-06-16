@@ -14,17 +14,21 @@ import {
 
 export type BonusFormColumnKey = keyof BonusFormData;
 
+export const BONUS_NET_PAYMENT_COLUMN_KEY = 'netPayment' as const;
+
+export type BonusSummaryColumnKey = typeof BONUS_NET_PAYMENT_COLUMN_KEY;
+
 export type BonusColumnKey = `bonus-${number}`;
 
 export type BonusListColumnKey =
   | BonusFormColumnKey
   | BonusColumnKey
+  | BonusSummaryColumnKey
   | PremiumBonusListColumnKey;
 
 export const BASE_BONUS_LIST_COLUMN_KEYS = [
   'displayName',
   'employeeId',
-  'bonus',
 ] as const;
 
 export type BaseBonusListColumnKey = (typeof BASE_BONUS_LIST_COLUMN_KEYS)[number];
@@ -32,13 +36,12 @@ export type BaseBonusListColumnKey = (typeof BASE_BONUS_LIST_COLUMN_KEYS)[number
 export const DEFAULT_BONUS_LIST_COLUMNS: BonusListColumnKey[] = [
   'displayName',
   'employeeId',
-  'bonus',
+  'netPayment',
 ];
 
 const STATIC_COLUMN_LABELS: Record<BaseBonusListColumnKey, string> = {
   displayName: '氏名',
   employeeId: '社員番号',
-  bonus: '総支給額',
 };
 
 export function getAllBonusListColumnKeys(
@@ -49,6 +52,7 @@ export function getAllBonusListColumnKeys(
     ...BASE_BONUS_LIST_COLUMN_KEYS,
     ...definitions.map((def) => bonusColumnKey(def.type)),
     ...PREMIUM_BONUS_LIST_COLUMN_KEYS,
+    BONUS_NET_PAYMENT_COLUMN_KEY,
   ] as BonusListColumnKey[];
 }
 
@@ -63,9 +67,9 @@ export function getOptionalBonusListColumns(
   return [
     { key: 'displayName', label: '氏名' },
     { key: 'employeeId', label: '社員番号' },
-    { key: 'bonus', label: '総支給額' },
     ...bonusColumns,
     ...getOptionalPremiumColumns(),
+    { key: BONUS_NET_PAYMENT_COLUMN_KEY, label: '賞与総支払' },
   ];
 }
 
@@ -73,6 +77,10 @@ export function getBonusListColumnLabel(
   column: BonusListColumnKey,
   definitions: BonusTypeDefinition[],
 ): string {
+  if (column === BONUS_NET_PAYMENT_COLUMN_KEY) {
+    return '賞与総支払';
+  }
+
   const bonusType = bonusTypeFromColumnKey(column);
   if (bonusType) {
     return definitions.find((def) => def.type === bonusType)?.label ?? column;
@@ -98,4 +106,12 @@ export interface BonusListRow {
   careInsuranceEmployer: number | null;
   pensionInsuranceEmployee: number | null;
   pensionInsuranceEmployer: number | null;
+}
+
+export interface BonusListRowForEmployee {
+  totalPayment: number;
+  bonus: BonusAmountMap;
+  healthInsuranceEmployee: number | null;
+  careInsuranceEmployee: number | null;
+  pensionInsuranceEmployee: number | null;
 }

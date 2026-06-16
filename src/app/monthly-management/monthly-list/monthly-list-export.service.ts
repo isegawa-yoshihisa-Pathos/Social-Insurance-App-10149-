@@ -3,7 +3,9 @@ import { AllowanceTypeDefinition } from '../../payment-document';
 import {
   buildMonthlyImportColumnDefs,
 } from '../monthly-setting/monthly-import-columns';
+import { MonthlyDetailRow } from './monthly-list-data.service';
 import { MonthlyListColumnKey, MonthlyListRow } from './monthly-list-columns';
+import { MonthlyDetailColumnKey } from './monthly-list-row.mapper';
 import { monthlyListSortValue } from './monthly-list-row.mapper';
 import {
   buildImportStyleCsv,
@@ -45,5 +47,32 @@ export class MonthlyListExportService {
       return formatExportNumber(value);
     }
     return String(value ?? '');
+  }
+
+  buildEmployeeHistoryCsv(
+    fileLabel: string,
+    visibleColumns: readonly MonthlyDetailColumnKey[],
+    rows: MonthlyDetailRow[],
+    importHeaders: Record<string, string>,
+    allowanceDefinitions: AllowanceTypeDefinition[],
+  ): string {
+    const columnDefs = buildMonthlyImportColumnDefs(allowanceDefinitions);
+    const defaultHeaders = Object.fromEntries(
+      columnDefs.map((col) => [col.key, col.defaultHeader]),
+    );
+
+    const headers = visibleColumns.map((column) =>
+      column === 'yyyyMm'
+        ? 'yyyyMm'
+        : resolveImportStyleHeader(column, importHeaders, defaultHeaders),
+    );
+    const dataRows = rows.map((row) =>
+      visibleColumns.map((column) => {
+        if (column === 'yyyyMm') return row.yyyyMm;
+        return this.exportCellValue(row, column);
+      }),
+    );
+
+    return buildImportStyleCsv(fileLabel, headers, dataRows);
   }
 }

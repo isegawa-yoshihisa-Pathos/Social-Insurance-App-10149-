@@ -31,9 +31,6 @@ export class AuditLogService {
 
   private actorCache: ResolvedActor | null = null;
 
-  /**
-   * 監査ログを記録する。本処理の失敗時は例外を投げず console に出力する。
-   */
   async record(input: AuditLogRecordInput): Promise<void> {
     try {
       const actor = await this.resolveActor();

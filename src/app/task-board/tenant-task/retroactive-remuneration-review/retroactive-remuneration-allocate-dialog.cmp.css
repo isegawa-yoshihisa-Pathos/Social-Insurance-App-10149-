@@ -1,0 +1,77 @@
+.dialog-content {
+  min-width: min(640px, 90vw);
+  max-height: 70vh;
+}
+
+.intro {
+  margin: 0 0 0.5rem;
+  font-weight: 600;
+}
+
+.note {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.validation-error {
+  color: #c62828;
+  margin: 0 0 1rem;
+}
+
+.item-card {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.item-header {
+  margin-bottom: 0.5rem;
+}
+
+.allocations-header {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.allocation-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 0.25rem;
+}
+
+.allocation-sum {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.allocation-sum.is-over {
+  color: #c62828;
+  font-weight: 600;
+}
+
+.allocation-sum.is-partial {
+  color: rgba(0, 0, 0, 0.75);
+}
+
+.partial-note {
+  margin-left: 0.25rem;
+  font-size: 0.8125rem;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.preview-box {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(25, 118, 210, 0.08);
+  border-radius: 8px;
+}
+
+.preview-title {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}

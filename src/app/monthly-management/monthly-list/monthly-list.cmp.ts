@@ -19,7 +19,7 @@ import { MonthlyDocument } from '../../monthly-document';
 import { BulkColumnEditDialogCmp, BulkColumnEditDialogData } from './bulk-column-edit-dialog/bulk-column-edit-dialog.cmp';
 import { BulkEditableColumn, BulkEditValue, isEditableColumn } from './monthly-bulk-edit.types';
 import { MonthlyListBulkEditService } from './monthly-list-bulk-edit.service';
-import { formatMonthlyListCellValue, getMonthlyListEditValue, isSummableMonthlyListColumn, monthlyListNumericValue, monthlyListSearchText, monthlyListSortValue, toMonthlyListRow } from './monthly-list-row.mapper';
+import { formatMonthlyListCellValue, getMonthlyListEditValue, isSummableMonthlyListColumn, monthlyListEmployerBurden, monthlyListNumericValue, monthlyListSearchText, monthlyListSortValue, toMonthlyListRow } from './monthly-list-row.mapper';
 import { YEAR_OPTIONS, MONTH_OPTIONS } from '../../datePicker';
 import { ErrorDialogCmp, mapFirebaseError } from '../../error-dialog/error-dialog.cmp';
 import { SuccessDialogCmp } from '../../success-dialog/success-dialog.cmp';
@@ -33,6 +33,7 @@ import { MonthlyPremiumCalculateFacade } from '../monthly-premium/monthly-premiu
 import { PaymentManagementDataService } from '../../payment-management/payment-management-data.service';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Format } from '../../format-number-jp';
+import { AuditLogService } from '../../audit-log/audit-log.service';
 
 @Component({
   selector: 'app-monthly-list',
@@ -65,6 +66,7 @@ export class MonthlyListCmp implements OnInit {
   private readonly exportService = inject(MonthlyListExportService);
   private readonly listDataService = inject(MonthlyListDataService);
   private readonly paymentManagementDataService = inject(PaymentManagementDataService);
+  private readonly auditLogService = inject(AuditLogService);
 
   readonly visibleColumns = computed(() => this.monthlySettingDataService.visibleColumns());
   readonly tableColumns = computed(() => ['selected', ...this.visibleColumns()]);
@@ -87,9 +89,25 @@ export class MonthlyListCmp implements OnInit {
   searchTargetColumn: MonthlyListColumnKey = 'employeeId';
   searchQuery = '';
 
-  readonly isFilterActive = computed(() => !!this.searchQuery.trim());
-  readonly hasFilteredResults = computed(() => this.dataSource.filteredData.length > 0);
+  private readonly tableViewRevision = signal(0);
+
+  readonly isFilterActive = computed(() => {
+    this.tableViewRevision();
+    return !!this.searchQuery.trim();
+  });
+  readonly hasFilteredResults = computed(() => {
+    this.tableViewRevision();
+    return this.dataSource.filteredData.length > 0;
+  });
   readonly monthlyRecordExists = signal<boolean>(false);
+
+  readonly tenantEmployerBurden = computed(() => {
+    this.tableViewRevision();
+    return this.dataSource.filteredData.reduce(
+      (sum, row) => sum + monthlyListEmployerBurden(row),
+      0,
+    );
+  });
 
   premiumRecalculating = false;
 
@@ -111,6 +129,10 @@ export class MonthlyListCmp implements OnInit {
 
   private getDisplayedRows(): MonthlyListRow[] {
     return this.dataSource.filteredData;
+  }
+
+  private refreshTableView(): void {
+    this.tableViewRevision.update((value) => value + 1);
   }
 
   formatFooterValue(col: MonthlyListColumnKey): string {
@@ -201,6 +223,7 @@ export class MonthlyListCmp implements OnInit {
       const ym = this.yyyyMm();
       if (!tid || !ym) {
         this.dataSource.data = [];
+        this.refreshTableView();
         this.selectedEids.clear();
         this.settingsLoadedTid = null;
         this.loading = false;
@@ -226,6 +249,7 @@ export class MonthlyListCmp implements OnInit {
     this.loading = true;
     this.searchQuery = '';
     this.dataSource.filter = '';
+    this.refreshTableView();
     try {
       if (this.settingsLoadedTid !== tid) {
         await Promise.all([
@@ -281,6 +305,7 @@ export class MonthlyListCmp implements OnInit {
       await this.listDataService.ensurePeriodDocument(tid, yyyyMm);
     }
     this.dataSource.data = data;
+    this.refreshTableView();
     const alive = new Set(data.map((r) => r.eid));
     this.selectedEids = new Set([...this.selectedEids].filter((eid) => alive.has(eid)));
   }
@@ -290,6 +315,7 @@ export class MonthlyListCmp implements OnInit {
       column: this.searchTargetColumn,
       query: this.searchQuery.toLowerCase(),
     });
+    this.refreshTableView();
   }
 
   isSelected(eid: string): boolean {
@@ -548,10 +574,15 @@ export class MonthlyListCmp implements OnInit {
     if (!tid || !ym) return;
 
     await this.monthlySettingDataService.loadSettings(tid);
+    const filtered = this.dataSource.filteredData;
+    const sortedAndFilteredData = this.dataSource.sort 
+      ? this.dataSource.sortData(filtered, this.dataSource.sort)
+      : filtered;
+
     const csv = this.exportService.buildCsv(
       ym,
       this.visibleColumns(),
-      this.dataSource.data,
+      sortedAndFilteredData,
       this.monthlySettingDataService.importHeaders(),
       this.paymentManagementDataService.allowanceTypeDefinitions(),
     );
@@ -573,8 +604,19 @@ export class MonthlyListCmp implements OnInit {
       await this.premiumCalculateFacade.calculateMonth(tid, ym, () =>
         this.loadMonthlyRecords(tid, ym),
       );
+      await this.auditLogService.record({
+        tid,
+        action: 'create',
+        category: 'premium.calculate',
+        summary: '月次保険料を計算',
+        target: this.auditLogService.monthlyTarget(ym),
+      });
     } finally {
       this.premiumRecalculating = false;
     }
+  }
+
+  formatAmount(amount: number): string {
+    return amount === 0 ? '0' : Format(amount);
   }
 }

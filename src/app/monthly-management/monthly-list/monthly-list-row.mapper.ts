@@ -6,6 +6,16 @@ import { Format } from '../../format-number-jp';
 import { isPremiumColumn } from '../monthly-premium/monthly-premium-columns';
 import { applyPremiumFieldsToRow, formatPremiumCellValue, premiumSortValue, premiumSearchText } from '../monthly-premium/monthly-premium-row.mapper';
 import { allowanceTypeFromColumnKey } from '../../payment-management/payment-list/allowance-display.util';
+import { MONTHLY_NET_PAYMENT_COLUMN_KEY } from './monthly-list-columns';
+import { monthlyEmployerPremium, monthlyNetPayment } from '../../../../shared/payment-summary.util';
+
+function monthlyRowNetPayment(row: MonthlyListRow): number {
+  return monthlyNetPayment(row, row);
+}
+
+export function monthlyListEmployerBurden(row: MonthlyListRow): number {
+  return monthlyEmployerPremium(row);
+}
 
 export function toMonthlyListRow(
   eid: string,
@@ -55,6 +65,11 @@ export function formatMonthlyListCellValue(
     return formatPremiumCellValue(row, column);
   }
 
+  if (column === MONTHLY_NET_PAYMENT_COLUMN_KEY) {
+    const amount = monthlyRowNetPayment(row);
+    return amount === 0 ? '' : Format(amount);
+  }
+
   if (column === 'displayName' || column === 'employeeId') {
     return String(row[column] ?? '');
   }
@@ -81,6 +96,10 @@ export function monthlyListSortValue(
 ): string | number {
   if (isPremiumColumn(column)) {
     return premiumSortValue(row, column);
+  }
+
+  if (column === MONTHLY_NET_PAYMENT_COLUMN_KEY) {
+    return monthlyRowNetPayment(row);
   }
 
   if (column === 'fixedWage' || column === 'variableWage') {
@@ -113,12 +132,30 @@ export function isSummableMonthlyListColumn(
   return column !== 'displayName' && column !== 'employeeId';
 }
 
+export type MonthlyDetailColumnKey = MonthlyListColumnKey | 'yyyyMm';
+
+export function monthlyDetailSearchText(
+  row: { yyyyMm: string } & MonthlyListRow,
+  column: MonthlyDetailColumnKey,
+): string {
+  if (column === 'yyyyMm') {
+    const [year, month] = row.yyyyMm.split('-');
+    return `${row.yyyyMm} ${year}年${parseInt(month, 10)}月`;
+  }
+  return monthlyListSearchText(row, column);
+}
+
 export function monthlyListSearchText(
   row: MonthlyListRow,
   column: MonthlyListColumnKey,
 ): string {
   if (isPremiumColumn(column)) {
     return premiumSearchText(row, column);
+  }
+
+  if (column === MONTHLY_NET_PAYMENT_COLUMN_KEY) {
+    const amount = monthlyRowNetPayment(row);
+    return amount === 0 ? '' : Format(amount);
   }
 
   const allowanceType = allowanceTypeFromColumnKey(column);

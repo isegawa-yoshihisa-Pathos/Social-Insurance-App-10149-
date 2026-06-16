@@ -1,5 +1,16 @@
 <div class="payment-list-container">
   <div class="payment-list-content">
+    <div class="payment-header-label">
+      給与・賞与管理
+    </div>
+    <div class="payment-header-content">
+      表示している月に<strong>支払う</strong>給与・賞与のデータを表示しています。<br>
+      データを編集することはできません。<br>
+      各従業員の行をクリックすると、該当従業員の詳細ページに移動できます。<br>
+      表示項目、ソート、フィルタを反映したcsvファイルをダウンロードできます。
+    </div>
+  </div>
+  <div class="payment-list-content">
     <div class="header-container">
       <div class="month-picker-container">
         <button mat-icon-button (click)="previousMonth()" matTooltip="前月">
@@ -73,7 +84,6 @@
                 mat-cell
                 *matCellDef="let row"
                 (click)="onCellClick(row, col)"
-                [class.clickable]="col === 'displayName' || col === 'employeeId'"
               >
                 {{ formatCellValue(row, col) }}
               </td>
@@ -87,6 +97,24 @@
           <tr mat-row *matRowDef="let row; columns: tableColumns()" class="payment-row"></tr>
           <tr mat-footer-row *matFooterRowDef="tableColumns()" class="footer-row"></tr>
         </table>
+      </div>
+
+      <div class="tenant-summary">
+        <h3>事業所負担（保険料）</h3>
+        <dl>
+          <div class="summary-item">
+            <dt>月次</dt>
+            <dd>{{ formatAmount(tenantEmployerSummary().monthly) }}</dd>
+          </div>
+          <div class="summary-item">
+            <dt>賞与</dt>
+            <dd>{{ formatAmount(tenantEmployerSummary().bonus) }}</dd>
+          </div>
+          <div class="summary-item total">
+            <dt>合計</dt>
+            <dd>{{ formatAmount(tenantEmployerSummary().total) }}</dd>
+          </div>
+        </dl>
       </div>
     }
   </div>

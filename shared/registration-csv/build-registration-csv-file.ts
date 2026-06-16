@@ -1,8 +1,13 @@
 import type {
   RegistrationCsvFormType,
+  RegistrationDependentChangePayload,
   RegistrationFilingEmployeeSnapshot,
   RegistrationFilingSavePayload,
   RegistrationFilingTenantSnapshot,
+  RegistrationLeavePayload,
+  RegistrationNationalPensionType3Payload,
+  RegistrationQualificationAcquisitionPayload,
+  RegistrationQualificationLossPayload,
   RegistrationStandardBonusPayload,
   RegistrationStandardRemunerationPayload,
 } from '../registration-filing-document';
@@ -16,6 +21,12 @@ import { joinCsvRecord } from './csv-record.util';
 import { buildTeijiSanteiDataRecord } from './teiji-santei-csv';
 import { buildMonthlyChangeDataRecord } from './monthly-change-csv';
 import { buildBonusPaymentDataRecord } from './bonus-payment-csv';
+import { buildQualificationAcquisitionDataRecord } from './qualification-acquisition-csv';
+import { buildQualificationLossDataRecord } from './qualification-loss-csv';
+import { buildDependentChangeDataRecord } from './dependent-change-csv';
+import { buildNationalPensionType3DataRecord } from './national-pension-type3-csv';
+import { buildMaternityLeaveDataRecord } from './maternity-leave-csv';
+import { buildChildcareLeaveDataRecord } from './childcare-leave-csv';
 
 function formatTodayYyyymmdd(): string {
   const now = new Date();
@@ -68,6 +79,30 @@ function buildDataRecord(
   formPayload: Record<string, unknown>,
 ): string {
   switch (formType) {
+    case 'qualification_acquisition':
+      return buildQualificationAcquisitionDataRecord(
+        tenant,
+        employee,
+        formPayload as unknown as RegistrationQualificationAcquisitionPayload,
+      );
+    case 'qualification_loss':
+      return buildQualificationLossDataRecord(
+        tenant,
+        employee,
+        formPayload as unknown as RegistrationQualificationLossPayload,
+      );
+    case 'dependent_change':
+      return buildDependentChangeDataRecord(
+        tenant,
+        employee,
+        formPayload as unknown as RegistrationDependentChangePayload,
+      );
+    case 'national_pension_type3':
+      return buildNationalPensionType3DataRecord(
+        tenant,
+        employee,
+        formPayload as unknown as RegistrationNationalPensionType3Payload,
+      );
     case 'teiji_santei':
       return buildTeijiSanteiDataRecord(
         tenant,
@@ -85,6 +120,18 @@ function buildDataRecord(
         tenant,
         employee,
         formPayload as unknown as RegistrationStandardBonusPayload,
+      );
+    case 'maternity_leave':
+      return buildMaternityLeaveDataRecord(
+        tenant,
+        employee,
+        formPayload as unknown as RegistrationLeavePayload,
+      );
+    case 'childcare_leave':
+      return buildChildcareLeaveDataRecord(
+        tenant,
+        employee,
+        formPayload as unknown as RegistrationLeavePayload,
       );
   }
 }

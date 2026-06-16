@@ -1,3 +1,21 @@
+export const PAYMENT_SUMMARY_COLUMN_KEYS = [
+  'monthlyNetPayment',
+  'bonusNetPayment',
+  'totalNetPayment',
+] as const;
+
+export type PaymentSummaryColumnKey = (typeof PAYMENT_SUMMARY_COLUMN_KEYS)[number];
+
+export const PAYMENT_SUMMARY_COLUMN_LABELS: Record<PaymentSummaryColumnKey, string> = {
+  monthlyNetPayment: '月次総支払',
+  bonusNetPayment: '賞与総支払',
+  totalNetPayment: '合計総支払',
+};
+
+export function isPaymentSummaryColumn(column: string): column is PaymentSummaryColumnKey {
+  return (PAYMENT_SUMMARY_COLUMN_KEYS as readonly string[]).includes(column);
+}
+
 export const BASE_PAYMENT_LIST_COLUMN_KEYS = [
   'displayName',
   'employeeId',

@@ -14,6 +14,7 @@ import {
 import { bonusColumnKey, bonusTypeFromColumnKey } from '../bonus-list/bonus-display.util';
 import { BonusManagementDataService } from '../bonus-management-data.service';
 import { AuditLogService } from '../../audit-log/audit-log.service';
+import { normalizeVisibleColumnOrder } from '../../list-column-order.util';
 
 export interface BonusSettingDocument {
   importHeaders?: Partial<Record<string, string>>;
@@ -71,13 +72,13 @@ export class BonusSettingDataService {
     const settingsSnap = await getDoc(settingsRef);
 
     if (!settingsSnap.exists()) {
-      this.setVisibleColumns([...DEFAULT_BONUS_LIST_COLUMNS], bonusDefinitions);
+      this.setVisibleColumnsInternal([...DEFAULT_BONUS_LIST_COLUMNS], bonusDefinitions);
       this.listSettingsLoadedTid = tid;
       return;
     }
 
     const data = settingsSnap.data() as { visibleColumns?: BonusListColumnKey[] };
-    this.setVisibleColumns(
+    this.setVisibleColumnsInternal(
       data.visibleColumns?.length ? data.visibleColumns : [...DEFAULT_BONUS_LIST_COLUMNS],
       bonusDefinitions,
     );
@@ -105,7 +106,7 @@ export class BonusSettingDataService {
 
   syncVisibleColumnsForBonusTypes(): void {
     const bonusDefinitions = this.bonusManagementDataService.bonusTypeDefinitions();
-    this.setVisibleColumns(this.visibleColumns(), bonusDefinitions);
+    this.setVisibleColumnsInternal(this.visibleColumns(), bonusDefinitions);
   }
 
   toggleOptionalColumn(key: BonusListColumnKey, checked: boolean): void {
@@ -117,6 +118,11 @@ export class BonusSettingDataService {
     } else if (!checked && exists) {
       this.setVisibleColumns(current.filter((col) => col !== key));
     }
+  }
+
+  setVisibleColumns(cols: BonusListColumnKey[]): void {
+    const bonusDefinitions = this.bonusManagementDataService.bonusTypeDefinitions();
+    this.setVisibleColumnsInternal(cols, bonusDefinitions);
   }
 
   isColumnVisible(key: BonusListColumnKey): boolean {
@@ -133,7 +139,7 @@ export class BonusSettingDataService {
     this.listSettingsLoadedTid = null;
   }
 
-  private setVisibleColumns(
+  private setVisibleColumnsInternal(
     cols: BonusListColumnKey[],
     bonusDefinitions: BonusTypeDefinition[] = this.bonusManagementDataService.bonusTypeDefinitions(),
   ): void {
@@ -156,16 +162,7 @@ export class BonusSettingDataService {
   ): BonusListColumnKey[] {
     const canonicalOrder = getAllBonusListColumnKeys(bonusDefinitions);
     const valid = new Set<string>(canonicalOrder);
-    const selected = new Set<BonusListColumnKey>();
-
-    for (const col of cols) {
-      const resolved = this.resolveColumnKey(col, valid);
-      if (resolved) {
-        selected.add(resolved);
-      }
-    }
-
-    return canonicalOrder.filter((col) => selected.has(col));
+    return normalizeVisibleColumnOrder(cols, canonicalOrder, (col) => this.resolveColumnKey(col, valid));
   }
 
   private resolveColumnKey(

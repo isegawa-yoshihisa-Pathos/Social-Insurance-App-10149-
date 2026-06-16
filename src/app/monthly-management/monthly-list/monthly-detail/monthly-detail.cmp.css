@@ -4,29 +4,17 @@
 
 .monthly-detail-container {
   padding: 20px;
-}
-
-.monthly-detail-content {
-  width: 100%;
-  padding: 20px;
-  background-color: white;
+  background-color: #fff;
   box-sizing: border-box;
   box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
   border-radius: 10px;
 }
 
 .monthly-detail-header {
-  margin-bottom: 20px;
+  margin-bottom: 8px;
   display: flex;
   align-items: center;
   gap: 16px;
-}
-
-.employee-meta-card {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  align-items: center;
 }
 
 .meta-value-name {
@@ -46,27 +34,13 @@
   color: #888;
 }
 
-.loading-message,
-.empty-message {
-  margin: 16px 0;
-  color: #666;
-}
-
-.table-scroll-container {
+.monthly-detail-page {
   width: 100%;
-  overflow-x: auto;
+  max-width: 100%;
+  margin-inline: 0;
 }
 
-.monthly-table {
-  width: max-content;
-  min-width: 100%;
-}
-
-.monthly-table th,
-.monthly-table td {
-  white-space: nowrap;
-}
-
-.numeric-cell {
-  text-align: right;
+.monthly-detail-page mat-spinner {
+  display: block;
+  margin: 24px auto;
 }

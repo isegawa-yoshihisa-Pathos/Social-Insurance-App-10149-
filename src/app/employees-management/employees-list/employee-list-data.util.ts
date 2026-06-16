@@ -32,3 +32,10 @@ export function formatEmployeeListValue(value: string): string {
       return value;
   }
 }
+
+export interface EmployeeLookupEntry {
+  uid: string;
+  eid: string;
+  employeeId: string;
+  displayName: string;
+}

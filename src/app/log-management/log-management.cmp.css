@@ -24,9 +24,38 @@
 }
 
 .log-management-note {
-  margin: 0 0 20px;
+  margin: 0 0 16px;
   color: rgba(0, 0, 0, 0.65);
   font-size: 0.95rem;
+}
+
+.log-search-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.search-keyword {
+  flex: 1 1 280px;
+  min-width: 220px;
+}
+
+.search-action,
+.search-category {
+  flex: 0 1 180px;
+  min-width: 140px;
+}
+
+.clear-filters-button {
+  margin-bottom: 20px;
+}
+
+.log-result-count {
+  margin: 0 0 12px;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.9rem;
 }
 
 .log-loading {

@@ -30,6 +30,11 @@ import {
   applyTeijiBonusRelatedRemunerationToMonthlyRecords,
   computeTeijiBonusRelatedRemuneration,
 } from './teiji-bonus-remuneration';
+import {
+  leaveReturnReviewId,
+  teijiAnnualAverageReviewId,
+  zuijiAnnualAverageReviewId,
+} from './remuneration-review-ids';
 
 export type RemunerationConsentReviewType =
   | 'teiji_annual_average'
@@ -66,18 +71,6 @@ export interface RemunerationConsentReviewDocument {
 
 function collectionRef(db: admin.firestore.Firestore, tid: string) {
   return db.collection('tenants').doc(tid).collection('remunerationConsentReviews');
-}
-
-export function teijiAnnualAverageReviewId(eid: string, teijiYear: number): string {
-  return `teiji_aa_${eid}_${teijiYear}`;
-}
-
-export function zuijiAnnualAverageReviewId(eid: string, changeMonthYyyyMm: string): string {
-  return `zuiji_aa_${eid}_${changeMonthYyyyMm}`;
-}
-
-export function leaveReturnReviewId(eid: string, leaveEndYyyyMm: string): string {
-  return `leave_return_${eid}_${leaveEndYyyyMm}`;
 }
 
 async function loadMonthlyRemunerationSource(
@@ -263,7 +256,7 @@ export async function ensureTeijiAnnualAverageConsentReview(
   employmentType: 'full-time' | 'short-time-worker' | 'short-time-labor',
   teijiHealthGrade: number,
   teijiPensionGrade: number,
-): Promise<void> {
+): Promise<{ created: boolean; annualGrades?: ResolvedStandardRemuneration }> {
   const periodKeys = buildAnnualAveragePeriodMonthKeys(`${teijiYear}-07`);
   const annualSources = await loadMonthSources(db, tid, eid, periodKeys);
   const screening = screenAnnualAverageCandidate(
@@ -271,7 +264,7 @@ export async function ensureTeijiAnnualAverageConsentReview(
     { teijiHealthGrade, teijiPensionGrade },
     toAnnualAverageMonthInputs(annualSources),
   );
-  if (screening.kind !== 'candidate') return;
+  if (screening.kind !== 'candidate') return { created: false };
 
   const reviewId = teijiAnnualAverageReviewId(eid, teijiYear);
   const effectiveFrom = `${teijiYear}-09`;
@@ -302,7 +295,7 @@ export async function ensureTeijiAnnualAverageConsentReview(
       divisor: screening.annualAverage.divisor,
     },
   });
-  if (!created) return;
+  if (!created) return { created: false };
 
   if (employeeUid) {
     await notifyEmployeeConsent(db, employeeUid, {
@@ -323,6 +316,7 @@ export async function ensureTeijiAnnualAverageConsentReview(
     targetEid: eid,
     dedupeKey: `${reviewId}_admin`,
   });
+  return { created: true, annualGrades: grades };
 }
 
 export async function ensureZuijiAnnualAverageConsentReview(

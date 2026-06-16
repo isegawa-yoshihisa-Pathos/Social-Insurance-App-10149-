@@ -17,6 +17,7 @@ import { StandardRemunerationDataService } from '../social-insurance/monthly/sta
 import { StandardBonusDataService } from '../social-insurance/bonus/standard-bonus-data.service';
 import { MonthlyDocument } from '../monthly-document';
 import { BonusDocument } from '../bonus-document';
+import { sumBonusDataAmount } from '../../../shared/bonus-data.util';
 import { addMonths, lastDayOfYyyyMm } from '../../../shared/social-insurance/monthly/social-insurance-data.util';
 
 function formatDate(value: unknown): string | null {
@@ -38,6 +39,8 @@ function toEmployeeSnapshot(
     realName: personal.realName,
     birthDate: formatDate(personal.birthDate),
     basicPensionNumber: personal.basicPensionNumber,
+    myNumber: personal.myNumber ?? '',
+    zipcode: personal.zipcode ?? '',
     joinedAt: formatDate(employ.joinedAt),
     resignAt: formatDate(employ.resignAt),
     licenseStartAt: formatDate(employ.licenseStartAt),
@@ -271,24 +274,45 @@ export class RegistrationDocumentBuilderService {
     employee: RegistrationFilingEmployeeSnapshot,
   ): Promise<Record<string, unknown>> {
     switch (formType) {
-      case 'qualification_acquisition':
+      case 'qualification_acquisition': {
+        const acquisitionDate = employee.licenseStartAt ?? employee.joinedAt;
+        let currencyAmount = 0;
+        let inKindAmount = 0;
+        if (acquisitionDate) {
+          const yyyyMm = acquisitionDate.slice(0, 7);
+          const monthly = await this.loadMonthlyDocument(tid, employee.eid, yyyyMm);
+          if (monthly?.payrollData) {
+            const breakdown = toMonthlyBreakdown(yyyyMm, monthly);
+            currencyAmount = breakdown.currencyAmount;
+            inKindAmount = breakdown.inKindAmount;
+          }
+        }
         return {
           kind: 'qualification_acquisition',
-          acquisitionDate: employee.licenseStartAt ?? employee.joinedAt,
+          acquisitionDate,
+          currencyAmount,
+          inKindAmount,
+          totalAmount: currencyAmount + inKindAmount,
+          hasDependents: employee.hasDependents,
         };
+      }
       case 'qualification_loss':
         return {
           kind: 'qualification_loss',
           lossDate: employee.resignAt,
+          resignDate: employee.resignAt,
+          lossReason: '4',
         };
       case 'dependent_change':
         return {
           kind: 'dependent_change',
+          changeType: '1',
           dependentsInfo: employee.dependentsInfo,
         };
       case 'national_pension_type3':
         return {
           kind: 'national_pension_type3',
+          changeType: '1',
           dependentsInfo: employee.dependentsInfo,
         };
       case 'teiji_santei':
@@ -315,6 +339,7 @@ export class RegistrationDocumentBuilderService {
         return {
           kind: 'childcare_leave',
           leaveRecords: await this.loadLeaveRecords(tid, employee.eid, 'childcare'),
+          dependentsInfo: employee.dependentsInfo,
         };
       default:
         return { kind: formType };
@@ -426,7 +451,8 @@ export class RegistrationDocumentBuilderService {
     }
 
     const bonusDoc = await this.loadBonusDocument(tid, eid, latest.yyyyMm);
-    const bonusAmount = latest.doc.bonusAmount ?? bonusDoc?.bonusData?.total ?? 0;
+    const bonusAmount = latest.doc.bonusAmount
+      ?? (bonusDoc?.bonusData ? sumBonusDataAmount(bonusDoc.bonusData) : 0);
     const inKindAmount = 0;
     const currencyAmount = bonusAmount;
 

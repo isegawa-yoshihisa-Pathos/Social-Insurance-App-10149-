@@ -15,6 +15,10 @@ const RESERVED_COLUMN_KEYS = new Set<string>([
   ...BASE_PAYMENT_LIST_COLUMN_KEYS,
   ...PREMIUM_PAYMENT_LIST_COLUMN_KEYS,
   'allowances',
+  'netPayment',
+  'monthlyNetPayment',
+  'bonusNetPayment',
+  'totalNetPayment',
 ]);
 
 export function labelForAllowanceType(

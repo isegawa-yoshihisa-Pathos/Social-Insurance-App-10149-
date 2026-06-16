@@ -1,0 +1,42 @@
+<div class="payment-summary">
+  @if (loading() && !amounts()) {
+    <div class="loading-container">
+      <mat-spinner diameter="32"></mat-spinner>
+    </div>
+  } @else if (!hasLockedPeriods()) {
+    <p class="empty-message">明細はありません。</p>
+  } @else {
+    <mat-form-field appearance="outline" class="period-select">
+      <mat-label>対象月</mat-label>
+      <mat-select
+        [ngModel]="selectedYyyyMm()"
+        (ngModelChange)="onPeriodSelected($event)"
+      >
+        @for (yyyyMm of lockedPeriods(); track yyyyMm) {
+          <mat-option [value]="yyyyMm">{{ formatPeriodLabel(yyyyMm) }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    @if (loading()) {
+      <div class="loading-container">
+        <mat-spinner diameter="24"></mat-spinner>
+      </div>
+    } @else if (amounts(); as summary) {
+      <dl class="summary-grid">
+        <div class="summary-item">
+          <dt>給与総支給</dt>
+          <dd>{{ formatAmount(summary.monthly) }}</dd>
+        </div>
+        <div class="summary-item">
+          <dt>賞与総支給</dt>
+          <dd>{{ formatAmount(summary.bonus) }}</dd>
+        </div>
+        <div class="summary-item total">
+          <dt>合計総支給</dt>
+          <dd>{{ formatAmount(summary.total) }}</dd>
+        </div>
+      </dl>
+    }
+  }
+</div>

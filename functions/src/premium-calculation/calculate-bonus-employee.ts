@@ -1,5 +1,6 @@
 import * as admin from 'firebase-admin';
 import type { BonusDocument } from '../../../shared/bonus-document';
+import { hasBonusData, sumBonusDataAmount } from '../../../shared/bonus-data.util';
 import type { EmployeeDocument } from '../../../shared/employee-document';
 import { calculateBonusPremium } from '../../../shared/social-insurance/premium/premium-calculator';
 import { employeeLeaveRecordsToPeriodInputs } from '../../../shared/social-insurance/premium/leave-premium-exemption';
@@ -35,7 +36,7 @@ import {
   type StandardBonusDocument,
   type StandardBonusSavePayload,
 } from './repos';
-import { skipBonusPremiumCalculationIfResigned } from './premium-calculation-skip';
+import { skipBonusPremiumCalculationIfResigned, isMissingRequiredFields } from './premium-calculation-skip';
 import { ensureMultiWorkplaceManualPremiumAlert } from './multi-workplace-premium-alert';
 
 interface CalculationContext {
@@ -55,8 +56,12 @@ export async function calculateBonusEmployee(
     loadContext(db, tid, eid, yyyyMm),
     getTenant(db, tid),
   ]);
+  const errorMessage = isMissingRequiredFields(ctx.employee);
+  if (errorMessage) {
+    throw new Error(`従業員${ctx.employee.employeePersonalInfo?.displayName}は${errorMessage}です。`);
+  }
   if (await skipBonusPremiumCalculationIfResigned(db, tid, eid, yyyyMm, ctx.employee)) {
-    return;
+    throw new Error(`従業員${ctx.employee.employeePersonalInfo?.displayName}は資格取得前または資格喪失後です。`);
   }
   const personalInfo = ctx.employee.employeePersonalInfo;
   const careInsuranceCollection = {
@@ -145,7 +150,7 @@ async function resolveStandardBonus(
   const existing = await getStandardBonus(db, tid, eid, yyyyMm);
   if (existing?.source === 'manual') return toSavePayload(existing);
 
-  const bonusAmount = ctx.bonus.bonusData?.total ?? 0;
+  const bonusAmount = ctx.bonus.bonusData ? sumBonusDataAmount(ctx.bonus.bonusData) : 0;
   if (bonusAmount <= 0) {
     throw new Error(`${yyyyMm} の賞与支給額がありません。`);
   }
@@ -246,7 +251,7 @@ async function loadContext(
     getBonusDocument(db, tid, eid, yyyyMm),
   ]);
 
-  if (!bonus?.bonusData?.total) {
+  if (!bonus || !hasBonusData(bonus.bonusData)) {
     throw new Error(`${yyyyMm} の賞与データがありません。`);
   }
 

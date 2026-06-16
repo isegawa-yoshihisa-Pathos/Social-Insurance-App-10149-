@@ -8,8 +8,6 @@ export interface SocialInsuranceSettings {
   healthInsuranceTenantRecordNumber: string,
   pensionInsuranceTenantNumber: string,
   pensionInsuranceTenantRecordNumber: string,
-  closingDay: string,
-  payrollBaseDaysStandard: 'closingDay' | 'calendarDay',
   socialInsuranceCollectionMonth: 'currentMonth' | 'nextMonth' | 'nextNextMonth',
   payrollPaymentMonth?: 'currentMonth' | 'nextMonth',
   resignPremiumCollection?: 'bulk' | 'monthly',

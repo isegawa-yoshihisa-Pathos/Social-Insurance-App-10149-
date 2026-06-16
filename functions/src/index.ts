@@ -24,7 +24,14 @@ export {
   approveRemunerationConsentReview,
   rejectRemunerationConsentReview,
 } from './premium-calculation/remuneration-consent-review';
+export {
+  previewRetroactiveRemunerationRecalc,
+  applyRetroactiveRemunerationRecalc,
+  skipRetroactiveRemunerationReview,
+} from './premium-calculation/retroactive-remuneration-review';
 export { checkAgeAttainmentAlerts } from './notification/age-alert';
+export { updateEmployeeStatusesDaily } from './notification/check_status';
+export { requestEmployeeInput } from './notification/employee-input-request';
 // import {onRequest} from "firebase-functions/https";
 // import * as logger from "firebase-functions/logger";
 

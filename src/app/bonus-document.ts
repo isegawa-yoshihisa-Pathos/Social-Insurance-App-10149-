@@ -44,7 +44,6 @@ export interface CalculationSnapshot {
 export interface BonusFormData {
     displayName: string;
     employeeId: string;
-    bonus: BonusAmountMap;
 }
 
 export interface BonusTypeDefinition {
@@ -59,7 +58,6 @@ export type BonusTarget = 'labor' | 'non-labor';
 export type BonusAmountMap = Record<string, number>;
 
 export interface BonusData {
-    total: number;
     [bonusType: string]: number;
 }
 

@@ -1,5 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Functions, httpsCallable } from '@angular/fire/functions';
+import type { RetroactivePayReviewItem } from '../../shared/social-insurance/remuneration/retroactive-remuneration';
+import type { RetroactiveRemunerationProposedGrades } from '../../shared/retroactive-remuneration-review-document';
 
 @Injectable({
   providedIn: 'root',
@@ -30,8 +32,25 @@ export class FunctionsService {
   private approveRemunerationConsentReviewFn = httpsCallable(this.functions, 'approveRemunerationConsentReview');
 
   private rejectRemunerationConsentReviewFn = httpsCallable(this.functions, 'rejectRemunerationConsentReview');
+
+  private previewRetroactiveRemunerationRecalcFn = httpsCallable(
+    this.functions,
+    'previewRetroactiveRemunerationRecalc',
+  );
+
+  private applyRetroactiveRemunerationRecalcFn = httpsCallable(
+    this.functions,
+    'applyRetroactiveRemunerationRecalc',
+  );
+
+  private skipRetroactiveRemunerationReviewFn = httpsCallable(
+    this.functions,
+    'skipRetroactiveRemunerationReview',
+  );
   
   private recalculatePremiumsAfterResignFn = httpsCallable(this.functions, 'recalculatePremiumsAfterResign');
+
+  private requestEmployeeInputFn = httpsCallable(this.functions, 'requestEmployeeInput');
 
   async registerAdminAndTenant(payload: any) {
     return await this.registerFn(payload);
@@ -124,5 +143,47 @@ export class FunctionsService {
   async rejectRemunerationConsentReview(payload: { tid: string; reviewId: string }) {
     const result = await this.rejectRemunerationConsentReviewFn(payload);
     return result.data as { status: 'rejected' };
+  }
+
+  async previewRetroactiveRemunerationRecalc(payload: {
+    tid: string;
+    reviewId: string;
+    items: RetroactivePayReviewItem[];
+  }) {
+    const result = await this.previewRetroactiveRemunerationRecalcFn(payload);
+    return result.data as {
+      proposedGrades: RetroactiveRemunerationProposedGrades;
+      originalGrades: RetroactiveRemunerationProposedGrades | null;
+    };
+  }
+
+  async applyRetroactiveRemunerationRecalc(payload: {
+    tid: string;
+    reviewId: string;
+    items: RetroactivePayReviewItem[];
+  }) {
+    const result = await this.applyRetroactiveRemunerationRecalcFn(payload);
+    return result.data as {
+      status: 'recalculated';
+      proposedGrades: RetroactiveRemunerationProposedGrades;
+    };
+  }
+
+  async skipRetroactiveRemunerationReview(payload: { tid: string; reviewId: string }) {
+    const result = await this.skipRetroactiveRemunerationReviewFn(payload);
+    return result.data as { status: 'skipped' };
+  }
+
+  async requestEmployeeInput(payload: {
+    tid: string;
+    eids: string[];
+    field: 'myNumber' | 'basicPensionNumber' | 'birthDate' | 'hasDependents';
+  }) {
+    const result = await this.requestEmployeeInputFn(payload);
+    return result.data as {
+      notified: number;
+      skippedNoAccount: number;
+      skippedNotFound: number;
+    };
   }
 }

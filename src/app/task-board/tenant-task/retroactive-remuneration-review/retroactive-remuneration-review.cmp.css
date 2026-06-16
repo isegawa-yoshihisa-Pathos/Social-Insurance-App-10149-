@@ -1,0 +1,52 @@
+.accept-application h3 {
+  margin: 0 0 16px;
+}
+
+.loading-message,
+.empty-message {
+  color: rgba(0, 0, 0, 0.6);
+  margin: 0.5rem 0 1rem;
+}
+
+.review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.review-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+}
+
+.review-item.is-completed {
+  opacity: 0.85;
+}
+
+.review-name {
+  font-weight: 600;
+}
+
+.review-status {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.review-detail {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.review-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}

@@ -6,9 +6,9 @@
   } @else if (!hasLockedPeriods()) {
     <p class="empty-message">
       @if (scope === 'monthly') {
-        締切済みの給与明細はありません。
+        給与明細はありません。
       } @else {
-        締切済みの賞与明細はありません。
+        賞与明細はありません。
       }
     </p>
   } @else {
@@ -66,6 +66,13 @@
           <tr mat-row *matRowDef="let row; columns: tableColumns()"></tr>
         </table>
       </div>
+
+      @if (netPayment(); as amount) {
+        <div class="net-payment-summary">
+          <span class="label">{{ netPaymentLabel() }}</span>
+          <span class="amount">{{ formatAmount(amount) }}</span>
+        </div>
+      }
     }
   }
 </div>

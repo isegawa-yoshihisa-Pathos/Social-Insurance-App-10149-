@@ -38,7 +38,7 @@ export class RoutesService {
   }
 
   redirectToTaskBoard(): void {
-    void this.router.navigate(['/task-board', 'personal']);
+    void this.router.navigate(['/task-board']);
   }
 
   redirectToNotifications(): void {
@@ -94,7 +94,7 @@ export class RoutesService {
   }
 
   redirectToMonthlyDetail(eid: string): void {
-    void this.router.navigate(['/monthly-management', 'detail', eid]);
+    void this.router.navigate(['/monthly-management', 'detail', eid, 'list']);
   }
 
   redirectToPaymentManagement(): void {

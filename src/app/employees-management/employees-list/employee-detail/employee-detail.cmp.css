@@ -2,10 +2,38 @@
   display: block;
 }
 
+.employee-detail-container {
+  padding: 16px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+  margin-bottom: 10px;
+}
+
 .employee-detail-header {
   padding: 16px 0 8px;
   border-bottom: 1px solid #e0e0e0;
   margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.meta-value-name {
+  font-weight: 600;
+  color: #333;
+  font-size: 18px;
+}
+
+.meta-item {
+  display: flex;
+  gap: 4px;
+  font-size: 14px;
+  color: #666;
+}
+
+.meta-label {
+  color: #888;
 }
 
 .employee-name {

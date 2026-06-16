@@ -1,4 +1,5 @@
 import type { FirestoreTimestamp } from './firestore-types';
+import type { DependentInfo } from './personal-document';
 
 export type RegistrationFormType =
   | 'new_application'
@@ -25,6 +26,8 @@ export interface RegistrationFilingEmployeeSnapshot {
   };
   birthDate: string | null;
   basicPensionNumber: string;
+  myNumber: string;
+  zipcode: string;
   joinedAt: string | null;
   resignAt: string | null;
   licenseStartAt: string | null;
@@ -101,12 +104,70 @@ export interface RegistrationStandardBonusPayload {
   paymentDate: string;
 }
 
-export type RegistrationCsvFormType = 'teiji_santei' | 'monthly_change' | 'bonus_payment';
+export interface RegistrationQualificationAcquisitionPayload {
+  kind: 'qualification_acquisition';
+  acquisitionDate: string | null;
+  currencyAmount?: number;
+  inKindAmount?: number;
+  totalAmount?: number;
+  hasDependents?: boolean;
+}
+
+export interface RegistrationQualificationLossPayload {
+  kind: 'qualification_loss';
+  lossDate: string | null;
+  resignDate?: string | null;
+  lossReason?: string;
+}
+
+export interface RegistrationDependentChangePayload {
+  kind: 'dependent_change';
+  changeType?: '1' | '2' | '3';
+  dependentsInfo?: unknown[];
+}
+
+export interface RegistrationNationalPensionType3Payload {
+  kind: 'national_pension_type3';
+  changeType?: '1' | '2' | '3';
+  dependentsInfo?: unknown[];
+}
+
+export interface RegistrationLeaveRecordSnapshot {
+  type: 'maternity' | 'childcare';
+  startAt: string | null;
+  endAt: string | null;
+  reason?: string;
+}
+
+export interface RegistrationLeavePayload {
+  kind: 'maternity_leave' | 'childcare_leave';
+  leaveRecords: RegistrationLeaveRecordSnapshot[];
+  dependentsInfo?: DependentInfo[];
+  expectedDueDate?: string | null;
+  multipleBirth?: boolean;
+}
+
+export type RegistrationCsvFormType =
+  | 'qualification_acquisition'
+  | 'qualification_loss'
+  | 'dependent_change'
+  | 'national_pension_type3'
+  | 'teiji_santei'
+  | 'monthly_change'
+  | 'bonus_payment'
+  | 'maternity_leave'
+  | 'childcare_leave';
 
 export const REGISTRATION_CSV_FORM_TYPES: readonly RegistrationCsvFormType[] = [
+  'qualification_acquisition',
+  'qualification_loss',
+  'dependent_change',
+  'national_pension_type3',
   'teiji_santei',
   'monthly_change',
   'bonus_payment',
+  'maternity_leave',
+  'childcare_leave',
 ];
 
 export function isRegistrationCsvFormType(
