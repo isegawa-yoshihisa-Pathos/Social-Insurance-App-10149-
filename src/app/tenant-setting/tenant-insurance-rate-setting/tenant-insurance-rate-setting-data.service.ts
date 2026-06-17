@@ -3,7 +3,7 @@ import { DEFAULT_ROUNDING_BY } from '../../social-insurance/monthly/social-insur
 import type { EmployeeRateByInsurance, InsuranceRateSavePayload, InsuranceRateSource, RoundingByInsurance } from '../../social-insurance/monthly/social-insurance-document';
 import { InsuranceRateDataService, type InsuranceRateListItem } from '../../social-insurance/monthly/insurance-rate-data.service';
 import { TenantSettingDataService } from '../tenant-setting-data.service';
-import { buildAssociationInsuranceRatePayload, CURRENT_ASSOCIATION_RATE_TABLE } from '../../social-insurance/insurance-rates/association';
+import { buildAssociationInsuranceRatePayload, CURRENT_ASSOCIATION_RATE_TABLE, ASSOCIATION_RATE_TABLES, type AssociationRateTableSet } from '../../social-insurance/insurance-rates/association';
 import { buildCombinationInsuranceRatePayload, buildOtherCombinationInsuranceRatePayload, COMBINATION_RATE_REGISTRIES } from '../../social-insurance/insurance-rates/combination';
 import { determineRateSource } from './determine-rate-source';
 import { resolvePrefectureCodeFromAddress } from './resolve-prefecture-from-address';
@@ -237,5 +237,11 @@ export class TenantInsuranceRateSettingDataService {
         const m = `${d.getMonth() + 1}`.padStart(2, '0');
         const day = `${d.getDate()}`.padStart(2, '0');
         return `${y}-${m}-${day}`;
+    }
+
+    getAssociationRateTable(date: string): AssociationRateTableSet {
+        const tables = ASSOCIATION_RATE_TABLES;
+        const table = tables.find(t => t.effectiveFrom <= date);
+        return table ?? tables[0];
     }
 }

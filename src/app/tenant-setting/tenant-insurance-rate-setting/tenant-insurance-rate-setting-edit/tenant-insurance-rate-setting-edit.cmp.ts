@@ -66,9 +66,19 @@ export class TenantInsuranceRateSettingEditCmp implements OnInit {
     if (next === this.dataService.editForm().effectiveFrom) {
       return;
     }
-    this.updateForm((f) => {
-      f.effectiveFrom = next;
-    });
+    const payload = buildAssociationInsuranceRatePayload(
+      this.dataService.editForm().prefectureCode as any,
+      this.dataService.getAssociationRateTable(next),
+      { employeeRate: { healthInsurance: 0, careInsurance: 0, pensionInsurance: 0 } }
+    );
+
+    if (payload) {
+      this.updateForm(f => {
+        f.effectiveFrom = next;
+        f.healthInsuranceRate = payload.healthInsuranceRate;
+        f.employeeRate.healthInsurance = roundRate(payload.healthInsuranceRate / 2);
+      });
+    }
   }
 
   get label(): string { return this.dataService.editForm().label; }
