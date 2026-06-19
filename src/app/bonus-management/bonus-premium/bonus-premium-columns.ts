@@ -1,4 +1,5 @@
 import { BonusListColumnKey } from '../bonus-list/bonus-list-columns';
+import { isPremiumAmountColumn } from '../../../../shared/social-insurance/premium/premium-manual-edit.util';
 
 export const PREMIUM_BONUS_LIST_COLUMN_KEYS = [
   'standardBonusHealth',
@@ -22,6 +23,14 @@ export const PREMIUM_BONUS_LIST_EMPLOYEE_COLUMN_KEYS = [
 export type PremiumBonusListEmployeeColumnKey =
   (typeof PREMIUM_BONUS_LIST_EMPLOYEE_COLUMN_KEYS)[number];
 
+export const BULK_EDITABLE_STANDARD_BONUS_COLUMN_KEYS = [
+  'standardBonusHealth',
+  'standardBonusPension',
+] as const;
+
+export type BulkEditableStandardBonusColumnKey =
+  (typeof BULK_EDITABLE_STANDARD_BONUS_COLUMN_KEYS)[number];
+
 const PREMIUM_COLUMN_LABELS: Record<PremiumBonusListColumnKey, string> = {
   standardBonusHealth: '標準賞与額（健保）',
   standardBonusPension: '標準賞与額（厚年）',
@@ -35,6 +44,18 @@ const PREMIUM_COLUMN_LABELS: Record<PremiumBonusListColumnKey, string> = {
 
 export function isPremiumColumn(column: BonusListColumnKey): column is PremiumBonusListColumnKey {
   return (PREMIUM_BONUS_LIST_COLUMN_KEYS as readonly string[]).includes(column);
+}
+
+export function isBulkEditableStandardBonusColumn(
+  column: BonusListColumnKey,
+): column is BulkEditableStandardBonusColumnKey {
+  return (BULK_EDITABLE_STANDARD_BONUS_COLUMN_KEYS as readonly string[]).includes(column);
+}
+
+export function isBulkEditablePremiumAmountColumn(
+  column: BonusListColumnKey,
+): column is PremiumBonusListColumnKey {
+  return isPremiumColumn(column) && isPremiumAmountColumn(column);
 }
 
 export function getPremiumColumnLabel(column: PremiumBonusListColumnKey): string {

@@ -3,6 +3,7 @@ import {
   TenantSavePayload,
   SocialInsuranceSettings,
 } from './tenant-document';
+import { normalizeSocialInsuranceCollectionMonth } from '../../shared/social-insurance/premium/resign-premium-collection';
 
 export interface OwnerNameForm {
   ownerLastName: string;
@@ -40,7 +41,7 @@ export function createDefaultOwnerName(): OwnerNameForm {
 }
 
 export function createDefaultSocialInsuranceSettings(): SocialInsuranceSettings {
-  return {
+  return normalizeSocialInsuranceSettings({
     corporateNumber: '',
     healthInsuranceType: 'association',
     combinationCode: '',
@@ -52,6 +53,18 @@ export function createDefaultSocialInsuranceSettings(): SocialInsuranceSettings 
     payrollPaymentMonth: 'currentMonth',
     resignPremiumCollection: 'monthly',
     specificInsuranceCollectionType: 'false',
+  });
+}
+
+function normalizeSocialInsuranceSettings(
+  settings: SocialInsuranceSettings,
+): SocialInsuranceSettings {
+  return {
+    ...settings,
+    socialInsuranceCollectionMonth: normalizeSocialInsuranceCollectionMonth(
+      settings.payrollPaymentMonth,
+      settings.socialInsuranceCollectionMonth,
+    ),
   };
 }
 
@@ -90,10 +103,10 @@ export function tenantDocToForm(doc: TenantDocument): TenantFormData {
     },
     phoneNumber: phone,
     phoneNumberRaw,
-    socialInsuranceSettings: {
+    socialInsuranceSettings: normalizeSocialInsuranceSettings({
       ...createDefaultSocialInsuranceSettings(),
       ...doc.socialInsuranceSettings,
-    },
+    }),
   };
 }
 
@@ -109,9 +122,9 @@ export function tenantFormToSavePayload(
     address: rest.address,
     ownerName: rest.ownerName,
     phoneNumber: rest.phoneNumber,
-    socialInsuranceSettings: {
+    socialInsuranceSettings: normalizeSocialInsuranceSettings({
       ...rest.socialInsuranceSettings,
-      combinationCode: 
+      combinationCode:
         rest.socialInsuranceSettings.healthInsuranceType === 'combination'
           ? rest.socialInsuranceSettings.combinationCode
           : '',
@@ -123,7 +136,7 @@ export function tenantFormToSavePayload(
           : rest.socialInsuranceSettings.combinationCode === 'other'
           ? rest.socialInsuranceSettings.combinationName
           : '',
-    },
+    }),
   };
 }
 

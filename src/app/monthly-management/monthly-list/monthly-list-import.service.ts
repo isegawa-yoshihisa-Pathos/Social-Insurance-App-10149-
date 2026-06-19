@@ -14,13 +14,22 @@ import {
   MonthlyImportColumnDef,
   buildMonthlyImportColumnDefs,
 } from '../monthly-setting/monthly-import-columns';
-import { PayrollData } from '../../monthly-document';
+import { MonthlyDocument, PayrollData } from '../../monthly-document';
 import { MonthlyListRow } from './monthly-list-columns';
+import { toMonthlyListRow } from './monthly-list-row.mapper';
 import { EmployeeLookupEntry, MonthlyListDataService } from './monthly-list-data.service';
 import { PaymentManagementDataService } from '../../payment-management/payment-management-data.service';
 import { buildPayrollWageFields } from '../../payment-management/payment-list/payroll-wage-update.util';
 import { resolveCsvImportLayout } from '../../csv/csv-file.util';
 import { AuditLogService } from '../../audit-log/audit-log.service';
+import { StandardRemunerationDataService } from '../../social-insurance/monthly/standard-remuneration-data.service';
+import {
+  mergePremiumAmountFields,
+  isPremiumAmountColumn,
+  premiumDataFromRow,
+  type PremiumAmountColumnKey,
+} from '../../../../shared/social-insurance/premium/premium-manual-edit.util';
+import { buildManualStandardRemunerationPayload } from './monthly-detail/standard-remuneration-manual.util';
 
 export interface MonthlyCsvImportOptions {
   yyyyMm: string;
@@ -43,12 +52,24 @@ interface PayrollImportPatch {
   retroactivePay?: number | null;
 }
 
+interface StandardRemunerationImportPatch {
+  standardRemunerationHealth?: number;
+  standardRemunerationPension?: number;
+}
+
+interface MonthlyImportPatch {
+  payroll: PayrollImportPatch | null;
+  standardRemuneration: StandardRemunerationImportPatch;
+  premium: Partial<Record<PremiumAmountColumnKey, number>>;
+}
+
 @Injectable({ providedIn: 'root' })
 export class MonthlyListImportService {
   private readonly firestore = inject(Firestore);
   private readonly monthlySettingDataService = inject(MonthlySettingDataService);
   private readonly paymentManagementDataService = inject(PaymentManagementDataService);
   private readonly listDataService = inject(MonthlyListDataService);
+  private readonly standardRemunerationDataService = inject(StandardRemunerationDataService);
   private readonly auditLog = inject(AuditLogService);
 
   async importFromCsv(
@@ -98,11 +119,17 @@ export class MonthlyListImportService {
       skippedAmbiguous: 0,
       skippedEmpty: 0,
     };
+    const standardRemunerationSaves: Array<{
+      eid: string;
+      patch: StandardRemunerationImportPatch;
+    }> = [];
 
     const existingRecordsSnapshot = await getDocs(
       collection(this.firestore, 'tenants', tid, 'monthly-records', targetYyyyMm, 'employees')
     );
-    const existingRows = existingRecordsSnapshot.docs.map(doc => ({ ...doc.data() as MonthlyListRow }));
+    const existingRows = existingRecordsSnapshot.docs.map((docSnap) =>
+      toMonthlyListRow(docSnap.id, docSnap.data() as Partial<MonthlyDocument>),
+    );
     const previousBonusMap = await this.listDataService.loadPreviousBonusRelatedRemunerationMap(
       tid,
       targetYyyyMm,
@@ -133,13 +160,13 @@ export class MonthlyListImportService {
       }
 
       const existingRow = existingRows.find((r) => r.eid === matched);
-      const payrollPatch = this.extractPayrollPatch(
+      const importPatch = this.extractImportPatch(
         cols,
         headerIndex,
         columnDefs,
         existingRow,
       );
-      if (!payrollPatch) {
+      if (!this.hasImportPatch(importPatch)) {
         result.skippedEmpty++;
         continue;
       }
@@ -155,21 +182,37 @@ export class MonthlyListImportService {
       );
 
       if (existingRow) {
-        if (payrollPatch.bonusRelatedRemuneration === undefined) {
-          const previousBonus = previousBonusMap.get(matched) ?? 0;
-          const currentBonus = existingRow.bonusRelatedRemuneration;
-          if (
-            currentBonus == null ||
-            (currentBonus === 0 && previousBonus > 0)
-          ) {
-            payrollPatch.bonusRelatedRemuneration = previousBonus;
+        let touched = false;
+        if (importPatch.payroll) {
+          if (importPatch.payroll.bonusRelatedRemuneration === undefined) {
+            const previousBonus = previousBonusMap.get(matched) ?? 0;
+            const currentBonus = existingRow.bonusRelatedRemuneration;
+            if (
+              currentBonus == null ||
+              (currentBonus === 0 && previousBonus > 0)
+            ) {
+              importPatch.payroll.bonusRelatedRemuneration = previousBonus;
+            }
           }
+          batch.update(
+            employeeRef,
+            this.buildMonthlyUpdatePayload(importPatch.payroll, existingRow, definitions),
+          );
+          touched = true;
         }
-        batch.update(
-          employeeRef,
-          this.buildMonthlyUpdatePayload(payrollPatch, existingRow, definitions),
-        );
-        result.updated++;
+        if (Object.keys(importPatch.premium).length > 0) {
+          batch.update(employeeRef, {
+            premiumData: mergePremiumAmountFields(
+              premiumDataFromRow(existingRow),
+              importPatch.premium,
+            ),
+            updatedAt: serverTimestamp(),
+          });
+          touched = true;
+        }
+        if (touched || Object.keys(importPatch.standardRemuneration).length > 0) {
+          result.updated++;
+        }
       } else {
         const employee = employeeLookup.get(matched);
         if (!employee) {
@@ -180,18 +223,32 @@ export class MonthlyListImportService {
           employeeRef,
           this.buildMonthlyDocument(
             employee,
-            payrollPatch,
+            importPatch.payroll ?? {},
             definitions,
             previousBonusMap.get(matched) ?? 0,
+            importPatch.premium,
           ),
         );
         result.created++;
+      }
+
+      if (Object.keys(importPatch.standardRemuneration).length > 0) {
+        standardRemunerationSaves.push({
+          eid: matched,
+          patch: importPatch.standardRemuneration,
+        });
       }
     }
 
     this.listDataService.touchPeriodInBatch(batch, tid, targetYyyyMm);
 
     await batch.commit();
+
+    await Promise.all(
+      standardRemunerationSaves.map(({ eid, patch }) =>
+        this.saveImportedStandardRemuneration(tid, targetYyyyMm, eid, patch),
+      ),
+    );
 
     await this.auditLog.recordCreate({
       tid,
@@ -244,6 +301,71 @@ export class MonthlyListImportService {
     if (matched.length === 1) return matched[0];
     if (matched.length > 1) return 'ambiguous';
     return null;
+  }
+
+  private extractImportPatch(
+    cols: string[],
+    idx: Record<string, number>,
+    columnDefs: MonthlyImportColumnDef[],
+    existingRow: MonthlyListRow | undefined,
+  ): MonthlyImportPatch {
+    const payroll = this.extractPayrollPatch(cols, idx, columnDefs, existingRow);
+    const standardRemuneration: StandardRemunerationImportPatch = {};
+    const premium: Partial<Record<PremiumAmountColumnKey, number>> = {};
+
+    for (const col of columnDefs) {
+      if (col.kind !== 'number') continue;
+      const i = idx[col.key];
+      if (i === undefined || i < 0) continue;
+      const raw = (cols[i] ?? '').trim();
+      if (!raw) continue;
+      const num = this.parseNumber(raw);
+      if (num === null) continue;
+
+      if (col.key === 'standardRemunerationHealth') {
+        standardRemuneration.standardRemunerationHealth = num;
+      } else if (col.key === 'standardRemunerationPension') {
+        standardRemuneration.standardRemunerationPension = num;
+      } else if (isPremiumAmountColumn(col.key)) {
+        premium[col.key] = num;
+      }
+    }
+
+    return { payroll, standardRemuneration, premium };
+  }
+
+  private hasImportPatch(patch: MonthlyImportPatch): boolean {
+    return (
+      patch.payroll != null ||
+      Object.keys(patch.standardRemuneration).length > 0 ||
+      Object.keys(patch.premium).length > 0
+    );
+  }
+
+  private async saveImportedStandardRemuneration(
+    tid: string,
+    yyyyMm: string,
+    eid: string,
+    patch: StandardRemunerationImportPatch,
+  ): Promise<void> {
+    const existing = await this.standardRemunerationDataService.get(tid, eid, yyyyMm);
+    const health =
+      patch.standardRemunerationHealth ?? existing?.standardRemuneration.health;
+    const pension =
+      patch.standardRemunerationPension ?? existing?.standardRemuneration.pension;
+    if (health == null || pension == null) {
+      throw new Error(
+        `${yyyyMm} の標準報酬月額は、健保・厚年の両方の値が必要です（${eid}）。`,
+      );
+    }
+
+    const payload = buildManualStandardRemunerationPayload({
+      effectiveFrom: yyyyMm,
+      standardRemunerationHealth: health,
+      standardRemunerationPension: pension,
+      remuneration: existing?.remuneration ?? health,
+    });
+    await this.standardRemunerationDataService.save(tid, eid, yyyyMm, payload);
   }
 
   private extractPayrollPatch(
@@ -350,12 +472,14 @@ export class MonthlyListImportService {
     payrollPatch: PayrollImportPatch,
     definitions: ReturnType<PaymentManagementDataService['allowanceTypeDefinitions']>,
     carriedBonusRelatedRemuneration: number,
+    premiumPatch: Partial<Record<PremiumAmountColumnKey, number>> = {},
   ): {
     uid: string;
     displayName: string;
     paymentBaseDays: number;
     bonusRelatedRemuneration: number;
     payrollData: PayrollData;
+    premiumData?: ReturnType<typeof mergePremiumAmountFields>;
     updatedAt: ReturnType<typeof serverTimestamp>;
   } {
     const current = {
@@ -384,6 +508,9 @@ export class MonthlyListImportService {
       bonusRelatedRemuneration:
         payrollPatch.bonusRelatedRemuneration ?? carriedBonusRelatedRemuneration,
       payrollData,
+      ...(Object.keys(premiumPatch).length > 0
+        ? { premiumData: mergePremiumAmountFields(undefined, premiumPatch) }
+        : {}),
       updatedAt: serverTimestamp(),
     };
   }

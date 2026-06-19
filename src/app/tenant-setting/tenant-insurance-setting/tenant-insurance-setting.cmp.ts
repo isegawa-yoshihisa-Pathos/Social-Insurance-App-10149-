@@ -6,7 +6,13 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
 import { HelpContentCmp } from '../../help-content/help-content.cmp';
 import { TenantSettingDataService } from '../tenant-setting-data.service';
-import { shouldShowResignPremiumCollectionSetting } from '../../../../shared/social-insurance/premium/resign-premium-collection';
+import type { PayrollPaymentMonth } from '../../../../shared/social-insurance/payroll/payroll-payment-timing';
+import {
+  isSocialInsuranceCollectionMonthAllowed,
+  normalizeSocialInsuranceCollectionMonth,
+  shouldShowResignPremiumCollectionSetting,
+  type SocialInsuranceCollectionMonth,
+} from '../../../../shared/social-insurance/premium/resign-premium-collection';
 
 @Component({
   selector: 'app-tenant-insurance-setting',
@@ -47,6 +53,26 @@ export class TenantInsuranceSettingCmp {
   get showResignPremiumCollectionSetting(): boolean {
     return shouldShowResignPremiumCollectionSetting(
       this.form.socialInsuranceSettings.socialInsuranceCollectionMonth,
+    );
+  }
+
+  isCollectionMonthOptionAllowed(month: SocialInsuranceCollectionMonth): boolean {
+    return isSocialInsuranceCollectionMonthAllowed(
+      this.form.socialInsuranceSettings.payrollPaymentMonth,
+      month,
+    );
+  }
+
+  onPayrollPaymentMonthChange(value: PayrollPaymentMonth): void {
+    this.form.socialInsuranceSettings.payrollPaymentMonth = value;
+    this.syncCollectionMonthWithPayroll();
+  }
+
+  private syncCollectionMonthWithPayroll(): void {
+    const settings = this.form.socialInsuranceSettings;
+    settings.socialInsuranceCollectionMonth = normalizeSocialInsuranceCollectionMonth(
+      settings.payrollPaymentMonth,
+      settings.socialInsuranceCollectionMonth,
     );
   }
 }

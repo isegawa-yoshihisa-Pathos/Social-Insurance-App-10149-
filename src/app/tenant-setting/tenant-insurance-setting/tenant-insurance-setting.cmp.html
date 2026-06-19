@@ -130,7 +130,10 @@
         <label class="label-name">給与支給月：</label>
         <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
             <mat-label>給与支給月</mat-label>
-            <mat-select [(ngModel)]="form.socialInsuranceSettings.payrollPaymentMonth">
+            <mat-select
+                [(ngModel)]="form.socialInsuranceSettings.payrollPaymentMonth"
+                (ngModelChange)="onPayrollPaymentMonthChange($event)"
+            >
                 <mat-option value="currentMonth">当月</mat-option>
                 <mat-option value="nextMonth">翌月</mat-option>
             </mat-select>
@@ -143,10 +146,13 @@
             <mat-label>社会保険料徴収月</mat-label>
             <mat-select [(ngModel)]="form.socialInsuranceSettings.socialInsuranceCollectionMonth">
                 <mat-option value="nextMonth">翌月</mat-option>
-                <mat-option value="currentMonth">当月</mat-option>
+                <mat-option value="currentMonth" [disabled]="!isCollectionMonthOptionAllowed('currentMonth')">当月</mat-option>
                 <mat-option value="nextNextMonth">翌々月</mat-option>
             </mat-select>
         </mat-form-field>
+        @if (!isCollectionMonthOptionAllowed('currentMonth')) {
+            <span style="font-size: 12px; color: #666; grid-column: 2 / -1;">※給与支給が「翌月」の場合、徴収「当月」は選択できません。</span>
+        }
     </div>
     @if (showResignPremiumCollectionSetting) {
         <div class="field-container">

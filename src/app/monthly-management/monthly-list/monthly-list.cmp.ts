@@ -447,6 +447,12 @@ export class MonthlyListCmp implements OnInit {
         allowances: row?.allowances ?? {},
         retroactivePay: row?.retroactivePay ?? null,
         bonusRelatedRemuneration: row?.bonusRelatedRemuneration ?? 0,
+        healthInsuranceEmployee: row?.healthInsuranceEmployee ?? null,
+        healthInsuranceTotal: row?.healthInsuranceTotal ?? null,
+        careInsuranceEmployee: row?.careInsuranceEmployee ?? null,
+        careInsuranceTotal: row?.careInsuranceTotal ?? null,
+        pensionInsuranceEmployee: row?.pensionInsuranceEmployee ?? null,
+        pensionInsuranceTotal: row?.pensionInsuranceTotal ?? null,
       };
     });
 

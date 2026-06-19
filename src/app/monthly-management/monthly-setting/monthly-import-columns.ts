@@ -87,10 +87,65 @@ export function buildAllowanceImportColumns(
   }));
 }
 
+export const PREMIUM_STANDARD_MONTHLY_IMPORT_COLUMNS: MonthlyImportColumnDef[] = [
+  {
+    key: 'standardRemunerationHealth',
+    label: '標準報酬月額（健保）',
+    defaultHeader: 'standardRemunerationHealth',
+    kind: 'number',
+  },
+  {
+    key: 'standardRemunerationPension',
+    label: '標準報酬月額（厚年）',
+    defaultHeader: 'standardRemunerationPension',
+    kind: 'number',
+  },
+  {
+    key: 'healthInsuranceEmployee',
+    label: '健保（本人）',
+    defaultHeader: 'healthInsuranceEmployee',
+    kind: 'number',
+  },
+  {
+    key: 'healthInsuranceTotal',
+    label: '健保（合計）',
+    defaultHeader: 'healthInsuranceTotal',
+    kind: 'number',
+  },
+  {
+    key: 'careInsuranceEmployee',
+    label: '介護（本人）',
+    defaultHeader: 'careInsuranceEmployee',
+    kind: 'number',
+  },
+  {
+    key: 'careInsuranceTotal',
+    label: '介護（合計）',
+    defaultHeader: 'careInsuranceTotal',
+    kind: 'number',
+  },
+  {
+    key: 'pensionInsuranceEmployee',
+    label: '厚年（本人）',
+    defaultHeader: 'pensionInsuranceEmployee',
+    kind: 'number',
+  },
+  {
+    key: 'pensionInsuranceTotal',
+    label: '厚年（合計）',
+    defaultHeader: 'pensionInsuranceTotal',
+    kind: 'number',
+  },
+];
+
 export function buildMonthlyImportColumnDefs(
   definitions: AllowanceTypeDefinition[],
 ): MonthlyImportColumnDef[] {
-  return [...STATIC_MONTHLY_IMPORT_COLUMNS, ...buildAllowanceImportColumns(definitions)];
+  return [
+    ...STATIC_MONTHLY_IMPORT_COLUMNS,
+    ...buildAllowanceImportColumns(definitions),
+    ...PREMIUM_STANDARD_MONTHLY_IMPORT_COLUMNS,
+  ];
 }
 
 export function buildDefaultImportHeaders(

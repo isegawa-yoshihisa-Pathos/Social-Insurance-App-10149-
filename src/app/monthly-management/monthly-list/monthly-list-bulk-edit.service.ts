@@ -15,8 +15,14 @@ import {
 } from './monthly-bulk-edit.types';
 import {
   BulkEditableStandardRemunerationColumnKey,
+  isBulkEditablePremiumAmountColumn,
   isBulkEditableStandardRemunerationColumn,
 } from '../monthly-premium/monthly-premium-columns';
+import {
+  applyPremiumAmountColumn,
+  premiumDataFromRow,
+  type PremiumAmountColumnKey,
+} from '../../../../shared/social-insurance/premium/premium-manual-edit.util';
 import {
   StandardRemunerationDataService,
   StandardRemunerationSavePayload,
@@ -58,6 +64,11 @@ export class MonthlyListBulkEditService {
 
     if (isBulkEditableStandardRemunerationColumn(column)) {
       await this.applyStandardRemunerationBulkEdit(tid, yyyyMm, targets, column, value);
+      return;
+    }
+
+    if (isBulkEditablePremiumAmountColumn(column)) {
+      await this.applyPremiumBulkEdit(tid, yyyyMm, targets, column as PremiumAmountColumnKey, value);
       return;
     }
 
@@ -137,6 +148,62 @@ export class MonthlyListBulkEditService {
         });
       }),
     );
+  }
+
+  private async applyPremiumBulkEdit(
+    tid: string,
+    yyyyMm: string,
+    targets: BulkEditTarget[],
+    column: PremiumAmountColumnKey,
+    value: BulkEditValue,
+  ): Promise<void> {
+    if (value == null) {
+      throw new Error('保険料は数値で入力してください。');
+    }
+
+    const batch = writeBatch(this.firestore);
+    const columnLabel = getMonthlyListColumnLabel(column, []);
+
+    for (const target of targets) {
+      const employeeRef = doc(
+        this.firestore,
+        'tenants',
+        tid,
+        'monthly-records',
+        yyyyMm,
+        'employees',
+        target.eid,
+      );
+      const premiumData = applyPremiumAmountColumn(
+        premiumDataFromRow(target),
+        column,
+        value,
+      );
+      batch.update(employeeRef, {
+        premiumData,
+        updatedAt: serverTimestamp(),
+      });
+    }
+
+    this.listDataService.touchPeriodInBatch(batch, tid, yyyyMm);
+    await batch.commit();
+
+    for (const target of targets) {
+      await this.auditLog.recordUpdate({
+        tid,
+        category: 'monthly.premium',
+        summary: `${yyyyMm} の保険料を一括更新（${columnLabel}）`,
+        target: {
+          kind: 'monthly',
+          eid: target.eid,
+          resourceId: yyyyMm,
+          label: columnLabel,
+        },
+        before: { [column]: target[column] },
+        after: { [column]: value },
+        metadata: { column, yyyyMm },
+      });
+    }
   }
 
   private buildManualStandardRemuneration(

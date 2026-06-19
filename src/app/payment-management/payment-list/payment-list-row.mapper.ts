@@ -25,7 +25,10 @@ import {
   paymentListTotalNetPayment,
 } from './payment-list-summary.util';
 
-function paymentSummaryValue(row: PaymentListRow, column: 'monthlyNetPayment' | 'bonusNetPayment' | 'totalNetPayment'): number {
+function paymentSummaryValue(
+  row: PaymentListRow,
+  column: 'monthlyNetPayment' | 'bonusNetPayment' | 'totalNetPayment',
+): number {
   if (column === 'monthlyNetPayment') return paymentListMonthlyNetPayment(row);
   if (column === 'bonusNetPayment') return paymentListBonusNetPayment(row);
   return paymentListTotalNetPayment(row);

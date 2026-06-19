@@ -301,14 +301,18 @@ export class BonusListCmp implements OnInit {
 
     this.locked.set(period?.locked === true);
 
-    const data = bonus.docs.map((snap) => {
-      const row = toBonusListRow(
-        snap.id,
-        snap.data() as Partial<BonusDocument>,
-        this.bonusManagementDataService.bonusTypeDefinitions(),
-      );
-      return this.listDataService.mergeEmployeeMeta(row, employeeLookup);
-    });
+    const data = await this.listDataService.enrichWithStandardBonus(
+      tid,
+      yyyyMm,
+      bonus.docs.map((snap) => {
+        const row = toBonusListRow(
+          snap.id,
+          snap.data() as Partial<BonusDocument>,
+          this.bonusManagementDataService.bonusTypeDefinitions(),
+        );
+        return this.listDataService.mergeEmployeeMeta(row, employeeLookup);
+      }),
+    );
     this.bonusRecordExists.set(data.length > 0);
     if (data.length > 0) {
       await this.listDataService.ensurePeriodDocument(tid, yyyyMm);
@@ -428,7 +432,16 @@ export class BonusListCmp implements OnInit {
 
     const targets = targetEids.map((eid) => {
       const row = this.dataSource.data.find((r) => r.eid === eid);
-      return { eid, bonus: row?.bonus ?? {} };
+      return {
+        eid,
+        bonus: row?.bonus ?? {},
+        healthInsuranceEmployee: row?.healthInsuranceEmployee ?? null,
+        healthInsuranceTotal: row?.healthInsuranceTotal ?? null,
+        careInsuranceEmployee: row?.careInsuranceEmployee ?? null,
+        careInsuranceTotal: row?.careInsuranceTotal ?? null,
+        pensionInsuranceEmployee: row?.pensionInsuranceEmployee ?? null,
+        pensionInsuranceTotal: row?.pensionInsuranceTotal ?? null,
+      };
     });
 
     try {

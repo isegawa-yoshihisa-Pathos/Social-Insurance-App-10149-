@@ -52,10 +52,65 @@ export function buildBonusImportColumns(
   }));
 }
 
+export const PREMIUM_STANDARD_BONUS_IMPORT_COLUMNS: BonusImportColumnDef[] = [
+  {
+    key: 'standardBonusHealth',
+    label: '標準賞与額（健保）',
+    defaultHeader: 'standardBonusHealth',
+    kind: 'number',
+  },
+  {
+    key: 'standardBonusPension',
+    label: '標準賞与額（厚年）',
+    defaultHeader: 'standardBonusPension',
+    kind: 'number',
+  },
+  {
+    key: 'healthInsuranceEmployee',
+    label: '健保（本人）',
+    defaultHeader: 'healthInsuranceEmployee',
+    kind: 'number',
+  },
+  {
+    key: 'healthInsuranceTotal',
+    label: '健保（合計）',
+    defaultHeader: 'healthInsuranceTotal',
+    kind: 'number',
+  },
+  {
+    key: 'careInsuranceEmployee',
+    label: '介護（本人）',
+    defaultHeader: 'careInsuranceEmployee',
+    kind: 'number',
+  },
+  {
+    key: 'careInsuranceTotal',
+    label: '介護（合計）',
+    defaultHeader: 'careInsuranceTotal',
+    kind: 'number',
+  },
+  {
+    key: 'pensionInsuranceEmployee',
+    label: '厚年（本人）',
+    defaultHeader: 'pensionInsuranceEmployee',
+    kind: 'number',
+  },
+  {
+    key: 'pensionInsuranceTotal',
+    label: '厚年（合計）',
+    defaultHeader: 'pensionInsuranceTotal',
+    kind: 'number',
+  },
+];
+
 export function buildBonusImportColumnDefs(
   definitions: BonusTypeDefinition[],
 ): BonusImportColumnDef[] {
-  return [...STATIC_BONUS_IMPORT_COLUMNS, ...buildBonusImportColumns(definitions)];
+  return [
+    ...STATIC_BONUS_IMPORT_COLUMNS,
+    ...buildBonusImportColumns(definitions),
+    ...PREMIUM_STANDARD_BONUS_IMPORT_COLUMNS,
+  ];
 }
 
 export function buildDefaultImportHeaders(

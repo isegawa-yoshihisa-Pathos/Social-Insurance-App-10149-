@@ -7,7 +7,6 @@ import { PaymentListRow } from './payment-list-columns';
 import { StandardRemunerationDataService } from '../../social-insurance/monthly/standard-remuneration-data.service';
 import { toPaymentListRow } from './payment-list-row.mapper';
 import { TenantSettingDataService } from '../../tenant-setting/tenant-setting-data.service';
-import { addMonths } from '../../social-insurance/monthly/social-insurance-data.util';
 import { getTargetMonths } from '../../date-utils';
 import { toFormDate } from '../../date-utils';
 import {
@@ -18,6 +17,10 @@ import {
 import type {
   ResignPremiumCollectionType,
   SocialInsuranceCollectionMonth,
+} from '../../../../shared/social-insurance/premium/resign-premium-collection';
+import {
+  getPremiumMonthForPaymentDisplay,
+  getScheduledPayMonthYyyyMm,
 } from '../../../../shared/social-insurance/premium/resign-premium-collection';
 import {
   getPaymentDisplayMonthForSalary,
@@ -52,19 +55,6 @@ export class PaymentListDataService {
   private readonly firestore = inject(Firestore);
   private readonly standardRemunerationDataService = inject(StandardRemunerationDataService);
   private readonly tenantdata = inject(TenantSettingDataService);
-
-  get collectionMonth(): number {
-    switch (this.tenantdata.form.socialInsuranceSettings.socialInsuranceCollectionMonth) {
-      case 'nextMonth':
-        return -1;
-      case 'currentMonth':
-        return 0;
-      case 'nextNextMonth':
-        return -2;
-      default:
-        return -1;
-    }
-  }
 
   private get payrollPaymentMonth(): PayrollPaymentMonth {
     return this.tenantdata.form.socialInsuranceSettings.payrollPaymentMonth ?? 'currentMonth';
@@ -161,7 +151,7 @@ export class PaymentListDataService {
 
   /** 最終月次データ月の保険料が給与管理に表示される対象月 */
   private maxPremiumDisplayMonthForSalaryData(maxSalaryMonth: string): string {
-    return addMonths(maxSalaryMonth, -this.collectionMonth);
+    return getScheduledPayMonthYyyyMm(maxSalaryMonth, this.socialInsuranceCollectionMonth);
   }
 
   private resolvePaymentHistoryDisplayMonthRange(
@@ -172,6 +162,7 @@ export class PaymentListDataService {
   ): { minDisplayMonth: string; maxDisplayMonth: string } {
     const minDisplayMonth = [
       getPaymentDisplayMonthForSalary(minSalaryMonth, this.payrollPaymentMonth),
+      getScheduledPayMonthYyyyMm(minSalaryMonth, this.socialInsuranceCollectionMonth),
       minBonusMonth,
     ]
       .filter((month): month is string => !!month)
@@ -180,7 +171,7 @@ export class PaymentListDataService {
     const maxDisplayMonth = [
       getPaymentDisplayMonthForSalary(maxSalaryMonth, this.payrollPaymentMonth),
       this.maxPremiumDisplayMonthForSalaryData(maxSalaryMonth),
-      maxBonusMonth ? addMonths(maxBonusMonth, -this.collectionMonth) : undefined,
+      maxBonusMonth,
     ]
       .filter((month): month is string => !!month)
       .sort()
@@ -215,7 +206,7 @@ export class PaymentListDataService {
     yyyyMm: string,
   ): Promise<PaymentListRow[]> {
     const salaryMonth = getSalaryMonthForPaymentDisplay(yyyyMm, this.payrollPaymentMonth);
-    const premiumMonth = addMonths(yyyyMm, this.collectionMonth);
+    const premiumMonth = getPremiumMonthForPaymentDisplay(yyyyMm, this.socialInsuranceCollectionMonth);
     const monthlySalaryRef = collection(
       this.firestore,
       'tenants',
@@ -371,7 +362,10 @@ export class PaymentListDataService {
       await Promise.all(
         [...targetMonths].map(async (yyyyMm) => {
           const salaryMonth = getSalaryMonthForPaymentDisplay(yyyyMm, this.payrollPaymentMonth);
-          const premiumMonth = addMonths(yyyyMm, this.collectionMonth);
+          const premiumMonth = getPremiumMonthForPaymentDisplay(
+            yyyyMm,
+            this.socialInsuranceCollectionMonth,
+          );
 
           const [monthlySalarySnap, monthlyPremiumSnap, bonusSnap] = await Promise.all([
             getDoc(
@@ -423,7 +417,10 @@ export class PaymentListDataService {
 
     const finalRows = await Promise.all(
       detailRows.map(async (row) => {
-        const premiumMonth = addMonths(row.yyyyMm, this.collectionMonth);
+        const premiumMonth = getPremiumMonthForPaymentDisplay(
+          row.yyyyMm,
+          this.socialInsuranceCollectionMonth,
+        );
         const enriched = await this.enrichWithStandardRemuneration(tid, premiumMonth, [row]);
         return { ...enriched[0], yyyyMm: row.yyyyMm };
       }),

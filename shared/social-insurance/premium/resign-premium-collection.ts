@@ -54,6 +54,33 @@ export function getScheduledPayMonthYyyyMm(
   return addMonths(premiumMonthYyyyMm, getPremiumToPayMonthDelay(collectionMonth));
 }
 
+/** 給与管理の表示月に、その月徴収する月次保険料が紐づく保険料対象月 */
+export function getPremiumMonthForPaymentDisplay(
+  displayYyyyMm: string,
+  collectionMonth: SocialInsuranceCollectionMonth | undefined,
+): string {
+  return addMonths(displayYyyyMm, getPayToPremiumMonthOffset(collectionMonth));
+}
+
+/** 翌月支給の場合、保険料徴収「当月」は選択不可 */
+export function isSocialInsuranceCollectionMonthAllowed(
+  payrollPaymentMonth: PayrollPaymentMonth | undefined,
+  collectionMonth: SocialInsuranceCollectionMonth,
+): boolean {
+  return !(payrollPaymentMonth === 'nextMonth' && collectionMonth === 'currentMonth');
+}
+
+export function normalizeSocialInsuranceCollectionMonth(
+  payrollPaymentMonth: PayrollPaymentMonth | undefined,
+  collectionMonth: SocialInsuranceCollectionMonth | undefined,
+): SocialInsuranceCollectionMonth {
+  const resolved = collectionMonth ?? 'nextMonth';
+  if (!isSocialInsuranceCollectionMonthAllowed(payrollPaymentMonth, resolved)) {
+    return 'nextMonth';
+  }
+  return resolved;
+}
+
 function addNullable(a: number | null | undefined, b: number | null | undefined): number | null {
   if (a == null && b == null) {
     return null;

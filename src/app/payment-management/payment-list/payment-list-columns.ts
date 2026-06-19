@@ -82,16 +82,19 @@ export function getOptionalPaymentListColumns(
   }));
 
   return [
-    { key: 'displayName', label: '??' },
-    { key: 'employeeId', label: '????' },
-    { key: 'paymentBaseDays', label: '??????' },
-    { key: 'basicSalary', label: '????' },
-    { key: 'fringeBenefits', label: '????' },
-    { key: 'fixedWage', label: '?????' },
-    { key: 'variableWage', label: '??????' },
+    ...BASE_PAYMENT_LIST_COLUMN_KEYS.slice(0, 7).map((key) => ({
+      key: key as PaymentListColumnKey,
+      label: STATIC_PAYMENT_LIST_COLUMN_LABELS[key],
+    })),
     ...allowanceColumns,
-    { key: 'retroactivePay', label: '????' },
-    { key: 'bonus', label: '????' },
+    {
+      key: 'retroactivePay' as PaymentListColumnKey,
+      label: STATIC_PAYMENT_LIST_COLUMN_LABELS.retroactivePay,
+    },
+    {
+      key: 'bonus' as PaymentListColumnKey,
+      label: STATIC_PAYMENT_LIST_COLUMN_LABELS.bonus,
+    },
     ...bonusColumns,
     ...getOptionalPremiumColumns(),
     ...PAYMENT_SUMMARY_COLUMN_KEYS.map((key) => ({

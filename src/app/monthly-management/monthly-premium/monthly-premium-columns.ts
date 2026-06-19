@@ -1,4 +1,5 @@
 import { MonthlyListColumnKey } from '../monthly-list/monthly-list-columns';
+import { isPremiumAmountColumn } from '../../../../shared/social-insurance/premium/premium-manual-edit.util';
 
 export const PREMIUM_MONTHLY_LIST_COLUMN_KEYS = [
   'standardRemunerationHealth',
@@ -49,6 +50,12 @@ export function isBulkEditableStandardRemunerationColumn(
   column: MonthlyListColumnKey,
 ): column is BulkEditableStandardRemunerationColumnKey {
   return (BULK_EDITABLE_STANDARD_REMUNERATION_COLUMN_KEYS as readonly string[]).includes(column);
+}
+
+export function isBulkEditablePremiumAmountColumn(
+  column: MonthlyListColumnKey,
+): column is PremiumMonthlyListColumnKey {
+  return isPremiumColumn(column) && isPremiumAmountColumn(column);
 }
 
 export function getPremiumColumnLabel(column: PremiumMonthlyListColumnKey): string {

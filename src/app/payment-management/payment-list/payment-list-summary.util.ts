@@ -2,13 +2,14 @@ import {
   aggregateBonusEmployerPremium,
   aggregateMonthlyEmployerPremium,
   aggregateTotalEmployerPremium,
-  bonusNetPayment,
-  monthlyNetPayment,
-  totalNetPayment,
+  paymentDisplayBonusNetPayment,
+  paymentDisplayMonthlyNetPayment,
+  paymentDisplayTotalNetPayment,
   type EmployerBurdenRoundingSettings,
 } from '../../../../shared/payment-summary.util';
 import { PaymentListRow } from './payment-list-columns';
 
+/** 表示月に支給する給与（salaryMonth の payrollData） */
 export function toMonthlyPayInput(row: PaymentListRow) {
   return {
     basicSalary: row.basicSalary,
@@ -19,6 +20,7 @@ export function toMonthlyPayInput(row: PaymentListRow) {
   };
 }
 
+/** 表示月に徴収する月次保険料（premiumMonth の premiumData・本人負担） */
 export function toMonthlyPremiumInput(row: PaymentListRow) {
   return {
     healthInsuranceEmployee: row.healthInsuranceEmployee,
@@ -30,6 +32,7 @@ export function toMonthlyPremiumInput(row: PaymentListRow) {
   };
 }
 
+/** 表示月に支給する賞与と、その月に徴収する賞与保険料 */
 export function toBonusPremiumInput(row: PaymentListRow) {
   return {
     bonus: row.bonus,
@@ -43,15 +46,15 @@ export function toBonusPremiumInput(row: PaymentListRow) {
 }
 
 export function paymentListMonthlyNetPayment(row: PaymentListRow): number {
-  return monthlyNetPayment(toMonthlyPayInput(row), toMonthlyPremiumInput(row));
+  return paymentDisplayMonthlyNetPayment(toMonthlyPayInput(row), toMonthlyPremiumInput(row));
 }
 
 export function paymentListBonusNetPayment(row: PaymentListRow): number {
-  return bonusNetPayment(toBonusPremiumInput(row));
+  return paymentDisplayBonusNetPayment(toBonusPremiumInput(row));
 }
 
 export function paymentListTotalNetPayment(row: PaymentListRow): number {
-  return totalNetPayment(
+  return paymentDisplayTotalNetPayment(
     toMonthlyPayInput(row),
     toMonthlyPremiumInput(row),
     toBonusPremiumInput(row),

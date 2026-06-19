@@ -15,6 +15,7 @@ import { BonusDocument, BonusPeriodDocument } from '../../bonus-document';
 import { BonusListRow } from './bonus-list-columns';
 import { toBonusListRow } from './bonus-list-row.mapper';
 import { BonusManagementDataService } from '../bonus-management-data.service';
+import { StandardBonusDataService } from '../../social-insurance/bonus/standard-bonus-data.service';
 import { AuditLogService } from '../../audit-log/audit-log.service';
 
 export interface BonusDetailRow extends BonusListRow {
@@ -40,6 +41,7 @@ export interface EmployeeLookupEntry {
 export class BonusListDataService {
   private readonly firestore = inject(Firestore);
   private readonly bonusManagementDataService = inject(BonusManagementDataService);
+  private readonly standardBonusDataService = inject(StandardBonusDataService);
   private readonly auditLog = inject(AuditLogService);
 
   periodRef(tid: string, yyyyMm: string) {
@@ -116,6 +118,35 @@ export class BonusListDataService {
     }
 
     return lookup;
+  }
+
+  async enrichWithStandardBonus(
+    tid: string,
+    yyyyMm: string,
+    rows: BonusListRow[],
+  ): Promise<BonusListRow[]> {
+    return Promise.all(
+      rows.map(async (row) => {
+        const doc = await this.standardBonusDataService.get(tid, row.eid, yyyyMm);
+        if (doc?.source === 'manual') {
+          return {
+            ...row,
+            standardBonusHealth: doc.standardBonus.health,
+            standardBonusPension: doc.standardBonus.pension,
+          };
+        }
+        if (row.standardBonusHealth != null && row.standardBonusPension != null) {
+          return row;
+        }
+        if (!doc) return row;
+
+        return {
+          ...row,
+          standardBonusHealth: row.standardBonusHealth ?? doc.standardBonus.health,
+          standardBonusPension: row.standardBonusPension ?? doc.standardBonus.pension,
+        };
+      }),
+    );
   }
 
   async loadEmployeeBonusHistory(

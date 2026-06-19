@@ -9,17 +9,26 @@ import {
   writeBatch,
 } from '@angular/fire/firestore';
 import { BonusAmountMap, BonusData, BonusTypeDefinition } from '../../bonus-document';
+import type { PremiumData } from '../../monthly-document';
 import { BonusManagementDataService } from '../bonus-management-data.service';
 import { BonusSettingDataService } from '../bonus-setting/bonus-setting-data.service';
 import {
   BonusImportColumnDef,
   buildBonusImportColumnDefs,
 } from '../bonus-setting/bonus-import-columns';
-import { buildBonusData } from './bonus-data.util';
+import { buildBonusData, sumBonusAmounts } from './bonus-data.util';
 import { BonusListRow } from './bonus-list-columns';
 import { BonusListDataService, EmployeeLookupEntry } from './bonus-list-data.service';
 import { resolveCsvImportLayout } from '../../csv/csv-file.util';
 import { AuditLogService } from '../../audit-log/audit-log.service';
+import { StandardBonusDataService } from '../../social-insurance/bonus/standard-bonus-data.service';
+import {
+  mergePremiumAmountFields,
+  isPremiumAmountColumn,
+  premiumDataFromRow,
+  type PremiumAmountColumnKey,
+} from '../../../../shared/social-insurance/premium/premium-manual-edit.util';
+import type { StandardBonusDocument } from '../../social-insurance/bonus/social-insurance-document';
 
 export interface BonusCsvImportOptions {
   yyyyMm: string;
@@ -39,6 +48,11 @@ export interface BonusCsvImportResult {
 interface BonusImportPatch {
   bonusAmounts?: BonusAmountMap;
   payrollFields?: Record<string, number>;
+  standardBonus: {
+    standardBonusHealth?: number;
+    standardBonusPension?: number;
+  };
+  premium: Partial<Record<PremiumAmountColumnKey, number>>;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -47,6 +61,7 @@ export class BonusListImportService {
   private readonly bonusSettingDataService = inject(BonusSettingDataService);
   private readonly bonusManagementDataService = inject(BonusManagementDataService);
   private readonly listDataService = inject(BonusListDataService);
+  private readonly standardBonusDataService = inject(StandardBonusDataService);
   private readonly auditLog = inject(AuditLogService);
 
   async importFromCsv(
@@ -96,6 +111,11 @@ export class BonusListImportService {
       skippedAmbiguous: 0,
       skippedEmpty: 0,
     };
+    const standardBonusSaves: Array<{
+      eid: string;
+      patch: BonusImportPatch['standardBonus'];
+      bonusAmount: number;
+    }> = [];
 
     for (let i = layout.dataStartIndex; i < rows.length; i++) {
       const cols = rows[i];
@@ -133,7 +153,7 @@ export class BonusListImportService {
         bonusDefinitions,
         existingRow?.bonus ?? {},
       );
-      if (!importPatch) {
+      if (!this.hasImportPatch(importPatch)) {
         result.skippedEmpty++;
         continue;
       }
@@ -149,7 +169,10 @@ export class BonusListImportService {
       );
 
       if (existingRow) {
-        batch.update(employeeRef, this.buildBonusUpdatePayload(importPatch));
+        batch.update(
+          employeeRef,
+          this.buildBonusUpdatePayload(importPatch, existingRow),
+        );
         result.updated++;
       } else {
         const employee = employeeLookup.get(matched);
@@ -160,11 +183,25 @@ export class BonusListImportService {
         batch.set(employeeRef, this.buildBonusDocument(employee, importPatch));
         result.created++;
       }
+
+      if (Object.keys(importPatch.standardBonus).length > 0) {
+        standardBonusSaves.push({
+          eid: matched,
+          patch: importPatch.standardBonus,
+          bonusAmount: sumBonusAmounts(importPatch.bonusAmounts ?? existingRow?.bonus ?? {}),
+        });
+      }
     }
 
     this.listDataService.touchPeriodInBatch(batch, tid, targetYyyyMm);
 
     await batch.commit();
+
+    await Promise.all(
+      standardBonusSaves.map(({ eid, patch, bonusAmount }) =>
+        this.saveImportedStandardBonus(tid, targetYyyyMm, eid, patch, bonusAmount),
+      ),
+    );
 
     await this.auditLog.recordCreate({
       tid,
@@ -225,10 +262,12 @@ export class BonusListImportService {
     columnDefs: BonusImportColumnDef[],
     bonusDefinitions: BonusTypeDefinition[],
     existingBonus: BonusAmountMap,
-  ): BonusImportPatch | null {
-    const bonusTypes = new Set(bonusDefinitions.map((d) => d.type));
-    const patch: BonusImportPatch = {};
-    let hasUpdate = false;
+  ): BonusImportPatch {
+    const patch: BonusImportPatch = {
+      standardBonus: {},
+      premium: {},
+    };
+    let hasPayrollUpdate = false;
 
     for (const col of columnDefs) {
       if (col.key === 'displayName' || col.key === 'employeeId') {
@@ -242,7 +281,7 @@ export class BonusListImportService {
       const num = this.parseNumber(raw);
       if (num === null) continue;
 
-      if (bonusTypes.has(col.key)) {
+      if (bonusDefinitions.some((def) => def.type === col.key)) {
         const bonusAmounts = { ...(patch.bonusAmounts ?? existingBonus) };
         if (num === 0) {
           delete bonusAmounts[col.key];
@@ -250,20 +289,87 @@ export class BonusListImportService {
           bonusAmounts[col.key] = num;
         }
         patch.bonusAmounts = bonusAmounts;
-        hasUpdate = true;
+        hasPayrollUpdate = true;
+      } else if (col.key === 'standardBonusHealth') {
+        patch.standardBonus.standardBonusHealth = num;
+      } else if (col.key === 'standardBonusPension') {
+        patch.standardBonus.standardBonusPension = num;
+      } else if (isPremiumAmountColumn(col.key)) {
+        patch.premium[col.key] = num;
       } else if (col.kind === 'number') {
         const payrollFields = { ...(patch.payrollFields ?? {}) };
         payrollFields[col.key] = num;
         patch.payrollFields = payrollFields;
-        hasUpdate = true;
+        hasPayrollUpdate = true;
       }
     }
 
-    return hasUpdate ? patch : null;
+    if (
+      !hasPayrollUpdate &&
+      Object.keys(patch.standardBonus).length === 0 &&
+      Object.keys(patch.premium).length === 0
+    ) {
+      return { standardBonus: {}, premium: {} };
+    }
+
+    return patch;
+  }
+
+  private hasImportPatch(patch: BonusImportPatch): boolean {
+    return (
+      patch.bonusAmounts != null ||
+      patch.payrollFields != null ||
+      Object.keys(patch.standardBonus).length > 0 ||
+      Object.keys(patch.premium).length > 0
+    );
+  }
+
+  private async saveImportedStandardBonus(
+    tid: string,
+    yyyyMm: string,
+    eid: string,
+    patch: BonusImportPatch['standardBonus'],
+    bonusAmount: number,
+  ): Promise<void> {
+    const existing = await this.standardBonusDataService.get(tid, eid, yyyyMm);
+    const health = patch.standardBonusHealth ?? existing?.standardBonus.health;
+    const pension = patch.standardBonusPension ?? existing?.standardBonus.pension;
+    if (health == null || pension == null) {
+      throw new Error(
+        `${yyyyMm} の標準賞与額は、健保・厚年の両方の値が必要です（${eid}）。`,
+      );
+    }
+
+    const payload = this.buildManualStandardBonusPayload(
+      existing,
+      health,
+      pension,
+      yyyyMm,
+      bonusAmount,
+    );
+    await this.standardBonusDataService.save(tid, eid, yyyyMm, payload);
+  }
+
+  private buildManualStandardBonusPayload(
+    existing: StandardBonusDocument | null,
+    health: number,
+    pension: number,
+    yyyyMm: string,
+    bonusAmount: number,
+  ) {
+    return {
+      standardBonus: { health, pension },
+      source: 'manual' as const,
+      effectiveFrom: yyyyMm,
+      bonusAmount: existing?.bonusAmount ?? bonusAmount,
+      rawStandardBonus: Math.max(health, pension),
+      skipReason: existing?.skipReason,
+    };
   }
 
   private buildBonusUpdatePayload(
     importPatch: BonusImportPatch,
+    existingRow: BonusListRow,
   ): UpdateData<DocumentData> {
     const update: Record<string, unknown> = {};
 
@@ -282,6 +388,13 @@ export class BonusListImportService {
       }
     }
 
+    if (Object.keys(importPatch.premium).length > 0) {
+      update['premiumData'] = mergePremiumAmountFields(
+        premiumDataFromRow(existingRow),
+        importPatch.premium,
+      );
+    }
+
     update['updatedAt'] = serverTimestamp();
     return update as UpdateData<DocumentData>;
   }
@@ -294,6 +407,7 @@ export class BonusListImportService {
     displayName: string;
     bonusData?: BonusData;
     payrollData?: Record<string, number>;
+    premiumData?: PremiumData;
     updatedAt: ReturnType<typeof serverTimestamp>;
   } {
     const doc: {
@@ -301,6 +415,7 @@ export class BonusListImportService {
       displayName: string;
       bonusData?: BonusData;
       payrollData?: Record<string, number>;
+      premiumData?: PremiumData;
       updatedAt: ReturnType<typeof serverTimestamp>;
     } = {
       uid: employee.uid,
@@ -317,6 +432,10 @@ export class BonusListImportService {
 
     if (importPatch.payrollFields && Object.keys(importPatch.payrollFields).length > 0) {
       doc.payrollData = importPatch.payrollFields;
+    }
+
+    if (Object.keys(importPatch.premium).length > 0) {
+      doc.premiumData = mergePremiumAmountFields(undefined, importPatch.premium);
     }
 
     return doc;
