@@ -19,7 +19,10 @@ import { MonthlyDocument } from '../../monthly-document';
 import { BulkColumnEditDialogCmp, BulkColumnEditDialogData } from './bulk-column-edit-dialog/bulk-column-edit-dialog.cmp';
 import { BulkEditableColumn, BulkEditValue, isEditableColumn } from './monthly-bulk-edit.types';
 import { MonthlyListBulkEditService } from './monthly-list-bulk-edit.service';
-import { formatMonthlyListCellValue, getMonthlyListEditValue, isSummableMonthlyListColumn, monthlyListEmployerBurden, monthlyListNumericValue, monthlyListSearchText, monthlyListSortValue, toMonthlyListRow } from './monthly-list-row.mapper';
+import { formatMonthlyListCellValue, getMonthlyListEditValue, isSummableMonthlyListColumn, monthlyListNumericValue, monthlyListSearchText, monthlyListSortValue, toMonthlyListRow } from './monthly-list-row.mapper';
+import { monthlyListEmployerBurden, type EmployerBurdenRoundingSettings } from './monthly-list-summary.util';
+import { InsuranceRateDataService } from '../../social-insurance/monthly/insurance-rate-data.service';
+import { toEmployerBurdenRoundingSettings } from '../../../../shared/social-insurance/premium/employer-burden-settings.util';
 import { YEAR_OPTIONS, MONTH_OPTIONS } from '../../datePicker';
 import { ErrorDialogCmp, mapFirebaseError } from '../../error-dialog/error-dialog.cmp';
 import { SuccessDialogCmp } from '../../success-dialog/success-dialog.cmp';
@@ -70,6 +73,7 @@ export class MonthlyListCmp implements OnInit {
   private readonly listDataService = inject(MonthlyListDataService);
   private readonly paymentManagementDataService = inject(PaymentManagementDataService);
   private readonly auditLogService = inject(AuditLogService);
+  private readonly insuranceRateDataService = inject(InsuranceRateDataService);
 
   readonly visibleColumns = computed(() => this.monthlySettingDataService.visibleColumns());
   readonly tableColumns = computed(() => ['selected', ...this.visibleColumns()]);
@@ -103,13 +107,15 @@ export class MonthlyListCmp implements OnInit {
     return this.dataSource.filteredData.length > 0;
   });
   readonly monthlyRecordExists = signal<boolean>(false);
+  readonly employerBurdenRounding = signal<EmployerBurdenRoundingSettings | null>(null);
 
   readonly tenantEmployerBurden = computed(() => {
     this.tableViewRevision();
-    return this.dataSource.filteredData.reduce(
-      (sum, row) => sum + monthlyListEmployerBurden(row),
-      0,
-    );
+    const rounding = this.employerBurdenRounding();
+    if (!rounding) {
+      return 0;
+    }
+    return monthlyListEmployerBurden(this.dataSource.filteredData, rounding);
   });
 
   premiumRecalculating = false;
@@ -283,12 +289,15 @@ export class MonthlyListCmp implements OnInit {
       yyyyMm,
       'employees',
     );
-    const [monthly, employeeLookup, period] = await Promise.all([
+    const [monthly, employeeLookup, period, rate] = await Promise.all([
       getDocs(monthlyRef),
       this.listDataService.loadEmployeeLookup(tid),
       this.listDataService.getPeriod(tid, yyyyMm),
+      this.insuranceRateDataService.resolveRateForMonth(tid, yyyyMm),
     ]);
     if (token !== undefined && token !== this.loadToken) return;
+
+    this.employerBurdenRounding.set(toEmployerBurdenRoundingSettings(rate));
 
     this.locked.set(period?.locked === true);
 

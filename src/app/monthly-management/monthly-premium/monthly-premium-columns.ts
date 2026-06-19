@@ -4,11 +4,11 @@ export const PREMIUM_MONTHLY_LIST_COLUMN_KEYS = [
   'standardRemunerationHealth',
   'standardRemunerationPension',
   'healthInsuranceEmployee',
-  'healthInsuranceEmployer',
+  'healthInsuranceTotal',
   'careInsuranceEmployee',  
-  'careInsuranceEmployer',
+  'careInsuranceTotal',
   'pensionInsuranceEmployee',
-  'pensionInsuranceEmployer',
+  'pensionInsuranceTotal',
 ] as const;
 
 export type PremiumMonthlyListColumnKey = (typeof PREMIUM_MONTHLY_LIST_COLUMN_KEYS)[number];
@@ -34,11 +34,11 @@ const PREMIUM_COLUMN_LABELS: Record<PremiumMonthlyListColumnKey, string> = {
   standardRemunerationHealth: '標準報酬月額（健保）',
   standardRemunerationPension: '標準報酬月額（厚年）',
   healthInsuranceEmployee: '健保（本人）',
-  healthInsuranceEmployer: '健保（事業主）',
+  healthInsuranceTotal: '健保（合計）',
   careInsuranceEmployee: '介護（本人）',
-  careInsuranceEmployer: '介護（事業主）',
+  careInsuranceTotal: '介護（合計）',
   pensionInsuranceEmployee: '厚年（本人）',
-  pensionInsuranceEmployer: '厚年（事業主）',
+  pensionInsuranceTotal: '厚年（合計）',
 };
 
 export function isPremiumColumn(column: MonthlyListColumnKey): column is PremiumMonthlyListColumnKey {

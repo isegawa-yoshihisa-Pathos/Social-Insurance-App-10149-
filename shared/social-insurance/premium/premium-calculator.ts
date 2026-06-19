@@ -180,8 +180,8 @@ export function reachedMonth(date: Date): { yyyy: number; mm: number } {
 
 function toPremiumPart(
   split: SplitPremiumResult,
-): { employer: number; employee: number } {
-  return { employer: split.employer, employee: split.employee };
+): { total: number; employee: number } {
+  return { total: split.total, employee: split.employee };
 }
 
 export interface BonusPremiumCalculationInput extends CareInsuranceCollectionInput {
@@ -203,9 +203,9 @@ export interface BonusPremiumCalculationInput extends CareInsuranceCollectionInp
 
 function emptyPremiumData(): PremiumData {
   return {
-    healthInsurance: { employer: null, employee: null },
-    careInsurance: { employer: null, employee: null },
-    pensionInsurance: { employer: null, employee: null },
+    healthInsurance: { total: null, employee: null },
+    careInsurance: { total: null, employee: null },
+    pensionInsurance: { total: null, employee: null },
   };
 }
 
@@ -247,17 +247,17 @@ export function calculateMonthlyPremium(input: PremiumCalculationInput): Premium
   const roundingBoundaryType = normalizeRoundingBoundaryType(input.roundingBoundaryType);
 
   let health: PremiumData['healthInsurance'] = {
-    employer: null,
+    total: null,
     employee: null,
   };
 
   let pension: PremiumData['pensionInsurance'] = {
-    employer: null,
+    total: null,
     employee: null,
   };
 
   let care: PremiumData['careInsurance'] = {
-    employer: null,
+    total: null,
     employee: null,
   };
 

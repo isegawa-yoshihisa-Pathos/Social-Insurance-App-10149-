@@ -82,16 +82,16 @@ export function getOptionalPaymentListColumns(
   }));
 
   return [
-    { key: 'displayName', label: '氏名' },
-    { key: 'employeeId', label: '社員番号' },
-    { key: 'paymentBaseDays', label: '支払基礎日数' },
-    { key: 'basicSalary', label: '基本給与' },
-    { key: 'fringeBenefits', label: '現物給与' },
-    { key: 'fixedWage', label: '固定的賃金' },
-    { key: 'variableWage', label: '非固定的賃金' },
+    { key: 'displayName', label: '??' },
+    { key: 'employeeId', label: '????' },
+    { key: 'paymentBaseDays', label: '??????' },
+    { key: 'basicSalary', label: '????' },
+    { key: 'fringeBenefits', label: '????' },
+    { key: 'fixedWage', label: '?????' },
+    { key: 'variableWage', label: '??????' },
     ...allowanceColumns,
-    { key: 'retroactivePay', label: '遡及支払' },
-    { key: 'bonus', label: '賞与合計' },
+    { key: 'retroactivePay', label: '????' },
+    { key: 'bonus', label: '????' },
     ...bonusColumns,
     ...getOptionalPremiumColumns(),
     ...PAYMENT_SUMMARY_COLUMN_KEYS.map((key) => ({
@@ -176,17 +176,17 @@ export interface PaymentListRow {
   standardRemunerationHealth: number | null;
   standardRemunerationPension: number | null;
   healthInsuranceEmployee: number | null;
-  healthInsuranceEmployer: number | null;
+  healthInsuranceTotal: number | null;
   careInsuranceEmployee: number | null;
-  careInsuranceEmployer: number | null;
+  careInsuranceTotal: number | null;
   pensionInsuranceEmployee: number | null;
-  pensionInsuranceEmployer: number | null;
+  pensionInsuranceTotal: number | null;
   standardBonusHealth: number | null;
   standardBonusPension: number | null;
   bonusHealthInsuranceEmployee: number | null;
-  bonusHealthInsuranceEmployer: number | null;
+  bonusHealthInsuranceTotal: number | null;
   bonusCareInsuranceEmployee: number | null;
-  bonusCareInsuranceEmployer: number | null;
+  bonusCareInsuranceTotal: number | null;
   bonusPensionInsuranceEmployee: number | null;
-  bonusPensionInsuranceEmployer: number | null;
+  bonusPensionInsuranceTotal: number | null;
 }

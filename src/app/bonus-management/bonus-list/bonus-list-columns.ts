@@ -140,11 +140,11 @@ export interface BonusListRow {
   standardBonusHealth: number | null;
   standardBonusPension: number | null;
   healthInsuranceEmployee: number | null;
-  healthInsuranceEmployer: number | null;
+  healthInsuranceTotal: number | null;
   careInsuranceEmployee: number | null;
-  careInsuranceEmployer: number | null;
+  careInsuranceTotal: number | null;
   pensionInsuranceEmployee: number | null;
-  pensionInsuranceEmployer: number | null;
+  pensionInsuranceTotal: number | null;
 }
 
 export interface BonusListRowForEmployee {

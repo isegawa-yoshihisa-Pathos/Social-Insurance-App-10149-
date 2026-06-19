@@ -20,7 +20,10 @@ import { BonusDocument } from '../../bonus-document';
 import { BulkColumnEditDialogCmp, BulkColumnEditDialogData } from './bulk-column-edit-dialog/bulk-column-edit-dialog.cmp';
 import { BulkEditableColumn, BulkEditValue, isEditableColumn } from './bonus-bulk-edit.types';
 import { BonusListBulkEditService } from './bonus-list-bulk-edit.service';
-import { formatBonusListCellValue, getBonusListEditValue, isSummableBonusListColumn, bonusListEmployerBurden, bonusListNumericValue, bonusListSearchText, bonusListSortValue, toBonusListRow } from './bonus-list-row.mapper';
+import { formatBonusListCellValue, getBonusListEditValue, isSummableBonusListColumn, bonusListNumericValue, bonusListSearchText, bonusListSortValue, toBonusListRow } from './bonus-list-row.mapper';
+import { bonusListEmployerBurden, type EmployerBurdenRoundingSettings } from './bonus-list-summary.util';
+import { InsuranceRateDataService } from '../../social-insurance/monthly/insurance-rate-data.service';
+import { toEmployerBurdenRoundingSettings } from '../../../../shared/social-insurance/premium/employer-burden-settings.util';
 import { YEAR_OPTIONS, MONTH_OPTIONS } from '../../datePicker';
 import { ErrorDialogCmp, mapFirebaseError } from '../../error-dialog/error-dialog.cmp';
 import { SuccessDialogCmp } from '../../success-dialog/success-dialog.cmp';
@@ -69,6 +72,7 @@ export class BonusListCmp implements OnInit {
   private readonly exportService = inject(BonusListExportService);
   private readonly listDataService = inject(BonusListDataService);
   private readonly auditLogService = inject(AuditLogService);
+  private readonly insuranceRateDataService = inject(InsuranceRateDataService);
 
   readonly visibleColumns = computed(() => this.bonusSettingDataService.visibleColumns());
   readonly tableColumns = computed(() => ['selected', ...this.visibleColumns()]);
@@ -106,13 +110,15 @@ export class BonusListCmp implements OnInit {
     return this.dataSource.filteredData.length > 0;
   });
   readonly bonusRecordExists = signal<boolean>(false);
+  readonly employerBurdenRounding = signal<EmployerBurdenRoundingSettings | null>(null);
 
   readonly tenantEmployerBurden = computed(() => {
     this.tableViewRevision();
-    return this.dataSource.filteredData.reduce(
-      (sum, row) => sum + bonusListEmployerBurden(row),
-      0,
-    );
+    const rounding = this.employerBurdenRounding();
+    if (!rounding) {
+      return 0;
+    }
+    return bonusListEmployerBurden(this.dataSource.filteredData, rounding);
   });
 
   premiumRecalculating = false;
@@ -283,12 +289,15 @@ export class BonusListCmp implements OnInit {
       yyyyMm,
       'employees',
     );
-    const [bonus, employeeLookup, period] = await Promise.all([
+    const [bonus, employeeLookup, period, rate] = await Promise.all([
       getDocs(bonusRef),
       this.listDataService.loadEmployeeLookup(tid),
       this.listDataService.getPeriod(tid, yyyyMm),
+      this.insuranceRateDataService.resolveRateForMonth(tid, yyyyMm),
     ]);
     if (token !== undefined && token !== this.loadToken) return;
+
+    this.employerBurdenRounding.set(toEmployerBurdenRoundingSettings(rate));
 
     this.locked.set(period?.locked === true);
 

@@ -1,33 +1,17 @@
 import { BonusTypeDefinition, BonusDocument } from '../../bonus-document';
 import { bonusTypeFromColumnKey } from './bonus-display.util';
 import { extractBonusAmounts } from './bonus-data.util';
-import { BONUS_NET_PAYMENT_COLUMN_KEY } from './bonus-list-columns';
-import { bonusEmployerPremium, bonusNetPayment } from '../../../../shared/payment-summary.util';
-
-function toBonusPremiumInput(row: BonusListRow) {
-  return {
-    bonus: row.bonus,
-    bonusHealthInsuranceEmployee: row.healthInsuranceEmployee,
-    bonusCareInsuranceEmployee: row.careInsuranceEmployee,
-    bonusPensionInsuranceEmployee: row.pensionInsuranceEmployee,
-    bonusHealthInsuranceEmployer: row.healthInsuranceEmployer,
-    bonusCareInsuranceEmployer: row.careInsuranceEmployer,
-    bonusPensionInsuranceEmployer: row.pensionInsuranceEmployer,
-  };
-}
+import { BONUS_NET_PAYMENT_COLUMN_KEY, BonusListColumnKey, BonusListRow } from './bonus-list-columns';
+import { bonusNetPayment } from '../../../../shared/payment-summary.util';
+import { toBonusPremiumInput } from './bonus-list-summary.util';
+import { BulkEditValue } from './bonus-bulk-edit.types';
+import { Format } from '../../format-number-jp';
+import { isPremiumColumn } from '../bonus-premium/bonus-premium-columns';
+import { applyPremiumFieldsToRow, formatPremiumCellValue, premiumSortValue, premiumSearchText } from '../bonus-premium/bonus-premium-row.mapper';
 
 function bonusRowNetPayment(row: BonusListRow): number {
   return bonusNetPayment(toBonusPremiumInput(row));
 }
-
-export function bonusListEmployerBurden(row: BonusListRow): number {
-  return bonusEmployerPremium(toBonusPremiumInput(row));
-}
-import { BulkEditValue } from './bonus-bulk-edit.types';
-import { BonusListColumnKey, BonusListRow } from './bonus-list-columns';
-import { Format } from '../../format-number-jp';
-import { isPremiumColumn } from '../bonus-premium/bonus-premium-columns';
-import { applyPremiumFieldsToRow, formatPremiumCellValue, premiumSortValue, premiumSearchText } from '../bonus-premium/bonus-premium-row.mapper';
 
 export function toBonusListRow(
   eid: string,

@@ -198,11 +198,11 @@ export interface MonthlyListRow {
   standardRemunerationHealth: number | null;
   standardRemunerationPension: number | null;
   healthInsuranceEmployee: number | null;
-  healthInsuranceEmployer: number | null;
+  healthInsuranceTotal: number | null;
   careInsuranceEmployee: number | null;
-  careInsuranceEmployer: number | null;
+  careInsuranceTotal: number | null;
   pensionInsuranceEmployee: number | null;
-  pensionInsuranceEmployer: number | null;
+  pensionInsuranceTotal: number | null;
 }
 
 export interface MonthlyListRowForEmployee {

@@ -71,15 +71,15 @@ export interface PayrollData {
 
 export interface PremiumData {
     healthInsurance: {
-        employer: number | null;
+        total: number | null;
         employee: number | null;
     };
     careInsurance: {
-        employer: number | null;
+        total: number | null;
         employee: number | null;
     };
     pensionInsurance: {
-        employer: number | null;
+        total: number | null;
         employee: number | null;
     };
 }

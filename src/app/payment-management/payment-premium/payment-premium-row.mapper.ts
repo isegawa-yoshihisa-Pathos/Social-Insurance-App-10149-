@@ -16,11 +16,11 @@ export function applyMonthlyPremiumFieldsToRow(
     standardRemunerationHealth: snapshot?.standardRemuneration.health ?? null,
     standardRemunerationPension: snapshot?.standardRemuneration.pension ?? null,
     healthInsuranceEmployee: premium?.healthInsurance.employee ?? null,
-    healthInsuranceEmployer: premium?.healthInsurance.employer ?? null,
+    healthInsuranceTotal: premium?.healthInsurance.total ?? null,
     careInsuranceEmployee: premium?.careInsurance.employee ?? null,
-    careInsuranceEmployer: premium?.careInsurance.employer ?? null,
+    careInsuranceTotal: premium?.careInsurance.total ?? null,
     pensionInsuranceEmployee: premium?.pensionInsurance.employee ?? null,
-    pensionInsuranceEmployer: premium?.pensionInsurance.employer ?? null,
+    pensionInsuranceTotal: premium?.pensionInsurance.total ?? null,
   };
 }
 
@@ -36,11 +36,11 @@ export function applyBonusPremiumFieldsToRow(
     standardBonusHealth: snapshot?.standardBonus.health ?? null,
     standardBonusPension: snapshot?.standardBonus.pension ?? null,
     bonusHealthInsuranceEmployee: premium?.healthInsurance.employee ?? null,
-    bonusHealthInsuranceEmployer: premium?.healthInsurance.employer ?? null,
+    bonusHealthInsuranceTotal: premium?.healthInsurance.total ?? null,
     bonusCareInsuranceEmployee: premium?.careInsurance.employee ?? null,
-    bonusCareInsuranceEmployer: premium?.careInsurance.employer ?? null,
+    bonusCareInsuranceTotal: premium?.careInsurance.total ?? null,
     bonusPensionInsuranceEmployee: premium?.pensionInsurance.employee ?? null,
-    bonusPensionInsuranceEmployer: premium?.pensionInsurance.employer ?? null,
+    bonusPensionInsuranceTotal: premium?.pensionInsurance.total ?? null,
   };
 }
 

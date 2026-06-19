@@ -7,14 +7,10 @@ import { isPremiumColumn } from '../monthly-premium/monthly-premium-columns';
 import { applyPremiumFieldsToRow, formatPremiumCellValue, premiumSortValue, premiumSearchText } from '../monthly-premium/monthly-premium-row.mapper';
 import { allowanceTypeFromColumnKey } from '../../payment-management/payment-list/allowance-display.util';
 import { MONTHLY_NET_PAYMENT_COLUMN_KEY } from './monthly-list-columns';
-import { monthlyEmployerPremium, monthlyNetPayment } from '../../../../shared/payment-summary.util';
+import { monthlyNetPayment } from '../../../../shared/payment-summary.util';
 
 function monthlyRowNetPayment(row: MonthlyListRow): number {
   return monthlyNetPayment(row, row);
-}
-
-export function monthlyListEmployerBurden(row: MonthlyListRow): number {
-  return monthlyEmployerPremium(row);
 }
 
 export function toMonthlyListRow(

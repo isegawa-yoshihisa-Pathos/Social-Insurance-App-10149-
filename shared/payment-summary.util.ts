@@ -1,5 +1,10 @@
 import type { AllowanceData } from './payment-document';
 import type { BonusAmountMap } from './bonus-document';
+import {
+  aggregateEmployerPremiumBurden,
+  type AggregatePremiumRow,
+  type EmployerBurdenRoundingSettings,
+} from './social-insurance/premium/employer-premium-aggregate';
 
 export function premiumAmount(value: number | null | undefined): number {
   return value ?? 0;
@@ -25,9 +30,9 @@ export interface MonthlyPremiumInput {
   healthInsuranceEmployee: number | null;
   careInsuranceEmployee: number | null;
   pensionInsuranceEmployee: number | null;
-  healthInsuranceEmployer: number | null;
-  careInsuranceEmployer: number | null;
-  pensionInsuranceEmployer: number | null;
+  healthInsuranceTotal: number | null;
+  careInsuranceTotal: number | null;
+  pensionInsuranceTotal: number | null;
 }
 
 export interface BonusPremiumInput {
@@ -35,9 +40,33 @@ export interface BonusPremiumInput {
   bonusHealthInsuranceEmployee: number | null;
   bonusCareInsuranceEmployee: number | null;
   bonusPensionInsuranceEmployee: number | null;
-  bonusHealthInsuranceEmployer: number | null;
-  bonusCareInsuranceEmployer: number | null;
-  bonusPensionInsuranceEmployer: number | null;
+  bonusHealthInsuranceTotal: number | null;
+  bonusCareInsuranceTotal: number | null;
+  bonusPensionInsuranceTotal: number | null;
+}
+
+export function toAggregatePremiumRow(input: {
+  healthInsuranceEmployee: number | null;
+  healthInsuranceTotal: number | null;
+  careInsuranceEmployee: number | null;
+  careInsuranceTotal: number | null;
+  pensionInsuranceEmployee: number | null;
+  pensionInsuranceTotal: number | null;
+}): AggregatePremiumRow {
+  return {
+    healthInsurance: {
+      employee: input.healthInsuranceEmployee,
+      total: input.healthInsuranceTotal,
+    },
+    careInsurance: {
+      employee: input.careInsuranceEmployee,
+      total: input.careInsuranceTotal,
+    },
+    pensionInsurance: {
+      employee: input.pensionInsuranceEmployee,
+      total: input.pensionInsuranceTotal,
+    },
+  };
 }
 
 export function monthlyGrossPay(input: MonthlyPayInput): number {
@@ -58,11 +87,13 @@ export function monthlyEmployeePremium(input: MonthlyPremiumInput): number {
   );
 }
 
-export function monthlyEmployerPremium(input: MonthlyPremiumInput): number {
-  return (
-    premiumAmount(input.healthInsuranceEmployer)
-    + premiumAmount(input.careInsuranceEmployer)
-    + premiumAmount(input.pensionInsuranceEmployer)
+export function aggregateMonthlyEmployerPremium(
+  rows: readonly MonthlyPremiumInput[],
+  settings: EmployerBurdenRoundingSettings,
+): number {
+  return aggregateEmployerPremiumBurden(
+    rows.map((row) => toAggregatePremiumRow(row)),
+    settings,
   );
 }
 
@@ -85,11 +116,20 @@ export function bonusEmployeePremium(input: BonusPremiumInput): number {
   );
 }
 
-export function bonusEmployerPremium(input: BonusPremiumInput): number {
-  return (
-    premiumAmount(input.bonusHealthInsuranceEmployer)
-    + premiumAmount(input.bonusCareInsuranceEmployer)
-    + premiumAmount(input.bonusPensionInsuranceEmployer)
+export function aggregateBonusEmployerPremium(
+  rows: readonly BonusPremiumInput[],
+  settings: EmployerBurdenRoundingSettings,
+): number {
+  return aggregateEmployerPremiumBurden(
+    rows.map((row) => toAggregatePremiumRow({
+      healthInsuranceEmployee: row.bonusHealthInsuranceEmployee,
+      healthInsuranceTotal: row.bonusHealthInsuranceTotal,
+      careInsuranceEmployee: row.bonusCareInsuranceEmployee,
+      careInsuranceTotal: row.bonusCareInsuranceTotal,
+      pensionInsuranceEmployee: row.bonusPensionInsuranceEmployee,
+      pensionInsuranceTotal: row.bonusPensionInsuranceTotal,
+    })),
+    settings,
   );
 }
 
@@ -105,9 +145,15 @@ export function totalNetPayment(
   return monthlyNetPayment(pay, monthlyPremium) + bonusNetPayment(bonusPremium);
 }
 
-export function totalEmployerPremium(
-  monthlyPremium: MonthlyPremiumInput,
-  bonusPremium: BonusPremiumInput,
+export function aggregateTotalEmployerPremium(
+  monthlyRows: readonly MonthlyPremiumInput[],
+  bonusRows: readonly BonusPremiumInput[],
+  settings: EmployerBurdenRoundingSettings,
 ): number {
-  return monthlyEmployerPremium(monthlyPremium) + bonusEmployerPremium(bonusPremium);
+  return (
+    aggregateMonthlyEmployerPremium(monthlyRows, settings)
+    + aggregateBonusEmployerPremium(bonusRows, settings)
+  );
 }
+
+export type { EmployerBurdenRoundingSettings };

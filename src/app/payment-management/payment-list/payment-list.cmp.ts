@@ -16,7 +16,10 @@ import {
   paymentListBonusEmployerBurden,
   paymentListMonthlyEmployerBurden,
   paymentListTotalEmployerBurden,
+  type EmployerBurdenRoundingSettings,
 } from './payment-list-summary.util';
+import { InsuranceRateDataService } from '../../social-insurance/monthly/insurance-rate-data.service';
+import { toEmployerBurdenRoundingSettings } from '../../../../shared/social-insurance/premium/employer-burden-settings.util';
 import { YEAR_OPTIONS, MONTH_OPTIONS } from '../../datePicker';
 import { PaymentSettingDataService } from '../payment-setting/payment-setting-data.service';
 import { PaymentListDataService } from './payment-list-data.service';
@@ -57,6 +60,7 @@ export class PaymentListCmp implements OnInit {
   private readonly monthlySettingDataService = inject(MonthlySettingDataService);
   private readonly bonusSettingDataService = inject(BonusSettingDataService);
   private readonly tenantSettingDataService = inject(TenantSettingDataService);
+  private readonly insuranceRateDataService = inject(InsuranceRateDataService);
 
   readonly visibleColumns = computed(() => this.paymentSettingDataService.visibleColumns());
   readonly tableColumns = computed(() => this.visibleColumns());
@@ -93,13 +97,19 @@ export class PaymentListCmp implements OnInit {
     return this.dataSource.filteredData.length > 0;
   });
 
+  readonly employerBurdenRounding = signal<EmployerBurdenRoundingSettings | null>(null);
+
   readonly tenantEmployerSummary = computed(() => {
     this.tableViewRevision();
     const rows = this.dataSource.filteredData;
+    const rounding = this.employerBurdenRounding();
+    if (!rounding) {
+      return { monthly: 0, bonus: 0, total: 0 };
+    }
     return {
-      monthly: rows.reduce((sum, row) => sum + paymentListMonthlyEmployerBurden(row), 0),
-      bonus: rows.reduce((sum, row) => sum + paymentListBonusEmployerBurden(row), 0),
-      total: rows.reduce((sum, row) => sum + paymentListTotalEmployerBurden(row), 0),
+      monthly: paymentListMonthlyEmployerBurden(rows, rounding),
+      bonus: paymentListBonusEmployerBurden(rows, rounding),
+      total: paymentListTotalEmployerBurden(rows, rounding),
     };
   });
 
@@ -240,11 +250,12 @@ export class PaymentListCmp implements OnInit {
         if (token !== this.loadToken) return;
         this.settingsLoadedTid = tid;
       }
-      const data = await this.listDataService.loadAggregatedRows(
-        tid,
-        ym,
-      );
+      const [data, rate] = await Promise.all([
+        this.listDataService.loadAggregatedRows(tid, ym),
+        this.insuranceRateDataService.resolveRateForMonth(tid, ym),
+      ]);
       if (token !== this.loadToken) return;
+      this.employerBurdenRounding.set(toEmployerBurdenRoundingSettings(rate));
       this.dataSource.data = data;
       this.refreshTableView();
     } finally {

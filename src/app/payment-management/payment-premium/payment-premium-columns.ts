@@ -4,22 +4,22 @@ export const PREMIUM_MONTHLY_PAYMENT_LIST_COLUMN_KEYS = [
   'standardRemunerationHealth',
   'standardRemunerationPension',
   'healthInsuranceEmployee',
-  'healthInsuranceEmployer',
+  'healthInsuranceTotal',
   'careInsuranceEmployee',
-  'careInsuranceEmployer',
+  'careInsuranceTotal',
   'pensionInsuranceEmployee',
-  'pensionInsuranceEmployer',
+  'pensionInsuranceTotal',
 ] as const;
 
 export const PREMIUM_BONUS_PAYMENT_LIST_COLUMN_KEYS = [
   'standardBonusHealth',
   'standardBonusPension',
   'bonusHealthInsuranceEmployee',
-  'bonusHealthInsuranceEmployer',
+  'bonusHealthInsuranceTotal',
   'bonusCareInsuranceEmployee',
-  'bonusCareInsuranceEmployer',
+  'bonusCareInsuranceTotal',
   'bonusPensionInsuranceEmployee',
-  'bonusPensionInsuranceEmployer',
+  'bonusPensionInsuranceTotal',
 ] as const;
 
 export const PREMIUM_PAYMENT_LIST_COLUMN_KEYS = [
@@ -44,25 +44,25 @@ export type BulkEditableStandardRemunerationColumnKey =
   (typeof BULK_EDITABLE_STANDARD_REMUNERATION_COLUMN_KEYS)[number];
 
 const MONTHLY_PREMIUM_COLUMN_LABELS: Record<PremiumMonthlyPaymentListColumnKey, string> = {
-  standardRemunerationHealth: '標準報酬月額（健保）',
-  standardRemunerationPension: '標準報酬月額（厚年）',
-  healthInsuranceEmployee: '健保（本人・月次）',
-  healthInsuranceEmployer: '健保（事業主・月次）',
-  careInsuranceEmployee: '介護（本人・月次）',
-  careInsuranceEmployer: '介護（事業主・月次）',
-  pensionInsuranceEmployee: '厚年（本人・月次）',
-  pensionInsuranceEmployer: '厚年（事業主・月次）',
+  standardRemunerationHealth: '??????????',
+  standardRemunerationPension: '??????????',
+  healthInsuranceEmployee: '?????????',
+  healthInsuranceTotal: '?????????',
+  careInsuranceEmployee: '?????????',
+  careInsuranceTotal: '?????????',
+  pensionInsuranceEmployee: '?????????',
+  pensionInsuranceTotal: '?????????',
 };
 
 const BONUS_PREMIUM_COLUMN_LABELS: Record<PremiumBonusPaymentListColumnKey, string> = {
-  standardBonusHealth: '標準賞与額（健保）',
-  standardBonusPension: '標準賞与額（厚年）',
-  bonusHealthInsuranceEmployee: '健保（本人・賞与）',
-  bonusHealthInsuranceEmployer: '健保（事業主・賞与）',
-  bonusCareInsuranceEmployee: '介護（本人・賞与）',
-  bonusCareInsuranceEmployer: '介護（事業主・賞与）',
-  bonusPensionInsuranceEmployee: '厚年（本人・賞与）',
-  bonusPensionInsuranceEmployer: '厚年（事業主・賞与）',
+  standardBonusHealth: '?????????',
+  standardBonusPension: '?????????',
+  bonusHealthInsuranceEmployee: '?????????',
+  bonusHealthInsuranceTotal: '?????????',
+  bonusCareInsuranceEmployee: '?????????',
+  bonusCareInsuranceTotal: '?????????',
+  bonusPensionInsuranceEmployee: '?????????',
+  bonusPensionInsuranceTotal: '?????????',
 };
 
 export function isPremiumColumn(column: PaymentListColumnKey): column is PremiumPaymentListColumnKey {

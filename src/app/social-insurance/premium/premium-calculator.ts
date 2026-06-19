@@ -50,8 +50,8 @@ export function isCareInsuranceTarget(
 
 function toPremiumPart(
   split: SplitPremiumResult,
-): { employer: number; employee: number } {
-  return { employer: split.employer, employee: split.employee };
+): { total: number; employee: number } {
+  return { total: split.total, employee: split.employee };
 }
 
 export interface BonusPremiumCalculationInput {
@@ -106,7 +106,7 @@ export function calculateMonthlyPremium(input: PremiumCalculationInput): Premium
   );
 
   let care: PremiumData['careInsurance'] = {
-    employer: null,
+    total: null,
     employee: null,
   };
 

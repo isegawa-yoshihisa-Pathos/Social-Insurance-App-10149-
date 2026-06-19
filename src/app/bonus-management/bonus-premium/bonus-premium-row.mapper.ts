@@ -15,11 +15,11 @@ export function applyPremiumFieldsToRow(
     standardBonusHealth: snapshot?.standardBonus.health ?? null,
     standardBonusPension: snapshot?.standardBonus.pension ?? null,
     healthInsuranceEmployee: premium?.healthInsurance.employee ?? null,
-    healthInsuranceEmployer: premium?.healthInsurance.employer ?? null,
+    healthInsuranceTotal: premium?.healthInsurance.total ?? null,
     careInsuranceEmployee: premium?.careInsurance.employee ?? null,
-    careInsuranceEmployer: premium?.careInsurance.employer ?? null,
+    careInsuranceTotal: premium?.careInsurance.total ?? null,
     pensionInsuranceEmployee: premium?.pensionInsurance.employee ?? null,
-    pensionInsuranceEmployer: premium?.pensionInsurance.employer ?? null,
+    pensionInsuranceTotal: premium?.pensionInsurance.total ?? null,
   };
 }
 

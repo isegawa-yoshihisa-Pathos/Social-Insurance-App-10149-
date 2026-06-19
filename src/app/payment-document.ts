@@ -83,15 +83,15 @@ export const DEFAULT_ALLOWANCE_TYPE_DEFINITIONS: readonly AllowanceTypeDefinitio
 
 export interface PremiumData {
     healthInsurance: {
-        employer: number;
-        employee: number;
+        total: number | null;
+        employee: number | null;
     };
     careInsurance: {
-        employer: number | null;
+        total: number | null;
         employee: number | null;
     };
     pensionInsurance: {
-        employer: number;
-        employee: number;
+        total: number | null;
+        employee: number | null;
     };
 }

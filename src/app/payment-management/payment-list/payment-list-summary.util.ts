@@ -1,10 +1,11 @@
 import {
-  bonusEmployerPremium,
+  aggregateBonusEmployerPremium,
+  aggregateMonthlyEmployerPremium,
+  aggregateTotalEmployerPremium,
   bonusNetPayment,
-  monthlyEmployerPremium,
   monthlyNetPayment,
-  totalEmployerPremium,
   totalNetPayment,
+  type EmployerBurdenRoundingSettings,
 } from '../../../../shared/payment-summary.util';
 import { PaymentListRow } from './payment-list-columns';
 
@@ -23,9 +24,9 @@ export function toMonthlyPremiumInput(row: PaymentListRow) {
     healthInsuranceEmployee: row.healthInsuranceEmployee,
     careInsuranceEmployee: row.careInsuranceEmployee,
     pensionInsuranceEmployee: row.pensionInsuranceEmployee,
-    healthInsuranceEmployer: row.healthInsuranceEmployer,
-    careInsuranceEmployer: row.careInsuranceEmployer,
-    pensionInsuranceEmployer: row.pensionInsuranceEmployer,
+    healthInsuranceTotal: row.healthInsuranceTotal,
+    careInsuranceTotal: row.careInsuranceTotal,
+    pensionInsuranceTotal: row.pensionInsuranceTotal,
   };
 }
 
@@ -35,9 +36,9 @@ export function toBonusPremiumInput(row: PaymentListRow) {
     bonusHealthInsuranceEmployee: row.bonusHealthInsuranceEmployee,
     bonusCareInsuranceEmployee: row.bonusCareInsuranceEmployee,
     bonusPensionInsuranceEmployee: row.bonusPensionInsuranceEmployee,
-    bonusHealthInsuranceEmployer: row.bonusHealthInsuranceEmployer,
-    bonusCareInsuranceEmployer: row.bonusCareInsuranceEmployer,
-    bonusPensionInsuranceEmployer: row.bonusPensionInsuranceEmployer,
+    bonusHealthInsuranceTotal: row.bonusHealthInsuranceTotal,
+    bonusCareInsuranceTotal: row.bonusCareInsuranceTotal,
+    bonusPensionInsuranceTotal: row.bonusPensionInsuranceTotal,
   };
 }
 
@@ -57,14 +58,29 @@ export function paymentListTotalNetPayment(row: PaymentListRow): number {
   );
 }
 
-export function paymentListMonthlyEmployerBurden(row: PaymentListRow): number {
-  return monthlyEmployerPremium(toMonthlyPremiumInput(row));
+export function paymentListMonthlyEmployerBurden(
+  rows: readonly PaymentListRow[],
+  settings: EmployerBurdenRoundingSettings,
+): number {
+  return aggregateMonthlyEmployerPremium(rows.map((row) => toMonthlyPremiumInput(row)), settings);
 }
 
-export function paymentListBonusEmployerBurden(row: PaymentListRow): number {
-  return bonusEmployerPremium(toBonusPremiumInput(row));
+export function paymentListBonusEmployerBurden(
+  rows: readonly PaymentListRow[],
+  settings: EmployerBurdenRoundingSettings,
+): number {
+  return aggregateBonusEmployerPremium(rows.map((row) => toBonusPremiumInput(row)), settings);
 }
 
-export function paymentListTotalEmployerBurden(row: PaymentListRow): number {
-  return totalEmployerPremium(toMonthlyPremiumInput(row), toBonusPremiumInput(row));
+export function paymentListTotalEmployerBurden(
+  rows: readonly PaymentListRow[],
+  settings: EmployerBurdenRoundingSettings,
+): number {
+  return aggregateTotalEmployerPremium(
+    rows.map((row) => toMonthlyPremiumInput(row)),
+    rows.map((row) => toBonusPremiumInput(row)),
+    settings,
+  );
 }
+
+export type { EmployerBurdenRoundingSettings };

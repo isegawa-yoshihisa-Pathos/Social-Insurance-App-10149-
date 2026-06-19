@@ -66,7 +66,7 @@ function addPremiumPart(
   b: PremiumData['healthInsurance'] | undefined,
 ): PremiumData['healthInsurance'] {
   return {
-    employer: addNullable(a?.employer, b?.employer),
+    total: addNullable(a?.total, b?.total),
     employee: addNullable(a?.employee, b?.employee),
   };
 }
@@ -79,9 +79,9 @@ export function sumPremiumData(items: readonly PremiumData[]): PremiumData {
       pensionInsurance: addPremiumPart(acc.pensionInsurance, item.pensionInsurance),
     }),
     {
-      healthInsurance: { employer: null, employee: null },
-      careInsurance: { employer: null, employee: null },
-      pensionInsurance: { employer: null, employee: null },
+      healthInsurance: { total: null, employee: null },
+      careInsurance: { total: null, employee: null },
+      pensionInsurance: { total: null, employee: null },
     },
   );
 }
@@ -112,7 +112,7 @@ export function isPremiumDataEmpty(premium: PremiumData | undefined | null): boo
     premium.pensionInsurance,
   ];
   return parts.every(
-    (part) => part.employer == null && part.employee == null,
+    (part) => part.total == null && part.employee == null,
   );
 }
 

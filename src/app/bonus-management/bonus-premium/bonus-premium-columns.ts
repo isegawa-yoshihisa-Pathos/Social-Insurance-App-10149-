@@ -4,11 +4,11 @@ export const PREMIUM_BONUS_LIST_COLUMN_KEYS = [
   'standardBonusHealth',
   'standardBonusPension',
   'healthInsuranceEmployee',
-  'healthInsuranceEmployer',
+  'healthInsuranceTotal',
   'careInsuranceEmployee',  
-  'careInsuranceEmployer',
+  'careInsuranceTotal',
   'pensionInsuranceEmployee',
-  'pensionInsuranceEmployer',
+  'pensionInsuranceTotal',
 ] as const;
 
 export type PremiumBonusListColumnKey = (typeof PREMIUM_BONUS_LIST_COLUMN_KEYS)[number];
@@ -26,11 +26,11 @@ const PREMIUM_COLUMN_LABELS: Record<PremiumBonusListColumnKey, string> = {
   standardBonusHealth: '標準賞与額（健保）',
   standardBonusPension: '標準賞与額（厚年）',
   healthInsuranceEmployee: '健保（本人）',
-  healthInsuranceEmployer: '健保（事業主）',
+  healthInsuranceTotal: '健保（合計）',
   careInsuranceEmployee: '介護（本人）',
-  careInsuranceEmployer: '介護（事業主）',
+  careInsuranceTotal: '介護（合計）',
   pensionInsuranceEmployee: '厚年（本人）',
-  pensionInsuranceEmployer: '厚年（事業主）',
+  pensionInsuranceTotal: '厚年（合計）',
 };
 
 export function isPremiumColumn(column: BonusListColumnKey): column is PremiumBonusListColumnKey {

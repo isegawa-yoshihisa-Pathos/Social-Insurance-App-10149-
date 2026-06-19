@@ -75,15 +75,15 @@ export const DEFAULT_BONUS_TYPE_DEFINITIONS: readonly BonusTypeDefinition[] = [
 
 export interface PremiumData {
     healthInsurance: {
-        employer: number;
-        employee: number;
+        total: number | null;
+        employee: number | null;
     };
     careInsurance: {
-        employer: number | null;
+        total: number | null;
         employee: number | null;
     };
     pensionInsurance: {
-        employer: number;
-        employee: number;
+        total: number | null;
+        employee: number | null;
     };
 }
