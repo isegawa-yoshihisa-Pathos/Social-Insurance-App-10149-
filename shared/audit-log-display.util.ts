@@ -14,9 +14,11 @@ export const AUDIT_LOG_CATEGORY_LABELS: Record<string, string> = {
   'monthly.payroll': '月次給与',
   'monthly.standardRemuneration': '標準報酬月額（月次）',
   'monthly.import': '月次CSVインポート',
+  'monthly.add_employees': '月次データ追加',
   'monthly.lock': '月次締切',
   'bonus.bulk_edit': '賞与一括編集',
   'bonus.import': '賞与CSVインポート',
+  'bonus.add_employees': '賞与データ追加',
   'bonus.lock': '賞与締切',
   'premium.calculate': '保険料計算',
   'standard_remuneration': '標準報酬月額',
@@ -134,6 +136,7 @@ export const AUDIT_LOG_CHANGE_FIELD_LABELS: Record<string, string> = {
   pensionInsuranceRate: '厚生年金保険料率',
   employeeRate: '被保険者負担率',
   roundingBy: '端数処理',
+  roundingBoundaryType: '端数境界',
 };
 
 export function formatAuditLogCategory(category: string): string {

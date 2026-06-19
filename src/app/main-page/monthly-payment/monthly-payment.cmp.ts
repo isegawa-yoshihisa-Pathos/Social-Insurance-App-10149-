@@ -7,11 +7,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MonthlyListExportService } from '../../monthly-management/monthly-list/monthly-list-export.service';
-import { BonusListExportService } from '../../bonus-management/bonus-list/bonus-list-export.service';
 import { PaymentManagementDataService } from '../../payment-management/payment-management-data.service';
 import { BonusManagementDataService } from '../../bonus-management/bonus-management-data.service';
-import { downloadCsvFile } from '../../csv/csv-file.util';
+import { buildImportStyleCsv, downloadCsvFile, formatExportNumber } from '../../csv/csv-file.util';
 import { CurrentTenantService } from '../../current-tenant.service';
 import { EmployeeDetailDataService } from '../../employees-management/employees-list/employee-detail/employee-detail-data.service';
 import {
@@ -20,25 +18,26 @@ import {
   type MainPagePaymentScope,
 } from '../main-page-payment-data.service';
 import {
-  getAllMonthlyListColumnKeys,
-  getMonthlyListColumnLabel,
-  MonthlyListColumnKey,
-  MonthlyListRow,
+  getAllMonthlyListColumnKeysForEmployee,
+  getMonthlyListColumnLabelForEmployee,
+  MonthlyListColumnKeyForEmployee,
+  MonthlyListRowForEmployee,
 } from '../../monthly-management/monthly-list/monthly-list-columns';
 import {
-  formatMonthlyListCellValue,
-} from '../../monthly-management/monthly-list/monthly-list-row.mapper';
-import {
-  BonusListColumnKey,
-  BonusListRow,
-  getAllBonusListColumnKeys,
-  getBonusListColumnLabel,
+  BonusListColumnKeyForEmployee,
+  BonusListRowForEmployee,
+  getAllBonusListColumnKeysForEmployee,
+  getBonusListColumnLabelForEmployee,
 } from '../../bonus-management/bonus-list/bonus-list-columns';
-import { formatBonusListCellValue } from '../../bonus-management/bonus-list/bonus-list-row.mapper';
-import { bonusNetPayment, monthlyNetPayment } from '../../../../shared/payment-summary.util';
+import {
+  bonusEmployeeExportValue,
+  formatBonusEmployeeCellValue,
+  formatMonthlyEmployeeCellValue,
+  monthlyEmployeeExportValue,
+} from '../main-page-payment-row.mapper';
 import { Format } from '../../format-number-jp';
 
-type PaymentTableRow = MonthlyListRow | BonusListRow;
+type PaymentTableRow = MonthlyListRowForEmployee | BonusListRowForEmployee;
 
 @Component({
   selector: 'app-monthly-payment',
@@ -63,8 +62,6 @@ export class MonthlyPaymentCmp {
   private readonly currentTenantService = inject(CurrentTenantService);
   private readonly employeeDetailDataService = inject(EmployeeDetailDataService);
   private readonly paymentDataService = inject(MainPagePaymentDataService);
-  private readonly monthlyListExportService = inject(MonthlyListExportService);
-  private readonly bonusListExportService = inject(BonusListExportService);
   private readonly paymentManagementDataService = inject(PaymentManagementDataService);
   private readonly bonusManagementDataService = inject(BonusManagementDataService);
 
@@ -86,22 +83,7 @@ export class MonthlyPaymentCmp {
   readonly netPayment = computed(() => {
     const row = this.tableDataSource.data[0];
     if (!row) return null;
-
-    if (this.scope === 'monthly') {
-      const monthlyRow = row as MonthlyListRow;
-      return monthlyNetPayment(monthlyRow, monthlyRow);
-    }
-
-    const bonusRow = row as BonusListRow;
-    return bonusNetPayment({
-      bonus: bonusRow.bonus,
-      bonusHealthInsuranceEmployee: bonusRow.healthInsuranceEmployee,
-      bonusCareInsuranceEmployee: bonusRow.careInsuranceEmployee,
-      bonusPensionInsuranceEmployee: bonusRow.pensionInsuranceEmployee,
-      bonusHealthInsuranceEmployer: bonusRow.healthInsuranceEmployer,
-      bonusCareInsuranceEmployer: bonusRow.careInsuranceEmployer,
-      bonusPensionInsuranceEmployer: bonusRow.pensionInsuranceEmployer,
-    });
+    return row.totalPayment;
   });
 
   readonly netPaymentLabel = computed(() =>
@@ -110,10 +92,10 @@ export class MonthlyPaymentCmp {
 
   readonly tableColumns = computed(() =>
     this.scope === 'monthly'
-      ? getAllMonthlyListColumnKeys(
+      ? getAllMonthlyListColumnKeysForEmployee(
           this.paymentManagementDataService.allowanceTypeDefinitions(),
         )
-      : getAllBonusListColumnKeys(this.bonusManagementDataService.bonusTypeDefinitions()),
+      : getAllBonusListColumnKeysForEmployee(this.bonusManagementDataService.bonusTypeDefinitions()),
   );
 
   constructor() {
@@ -155,29 +137,34 @@ export class MonthlyPaymentCmp {
     void this.loadRow(tid, eid, yyyyMm, this.scope, token);
   }
 
-  getColumnLabel(column: MonthlyListColumnKey | BonusListColumnKey): string {
+  getColumnLabel(
+    column: MonthlyListColumnKeyForEmployee | BonusListColumnKeyForEmployee,
+  ): string {
     if (this.scope === 'monthly') {
-      return getMonthlyListColumnLabel(
-        column as MonthlyListColumnKey,
+      return getMonthlyListColumnLabelForEmployee(
+        column as MonthlyListColumnKeyForEmployee,
         this.paymentManagementDataService.allowanceTypeDefinitions(),
       );
     }
-    return getBonusListColumnLabel(
-      column as BonusListColumnKey,
+    return getBonusListColumnLabelForEmployee(
+      column as BonusListColumnKeyForEmployee,
       this.bonusManagementDataService.bonusTypeDefinitions(),
     );
   }
 
-  formatCellValue(row: PaymentTableRow, column: MonthlyListColumnKey | BonusListColumnKey): string {
+  formatCellValue(
+    row: PaymentTableRow,
+    column: MonthlyListColumnKeyForEmployee | BonusListColumnKeyForEmployee,
+  ): string {
     if (this.scope === 'monthly') {
-      return formatMonthlyListCellValue(
-        row as MonthlyListRow,
-        column as MonthlyListColumnKey,
+      return formatMonthlyEmployeeCellValue(
+        row as MonthlyListRowForEmployee,
+        column as MonthlyListColumnKeyForEmployee,
         this.paymentManagementDataService.allowanceTypeDefinitions(),
       );
     }
 
-    return formatBonusListCellValue(row as BonusListRow, column as BonusListColumnKey);
+    return formatBonusEmployeeCellValue(row as BonusListRowForEmployee, column as BonusListColumnKeyForEmployee);
   }
 
   async exportData(): Promise<void> {
@@ -203,25 +190,17 @@ export class MonthlyPaymentCmp {
         return;
       }
 
-      if (this.scope === 'monthly') {
-        const csv = this.monthlyListExportService.buildCsv(
-          yyyyMm,
-          this.tableColumns() as MonthlyListColumnKey[],
-          [row as MonthlyListRow],
-          {},
-          allowanceDefinitions,
-        );
-        downloadCsvFile(`${prefix}-${yyyyMm}.csv`, csv);
-        return;
-      }
+      const columns = this.tableColumns();
+      const headers = columns.map((column) => this.getColumnLabel(column));
+      const dataRow = columns.map((column) => {
+        const value =
+          this.scope === 'monthly'
+            ? monthlyEmployeeExportValue(row as MonthlyListRowForEmployee, column as MonthlyListColumnKeyForEmployee)
+            : bonusEmployeeExportValue(row as BonusListRowForEmployee, column as BonusListColumnKeyForEmployee);
+        return typeof value === 'number' ? formatExportNumber(value) : String(value ?? '');
+      });
 
-      const csv = this.bonusListExportService.buildCsv(
-        yyyyMm,
-        this.tableColumns() as BonusListColumnKey[],
-        [row as BonusListRow],
-        {},
-        bonusDefinitions,
-      );
+      const csv = buildImportStyleCsv(yyyyMm, headers, [dataRow]);
       downloadCsvFile(`${prefix}-${yyyyMm}.csv`, csv);
     } finally {
       this.exporting.set(false);

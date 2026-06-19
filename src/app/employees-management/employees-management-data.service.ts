@@ -1,7 +1,12 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { DEFAULT_EMPLOYEE_LIST_COLUMNS, EmployeeListColumnKey, OPTIONAL_EMPLOYEE_LIST_COLUMNS } from './employees-list/employee-list-columns';
+import {
+  DEFAULT_EMPLOYEE_LIST_COLUMNS,
+  EmployeeListColumnKey,
+  OPTIONAL_EMPLOYEE_LIST_COLUMNS,
+} from './employees-list/employee-list-columns';
 import { Firestore, doc, getDoc, serverTimestamp, setDoc } from '@angular/fire/firestore';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { normalizeVisibleColumnOrder } from '../list-column-order.util';
 
 @Injectable({
   providedIn: 'root',
@@ -9,8 +14,6 @@ import { AuditLogService } from '../audit-log/audit-log.service';
 export class EmployeesManagementDataService {
   private readonly firestore = inject(Firestore);
   private readonly auditLog = inject(AuditLogService);
-
-  COLUMN_ORDER = OPTIONAL_EMPLOYEE_LIST_COLUMNS.map(col => col.key);
 
   readonly visibleColumns = signal<EmployeeListColumnKey[]>([
     ...DEFAULT_EMPLOYEE_LIST_COLUMNS,
@@ -24,15 +27,16 @@ export class EmployeesManagementDataService {
       return;
     }
     const data = settingsSnap.data() as { visibleColumns: EmployeeListColumnKey[] };
-    this.visibleColumns.set(
-      this.normalizaColumns(data.visibleColumns?.length ? data.visibleColumns : [...DEFAULT_EMPLOYEE_LIST_COLUMNS])
+    this.setVisibleColumns(
+      data.visibleColumns?.length ? data.visibleColumns : [...DEFAULT_EMPLOYEE_LIST_COLUMNS],
     );
   }
 
   async saveListSettings(tid: string): Promise<void> {
     const settingsRef = doc(this.firestore, 'tenants', tid, 'settings', 'employeesListSetting');
+    const normalized = this.normalizeColumns(this.visibleColumns());
     await setDoc(settingsRef, {
-      visibleColumns: this.normalizaColumns(this.visibleColumns()),
+      visibleColumns: normalized,
       updatedAt: serverTimestamp(),
     });
 
@@ -41,24 +45,22 @@ export class EmployeesManagementDataService {
       category: 'settings.employees_list',
       summary: '従業員一覧表示設定を更新',
       target: this.auditLog.settingsTarget('employeesListSetting', '従業員一覧設定'),
-      after: { visibleColumns: this.visibleColumns() },
+      after: { visibleColumns: normalized },
     });
   }
 
-  private normalizaColumns(cols: EmployeeListColumnKey[]): EmployeeListColumnKey[] {
-    const deduped = [...new Set(cols)];
-    const ordered = this.COLUMN_ORDER.filter(col => deduped.includes(col));
-    const unknown = deduped.filter(col => !this.COLUMN_ORDER.includes(col));
-    return [...ordered, ...unknown];
+  setVisibleColumns(cols: EmployeeListColumnKey[]): void {
+    this.visibleColumns.set(this.normalizeColumns(cols));
   }
 
   toggleOptionalColumn(key: EmployeeListColumnKey, checked: boolean): void {
     const current = this.visibleColumns();
-    const keys = current.includes(key);
-    if (checked && !keys) {
-      this.visibleColumns.set(this.normalizaColumns([...current, key]));
-    } else if (!checked && keys) {
-      this.visibleColumns.set(this.normalizaColumns(current.filter(col => col !== key)));
+    const exists = current.includes(key);
+
+    if (checked && !exists) {
+      this.setVisibleColumns([...current, key]);
+    } else if (!checked && exists) {
+      this.setVisibleColumns(current.filter((col) => col !== key));
     }
   }
 
@@ -68,5 +70,13 @@ export class EmployeesManagementDataService {
 
   reset(): void {
     this.visibleColumns.set([...DEFAULT_EMPLOYEE_LIST_COLUMNS]);
+  }
+
+  private normalizeColumns(cols: EmployeeListColumnKey[]): EmployeeListColumnKey[] {
+    const canonicalOrder = OPTIONAL_EMPLOYEE_LIST_COLUMNS.map((col) => col.key);
+    const valid = new Set<string>(canonicalOrder);
+    return normalizeVisibleColumnOrder(cols, canonicalOrder, (col) =>
+      valid.has(col) ? col : null,
+    );
   }
 }

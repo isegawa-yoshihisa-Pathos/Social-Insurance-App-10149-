@@ -207,6 +207,7 @@ export class MonthlyListBulkEditService {
       allowances?: Record<string, number>;
       retroactivePay?: number | null;
       bonusRelatedRemuneration?: number;
+      paymentBaseDays?: number;
     } = {};
 
     if (allowanceType) {
@@ -225,6 +226,8 @@ export class MonthlyListBulkEditService {
       patch.retroactivePay = value;
     } else if (column === 'bonusRelatedRemuneration') {
       patch.bonusRelatedRemuneration = value === null ? 0 : value;
+    } else if (column === 'paymentBaseDays') {
+      patch.paymentBaseDays = value === null ? 0 : value;
     }
 
     const wages = buildPayrollWageFields(target, patch, definitions);
@@ -247,14 +250,11 @@ export class MonthlyListBulkEditService {
     if (patch.bonusRelatedRemuneration !== undefined) {
       update['bonusRelatedRemuneration'] = patch.bonusRelatedRemuneration === null ? 0 : patch.bonusRelatedRemuneration;
     }
+    if (patch.paymentBaseDays !== undefined) {
+      update['paymentBaseDays'] = patch.paymentBaseDays;
+    }
     if (patch.allowances !== undefined) {
-      if (Object.keys(patch.allowances).length === 0) {
-        update['payrollData.allowances'] = {};
-      } else {
-        for (const [type, amount] of Object.entries(patch.allowances)) {
-          update[`payrollData.allowances.${type}`] = amount;
-        }
-      }
+      update['payrollData.allowances'] = patch.allowances;
     }
 
     return update as UpdateData<DocumentData>;
@@ -278,10 +278,10 @@ export class MonthlyListBulkEditService {
       return target.retroactivePay;
     }
     if (column === 'bonusRelatedRemuneration') {
-      return (target as BulkEditTarget & { bonusRelatedRemuneration?: number }).bonusRelatedRemuneration ?? null;
+      return target.bonusRelatedRemuneration;
     }
     if (column === 'paymentBaseDays') {
-      return (target as BulkEditTarget & { paymentBaseDays?: number }).paymentBaseDays ?? null;
+      return target.paymentBaseDays;
     }
     return null;
   }

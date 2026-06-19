@@ -1,0 +1,63 @@
+<h2 mat-dialog-title>{{ title }}</h2>
+
+<mat-dialog-content class="dialog-content">
+  <p class="dialog-note">手動設定として保存されます。等級は標準報酬月額から自動判定します。</p>
+
+  <div class="field-row">
+    <mat-form-field appearance="outline" class="date-picker">
+      <mat-label>適用開始（年）</mat-label>
+      <mat-select
+        [ngModel]="selectedYear()"
+        (ngModelChange)="selectedYear.set($event)"
+      >
+        @for (year of yearOptions; track year) {
+          <mat-option [value]="year">{{ year }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="date-picker">
+      <mat-label>適用開始（月）</mat-label>
+      <mat-select
+        [ngModel]="selectedMonth()"
+        (ngModelChange)="selectedMonth.set($event)"
+      >
+        @for (month of monthOptions; track month) {
+          <mat-option [value]="month">{{ month }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <div class="field-row">
+    <mat-form-field appearance="outline">
+      <mat-label>標準報酬月額（健保）</mat-label>
+      <input matInput type="number" min="1" [(ngModel)]="standardRemunerationHealth" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>標準報酬月額（厚年）</mat-label>
+      <input matInput type="number" min="1" [(ngModel)]="standardRemunerationPension" />
+    </mat-form-field>
+  </div>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>報酬</mat-label>
+    <input matInput type="number" min="0" [(ngModel)]="remuneration" />
+  </mat-form-field>
+
+  @if (resolvedGrades(); as grades) {
+    <p class="grade-preview">
+      等級（健保 {{ grades.healthGrade }} / 厚年 {{ grades.pensionGrade }}）
+    </p>
+  }
+
+  @if (validationError) {
+    <p class="validation-error">{{ validationError }}</p>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" mat-dialog-close>キャンセル</button>
+  <button mat-flat-button type="button" color="primary" (click)="save()">保存</button>
+</mat-dialog-actions>

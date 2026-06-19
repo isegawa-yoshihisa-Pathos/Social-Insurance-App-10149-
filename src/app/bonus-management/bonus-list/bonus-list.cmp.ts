@@ -34,6 +34,9 @@ import { BonusPremiumCalculateFacade } from '../bonus-premium/bonus-premium-calc
 import { Router, ActivatedRoute } from '@angular/router';
 import { Format } from '../../format-number-jp';
 import { AuditLogService } from '../../audit-log/audit-log.service';
+import {
+  ListAddEmployeesDialogCmp,
+} from '../../list-add-employees-dialog/list-add-employees-dialog.cmp';
 @Component({
   selector: 'app-bonus-list',
   imports: [
@@ -607,5 +610,75 @@ export class BonusListCmp implements OnInit {
 
   formatAmount(amount: number): string {
     return amount === 0 ? '0' : Format(amount);
+  }
+
+  async openAddEmployeesDialog(): Promise<void> {
+    if (this.locked()) {
+      this.dialog.open(ErrorDialogCmp, {
+        data: { message: 'この月は締切済みのため、追加できません。' },
+      });
+      return;
+    }
+
+    const tid = this.currentTenantService.currentTid();
+    const ym = this.yyyyMm();
+    if (!tid || !ym) {
+      return;
+    }
+
+    const lookup = await this.listDataService.loadEmployeeLookup(tid);
+    const existingEids = new Set(this.dataSource.data.map((row) => row.eid));
+    const employees = [...lookup.values()]
+      .filter((employee) => !existingEids.has(employee.eid))
+      .map((employee) => ({
+        eid: employee.eid,
+        employeeId: employee.employeeId,
+        displayName: employee.displayName,
+      }))
+      .sort((a, b) => {
+        const nameCmp = a.displayName.localeCompare(b.displayName, 'ja');
+        if (nameCmp !== 0) {
+          return nameCmp;
+        }
+        return a.employeeId.localeCompare(b.employeeId, 'ja');
+      });
+
+    const dialogRef = this.dialog.open(ListAddEmployeesDialogCmp, {
+      width: '480px',
+      data: {
+        title: '賞与データを追加',
+        employees,
+      },
+    });
+
+    dialogRef.afterClosed().subscribe(async (selectedEids: string[] | undefined) => {
+      if (!selectedEids?.length) {
+        return;
+      }
+
+      this.bulkSaving = true;
+      try {
+        const created = await this.listDataService.addEmployeesWithEmptyData(
+          tid,
+          ym,
+          selectedEids,
+        );
+        await this.loadBonusRecords(tid, ym);
+        if (created > 0) {
+          this.dialog.open(SuccessDialogCmp, {
+            data: {
+              title: '追加完了',
+              message: `${created}件の賞与データを追加しました。`,
+            },
+          });
+        }
+      } catch (error) {
+        this.dialog.open(ErrorDialogCmp, {
+          data: { message: mapFirebaseError(error) },
+        });
+      } finally {
+        this.bulkSaving = false;
+      }
+    });
   }
 }

@@ -9,7 +9,7 @@
       チェックボックスで選択することで複数の従業員を一括で編集可能です。<br>
       「固定的賃金」と「非固定的賃金」は各項目の合計値を表しており、編集はできません。<br>
       「氏名」または「社員番号」のセルをクリックすると、各従業員の詳細ページに移動できます。<br>
-      「締切」ボタンを押すと、当月のデータを締め切ることができます。管理者であっても変更はできません。<br>
+      「締切」ボタンを押すと、当月のデータを締め、従業員のマイページに表示します。管理者であっても変更はできません。<br>
       表示項目、ソート、フィルタを反映したcsvファイルをダウンロードできます。<br>
       <br>
       「遡及支払」は当月に支払った遡及支払の合計値を入力してください。定時決定および年間平均計算の算定期間に遡及支払がある場合、遡及支払を含めて再計算を行えます。<br>
@@ -56,6 +56,16 @@
           [class.locked]="locked()"
         >
           <mat-icon>{{ locked() ? 'lock' : 'lock_open' }}</mat-icon>
+        </button>
+        <button
+          mat-icon-button
+          type="button"
+          matTooltip="月次データを追加"
+          class="add-employee-button"
+          [disabled]="bulkSaving || locked()"
+          (click)="openAddEmployeesDialog()"
+        >
+          <mat-icon>add</mat-icon> 
         </button>
         <app-help-content key="monthlyImport"></app-help-content>
         <input

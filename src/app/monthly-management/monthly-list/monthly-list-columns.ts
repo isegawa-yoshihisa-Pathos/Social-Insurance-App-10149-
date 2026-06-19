@@ -6,15 +6,19 @@ import {
   getPremiumColumnLabel,
   getOptionalPremiumColumns,
   PREMIUM_MONTHLY_LIST_COLUMN_KEYS,
+  PREMIUM_MONTHLY_LIST_EMPLOYEE_COLUMN_KEYS,
   PremiumMonthlyListColumnKey,
+  PremiumMonthlyListEmployeeColumnKey,
 } from '../monthly-premium/monthly-premium-columns';
 import { AllowanceData } from '../../payment-document';
 
 export type MonthlyFormColumnKey = keyof MonthlyFormData;
 
 export const MONTHLY_NET_PAYMENT_COLUMN_KEY = 'netPayment' as const;
+export const MONTHLY_TOTAL_PAYMENT_COLUMN_KEY = 'totalPayment' as const;
 
 export type MonthlySummaryColumnKey = typeof MONTHLY_NET_PAYMENT_COLUMN_KEY;
+export type MonthlyEmployeeSummaryColumnKey = typeof MONTHLY_TOTAL_PAYMENT_COLUMN_KEY;
 
 export type AllowanceColumnKey = string;
 
@@ -39,6 +43,29 @@ export const BASE_MONTHLY_LIST_COLUMN_KEYS = [
 ] as const;
 
 export type BaseMonthlyListColumnKey = (typeof BASE_MONTHLY_LIST_COLUMN_KEYS)[number];
+
+export const BASE_MONTHLY_LIST_EMPLOYEE_COLUMN_KEYS = [
+  'basicSalary',
+  'fringeBenefits',
+  'bonusRelatedRemuneration',
+  'retroactivePay',
+] as const;
+
+export type BaseMonthlyListEmployeeColumnKey =
+  (typeof BASE_MONTHLY_LIST_EMPLOYEE_COLUMN_KEYS)[number];
+
+export type MonthlyListColumnKeyForEmployee =
+  | BaseMonthlyListEmployeeColumnKey
+  | AllowanceColumnKey
+  | PremiumMonthlyListEmployeeColumnKey
+  | MonthlyEmployeeSummaryColumnKey;
+
+const STATIC_EMPLOYEE_COLUMN_LABELS: Record<BaseMonthlyListEmployeeColumnKey, string> = {
+  basicSalary: '基本給与',
+  fringeBenefits: '現物給与',
+  bonusRelatedRemuneration: '賞与にかかる報酬',
+  retroactivePay: '遡及支払',
+};
 
 export const DEFAULT_MONTHLY_LIST_COLUMNS: MonthlyListColumnKey[] = [
   'displayName',
@@ -95,6 +122,41 @@ export function getOptionalMonthlyListColumns(
     ...getOptionalPremiumColumns(),
     { key: MONTHLY_NET_PAYMENT_COLUMN_KEY, label: '月次総支払' },
   ];
+}
+
+export function getAllMonthlyListColumnKeysForEmployee(
+  definitions: AllowanceTypeDefinition[],
+): MonthlyListColumnKeyForEmployee[] {
+  return [
+    ...BASE_MONTHLY_LIST_EMPLOYEE_COLUMN_KEYS,
+    ...definitions.map((def) => allowanceColumnKey(def.type)),
+    ...PREMIUM_MONTHLY_LIST_EMPLOYEE_COLUMN_KEYS,
+    MONTHLY_TOTAL_PAYMENT_COLUMN_KEY,
+  ] as MonthlyListColumnKeyForEmployee[];
+}
+
+export function getMonthlyListColumnLabelForEmployee(
+  column: MonthlyListColumnKeyForEmployee,
+  definitions: AllowanceTypeDefinition[],
+): string {
+  if (column === MONTHLY_TOTAL_PAYMENT_COLUMN_KEY) {
+    return '月次総支払';
+  }
+
+  if (Object.hasOwn(STATIC_EMPLOYEE_COLUMN_LABELS, column)) {
+    return STATIC_EMPLOYEE_COLUMN_LABELS[column as BaseMonthlyListEmployeeColumnKey];
+  }
+
+  const allowanceType = allowanceTypeFromColumnKey(column);
+  if (allowanceType) {
+    return definitions.find((def) => def.type === allowanceType)?.label ?? column;
+  }
+
+  if ((PREMIUM_MONTHLY_LIST_EMPLOYEE_COLUMN_KEYS as readonly string[]).includes(column)) {
+    return getPremiumColumnLabel(column as PremiumMonthlyListEmployeeColumnKey);
+  }
+
+  return column;
 }
 
 export function getMonthlyListColumnLabel(

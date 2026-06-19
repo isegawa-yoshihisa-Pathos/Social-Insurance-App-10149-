@@ -1,6 +1,13 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { DEFAULT_ROUNDING_BY } from '../../social-insurance/monthly/social-insurance-document';
-import type { EmployeeRateByInsurance, InsuranceRateSavePayload, InsuranceRateSource, RoundingByInsurance } from '../../social-insurance/monthly/social-insurance-document';
+import {
+  DEFAULT_ROUNDING_BY,
+  DEFAULT_ROUNDING_BOUNDARY_TYPE,
+  type EmployeeRateByInsurance,
+  type InsuranceRateSavePayload,
+  type InsuranceRateSource,
+  type RoundingBoundaryType,
+  type RoundingByInsurance,
+} from '../../social-insurance/monthly/social-insurance-document';
 import { InsuranceRateDataService, type InsuranceRateListItem } from '../../social-insurance/monthly/insurance-rate-data.service';
 import { TenantSettingDataService } from '../tenant-setting-data.service';
 import { buildAssociationInsuranceRatePayload, CURRENT_ASSOCIATION_RATE_TABLE, ASSOCIATION_RATE_TABLES, type AssociationRateTableSet } from '../../social-insurance/insurance-rates/association';
@@ -19,6 +26,7 @@ export interface InsuranceRateEditForm {
     careInsuranceRate: number;
     pensionInsuranceRate: number;
     employeeRate: EmployeeRateByInsurance;
+    roundingBoundaryType: RoundingBoundaryType;
     roundingBy: RoundingByInsurance;
     usedMasterAutoFill: boolean;
     masterSnapshot: MasterRateSnapshot | null;
@@ -32,6 +40,7 @@ export interface MasterRateSnapshot {
     careInsuranceRate: number;
     pensionInsuranceRate: number;
     employeeRate: EmployeeRateByInsurance;
+    roundingBoundaryType: RoundingBoundaryType;
     roundingBy: RoundingByInsurance;
 }
 
@@ -148,6 +157,7 @@ export class TenantInsuranceRateSettingDataService {
             careInsuranceRate: form.careInsuranceRate,
             pensionInsuranceRate: form.pensionInsuranceRate,
             employeeRate: form.employeeRate,
+            roundingBoundaryType: form.roundingBoundaryType,
             roundingBy: form.roundingBy,
         };
 
@@ -168,6 +178,29 @@ export class TenantInsuranceRateSettingDataService {
         }
     }
 
+    async deleteRate(rateId: string): Promise<void> {
+        const tid = this.tenantSetting.tid;
+        if (!tid) {
+            throw new Error('事業所が見つかりません');
+        }
+
+        const target = this.rates().find((rate) => rate.rateId === rateId);
+        if (!target) {
+            throw new Error('削除対象の料率が見つかりません');
+        }
+
+        await this.rateData.deleteRate(tid, rateId);
+        await this.loadRates();
+
+        await this.auditLog.recordDelete({
+            tid,
+            category: 'settings.insurance_rate',
+            summary: '保険料率を削除',
+            target: this.auditLog.settingsTarget(target.doc.effectiveFrom, target.doc.label),
+            before: target.doc as unknown as Record<string, unknown>,
+        });
+    }
+
     private createEmptyForm(effectiveFrom = this.today()): InsuranceRateEditForm {
         return {
             effectiveFrom,
@@ -178,6 +211,7 @@ export class TenantInsuranceRateSettingDataService {
             careInsuranceRate: 0,
             pensionInsuranceRate: 0.183,
             employeeRate: { healthInsurance: 0, careInsurance: 0, pensionInsurance: 0 },
+            roundingBoundaryType: DEFAULT_ROUNDING_BOUNDARY_TYPE,
             roundingBy: { ...DEFAULT_ROUNDING_BY },
             usedMasterAutoFill: false,
             masterSnapshot: null,
@@ -200,6 +234,7 @@ export class TenantInsuranceRateSettingDataService {
             careInsuranceRate: payload.careInsuranceRate,
             pensionInsuranceRate: payload.pensionInsuranceRate,
             employeeRate: payload.employeeRate,
+            roundingBoundaryType: payload.roundingBoundaryType ?? DEFAULT_ROUNDING_BOUNDARY_TYPE,
             roundingBy,
             usedMasterAutoFill: extra.usedMasterAutoFill ?? false,
             masterSnapshot: {
@@ -210,6 +245,7 @@ export class TenantInsuranceRateSettingDataService {
                 careInsuranceRate: payload.careInsuranceRate,
                 pensionInsuranceRate: payload.pensionInsuranceRate,
                 employeeRate: payload.employeeRate,
+                roundingBoundaryType: payload.roundingBoundaryType ?? DEFAULT_ROUNDING_BOUNDARY_TYPE,
                 roundingBy,
             },
             ...extra,
@@ -218,17 +254,71 @@ export class TenantInsuranceRateSettingDataService {
     }
 
     private valuesMatchMaster(form: InsuranceRateEditForm): boolean {
-        const m = form.masterSnapshot;
-        if (!m) return false;
+        if (!form.usedMasterAutoFill) {
+            return false;
+        }
+
+        const tenant = this.tenantSetting.form;
+        if (tenant.socialInsuranceSettings.healthInsuranceType === 'association') {
+            const expected = this.buildExpectedAssociationMasterSnapshot(form);
+            if (!expected) {
+                return false;
+            }
+            return this.rateValuesMatch(form, expected);
+        }
+
+        const snapshot = form.masterSnapshot;
+        if (!snapshot) {
+            return false;
+        }
+        return this.rateValuesMatch(form, snapshot);
+    }
+
+    private rateValuesMatch(
+        form: InsuranceRateEditForm,
+        expected: MasterRateSnapshot,
+    ): boolean {
         return (
-            form.healthInsuranceRate === m.healthInsuranceRate &&
-            form.careInsuranceRate === m.careInsuranceRate &&
-            form.pensionInsuranceRate === m.pensionInsuranceRate &&
-            form.employeeRate.healthInsurance === m.employeeRate.healthInsurance &&
-            form.employeeRate.careInsurance === m.employeeRate.careInsurance &&
-            form.employeeRate.pensionInsurance === m.employeeRate.pensionInsurance &&
-            form.effectiveFrom === m.effectiveFrom
+            form.healthInsuranceRate === expected.healthInsuranceRate &&
+            form.careInsuranceRate === expected.careInsuranceRate &&
+            form.pensionInsuranceRate === expected.pensionInsuranceRate &&
+            form.employeeRate.healthInsurance === expected.employeeRate.healthInsurance &&
+            form.employeeRate.careInsurance === expected.employeeRate.careInsurance &&
+            form.employeeRate.pensionInsurance === expected.employeeRate.pensionInsurance &&
+            form.roundingBy.healthInsurance === expected.roundingBy.healthInsurance &&
+            form.roundingBy.careInsurance === expected.roundingBy.careInsurance &&
+            form.roundingBy.pensionInsurance === expected.roundingBy.pensionInsurance &&
+            form.roundingBoundaryType === (expected.roundingBoundaryType ?? DEFAULT_ROUNDING_BOUNDARY_TYPE) &&
+            (form.prefectureCode ?? '') === (expected.prefectureCode ?? '')
         );
+    }
+
+    private buildExpectedAssociationMasterSnapshot(
+        form: InsuranceRateEditForm,
+    ): MasterRateSnapshot | null {
+        if (!form.prefectureCode || !form.effectiveFrom) {
+            return null;
+        }
+
+        const payload = buildAssociationInsuranceRatePayload(
+            form.prefectureCode,
+            this.getAssociationRateTable(form.effectiveFrom),
+        );
+        if (!payload) {
+            return null;
+        }
+
+        return {
+            effectiveFrom: form.effectiveFrom,
+            label: payload.label ?? '',
+            prefectureCode: payload.prefectureCode,
+            healthInsuranceRate: payload.healthInsuranceRate,
+            careInsuranceRate: payload.careInsuranceRate,
+            pensionInsuranceRate: payload.pensionInsuranceRate,
+            employeeRate: payload.employeeRate,
+            roundingBoundaryType: payload.roundingBoundaryType ?? DEFAULT_ROUNDING_BOUNDARY_TYPE,
+            roundingBy: payload.roundingBy,
+        };
     }
 
     private today(): string {

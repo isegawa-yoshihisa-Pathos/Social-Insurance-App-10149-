@@ -1,7 +1,9 @@
+import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { Component, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog } from '@angular/material/dialog';
 import { ErrorDialogCmp, mapFirebaseError } from '../../../error-dialog/error-dialog.cmp';
@@ -12,6 +14,11 @@ import {
   OPTIONAL_EMPLOYEE_LIST_COLUMNS,
   EmployeeListColumnKey,
 } from '../../employees-list/employee-list-columns';
+import {
+  buildOrderedColumnOptions,
+  OrderedListColumnOption,
+  visibleColumnsFromOrder,
+} from '../../../list-column-order.util';
 
 @Component({
   selector: 'app-employees-list-header-setting',
@@ -19,10 +26,12 @@ import {
     FormsModule,
     MatButtonModule,
     MatCheckboxModule,
+    MatIconModule,
     MatProgressSpinnerModule,
+    DragDropModule,
   ],
   templateUrl: './employees-list-header-setting.cmp.html',
-  styleUrl: './employees-list-header-setting.cmp.css',
+  styleUrls: ['./employees-list-header-setting.cmp.css', '../../../list-header-setting.cmp.css'],
 })
 export class EmployeesListHeaderSettingCmp implements OnInit {
   readonly dataService = inject(EmployeesManagementDataService);
@@ -32,6 +41,7 @@ export class EmployeesListHeaderSettingCmp implements OnInit {
 
   readonly optionalColumns = OPTIONAL_EMPLOYEE_LIST_COLUMNS;
 
+  orderedColumns: OrderedListColumnOption<EmployeeListColumnKey>[] = [];
   loading = false;
   saveBusy = false;
 
@@ -44,6 +54,7 @@ export class EmployeesListHeaderSettingCmp implements OnInit {
     this.loading = true;
     try {
       await this.dataService.loadListSettings(tid);
+      this.refreshOrderedColumns();
     } catch (e) {
       this.dialog.open(ErrorDialogCmp, {
         data: { message: mapFirebaseError(e) },
@@ -53,20 +64,22 @@ export class EmployeesListHeaderSettingCmp implements OnInit {
     }
   }
 
-  isChecked(key: EmployeeListColumnKey): boolean {
-    return this.dataService.isColumnVisible(key);
+  drop(event: CdkDragDrop<OrderedListColumnOption<EmployeeListColumnKey>[]>): void {
+    moveItemInArray(this.orderedColumns, event.previousIndex, event.currentIndex);
+    this.syncVisibleColumns();
   }
 
-  onOptionalChange(key: EmployeeListColumnKey, checked: boolean): void {
-    this.dataService.toggleOptionalColumn(key, checked);
+  onCheckedChange(): void {
+    this.syncVisibleColumns();
   }
 
   isAllSelected(): boolean {
-    return this.optionalColumns.every((col) => this.isChecked(col.key));
+    return this.orderedColumns.length > 0 && this.orderedColumns.every((col) => col.checked);
   }
 
   toggleAll(checked: boolean): void {
-    this.optionalColumns.forEach((col) => this.onOptionalChange(col.key, checked));
+    this.orderedColumns = this.orderedColumns.map((col) => ({ ...col, checked }));
+    this.syncVisibleColumns();
   }
 
   async save(): Promise<void> {
@@ -82,5 +95,18 @@ export class EmployeesListHeaderSettingCmp implements OnInit {
     } finally {
       this.saveBusy = false;
     }
+  }
+
+  private refreshOrderedColumns(): void {
+    this.orderedColumns = buildOrderedColumnOptions(
+      this.optionalColumns,
+      this.dataService.visibleColumns(),
+    );
+  }
+
+  private syncVisibleColumns(): void {
+    this.dataService.setVisibleColumns(
+      visibleColumnsFromOrder(this.orderedColumns),
+    );
   }
 }

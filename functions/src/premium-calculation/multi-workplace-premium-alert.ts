@@ -2,8 +2,6 @@ import * as admin from 'firebase-admin';
 import type { EmployeeDocument } from '../../../shared/employee-document';
 import { hasMultipleWorkplacesEnabledForEmployee } from '../../../shared/social-insurance/multi-workplace/multi-workplace-settings';
 import {
-  buildMultiWorkplaceManualPremiumEmployeeNotificationBody,
-  buildMultiWorkplaceManualPremiumEmployeeNotificationTitle,
   buildMultiWorkplaceManualPremiumNotificationBody,
   buildMultiWorkplaceManualPremiumNotificationTitle,
   type MultiWorkplacePremiumAlertTrigger,
@@ -50,14 +48,6 @@ async function notifyTenantAdmins(
   }
 }
 
-async function notifyEmployee(
-  db: admin.firestore.Firestore,
-  uid: string,
-  notifDoc: Record<string, unknown>,
-): Promise<void> {
-  await db.collection('accounts').doc(uid).collection('notifications').add(notifDoc);
-}
-
 export async function ensureMultiWorkplaceManualPremiumAlert(
   db: admin.firestore.Firestore,
   tid: string,
@@ -76,26 +66,26 @@ export async function ensureMultiWorkplaceManualPremiumAlert(
   try {
     const ref = alertRef(db, tid, eid, params.trigger, params.yyyyMm);
     const existing = await ref.get();
-    if (existing.exists) {
-      return;
-    }
 
     const employeeDisplayName =
       params.employeeDisplayName ??
       employee.employeePersonalInfo?.displayName ??
       '対象従業員';
     const now = admin.firestore.FieldValue.serverTimestamp();
+    const createdAt = existing.exists
+      ? (existing.data()?.createdAt ?? now)
+      : now;
 
     await ref.set({
       eid,
       trigger: params.trigger,
       yyyyMm: params.yyyyMm,
       employeeDisplayName,
-      createdAt: now,
+      createdAt,
       updatedAt: now,
     });
 
-    const adminNotif = {
+    await notifyTenantAdmins(db, tid, {
       scope: 'tenant',
       type: 'multiWorkplaceManualPremium',
       title: buildMultiWorkplaceManualPremiumNotificationTitle(
@@ -113,27 +103,7 @@ export async function ensureMultiWorkplaceManualPremiumAlert(
       read: false,
       tid,
       createdAt: now,
-    };
-
-    await notifyTenantAdmins(db, tid, adminNotif);
-
-    const uid = employee.uid;
-    if (uid) {
-      await notifyEmployee(db, uid, {
-        scope: 'personal',
-        type: 'multiWorkplaceManualPremium',
-        title: buildMultiWorkplaceManualPremiumEmployeeNotificationTitle(params.trigger),
-        body: buildMultiWorkplaceManualPremiumEmployeeNotificationBody(
-          params.trigger,
-          params.yyyyMm,
-        ),
-        trigger: params.trigger,
-        yyyyMm: params.yyyyMm,
-        read: false,
-        tid,
-        createdAt: now,
-      });
-    }
+    });
   } catch (err) {
     console.error('[multi-workplace-premium-alert] failed', {
       tid,

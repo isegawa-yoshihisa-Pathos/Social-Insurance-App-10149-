@@ -116,13 +116,16 @@ export function isPremiumDataEmpty(premium: PremiumData | undefined | null): boo
   );
 }
 
-export interface ResignBulkPremiumInput {
+export interface ResignBulkPremiumScheduleInput {
   licenceStartAt: Date | null | undefined;
   licenseEndAt: Date | null | undefined;
   resignAt: Date | null | undefined;
   collectionMonth: SocialInsuranceCollectionMonth | undefined;
   payrollPaymentMonth?: PayrollPaymentMonth;
   resignPremiumCollection: ResignPremiumCollectionType | undefined;
+}
+
+export interface ResignBulkPremiumInput extends ResignBulkPremiumScheduleInput {
   premiumByMonth: ReadonlyMap<string, PremiumData | undefined>;
 }
 
@@ -136,26 +139,25 @@ export function resignLastPayrollMonthYyyyMm(
 }
 
 /**
- * 退職月給与で一括徴収する保険料を算出する。
- * 通常徴収予定月が最終給与月より後の保険料対象月分を合算する。
- * （例: 7月退職・当月給与・翌月徴収の場合、8月以降に徴収予定だった保険料を7月給与で一括徴収）
+ * 一括徴収の対象となる保険料対象月（yyyyMm）を列挙する。
+ * 通常徴収予定月が最終給与月より後の月次保険料を、退職月給与でまとめて徴収する。
  */
-export function computeResignBulkPremiumData(
-  input: ResignBulkPremiumInput,
-): PremiumData | undefined {
+export function listBulkCollectedPremiumMonths(
+  input: ResignBulkPremiumScheduleInput,
+): string[] {
   if (input.resignPremiumCollection !== 'bulk') {
-    return undefined;
+    return [];
   }
   if (!shouldShowResignPremiumCollectionSetting(input.collectionMonth)) {
-    return undefined;
+    return [];
   }
   if (!input.resignAt || !input.licenceStartAt) {
-    return undefined;
+    return [];
   }
 
   const licenseEndAt = resolveLicenseEndAt(input.licenseEndAt, input.resignAt);
   if (!licenseEndAt) {
-    return undefined;
+    return [];
   }
 
   const lastPayrollMonth = resignLastPayrollMonthYyyyMm(
@@ -165,7 +167,7 @@ export function computeResignBulkPremiumData(
   const licenceStartYyyyMm = toYyyyMmFromDate(input.licenceStartAt);
   const lastPremium = lastPremiumMonthYyyyMm(licenseEndAt, input.resignAt);
 
-  const bulkItems: PremiumData[] = [];
+  const months: string[] = [];
   let cursor = licenceStartYyyyMm;
   while (cursor <= lastPremium) {
     if (
@@ -181,14 +183,26 @@ export function computeResignBulkPremiumData(
         input.collectionMonth,
       );
       if (scheduledPayMonth > lastPayrollMonth) {
-        const premium = input.premiumByMonth.get(cursor);
-        if (premium && !isPremiumDataEmpty(premium)) {
-          bulkItems.push(premium);
-        }
+        months.push(cursor);
       }
     }
     cursor = addMonths(cursor, 1);
   }
+
+  return months;
+}
+
+/**
+ * 退職月給与で一括徴収する保険料を算出する。
+ * 通常徴収予定月が最終給与月より後の保険料対象月分を合算する。
+ * （例: 7月退職・当月給与・翌月徴収の場合、8月以降に徴収予定だった保険料を7月給与で一括徴収）
+ */
+export function computeResignBulkPremiumData(
+  input: ResignBulkPremiumInput,
+): PremiumData | undefined {
+  const bulkItems = listBulkCollectedPremiumMonths(input)
+    .map((month) => input.premiumByMonth.get(month))
+    .filter((premium): premium is PremiumData => !!premium && !isPremiumDataEmpty(premium));
 
   if (bulkItems.length === 0) {
     return undefined;

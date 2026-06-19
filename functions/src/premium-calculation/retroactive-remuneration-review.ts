@@ -149,16 +149,6 @@ async function notifyAdminRetroactiveReview(
     const uid = adminDoc.data()?.uid as string | undefined;
     if (!uid) continue;
 
-    const dedupeKey = `retroactive_${input.reviewId}`;
-    const existing = await db
-      .collection('accounts')
-      .doc(uid)
-      .collection('notifications')
-      .where('dedupeKey', '==', dedupeKey)
-      .limit(1)
-      .get();
-    if (!existing.empty) continue;
-
     await db.collection('accounts').doc(uid).collection('notifications').add({
       scope: 'tenant',
       type: 'retroactiveRemunerationReview',
@@ -166,7 +156,7 @@ async function notifyAdminRetroactiveReview(
       body: input.body,
       reviewId: input.reviewId,
       targetEid: input.targetEid,
-      dedupeKey,
+      dedupeKey: `retroactive_${input.reviewId}`,
       status: 'pending_review',
       read: false,
       tid,
@@ -190,23 +180,22 @@ async function ensureRetroactiveReview(
 ): Promise<{ created: boolean }> {
   const ref = collectionRef(db, tid).doc(reviewId);
   const existing = await ref.get();
-  if (existing.exists) {
-    const current = existing.data() as RetroactiveRemunerationReviewDocument;
-    if (current.status === 'pending_admin') {
-      return { created: false };
-    }
-    return { created: false };
-  }
-
   const now = admin.firestore.FieldValue.serverTimestamp();
-  const items = data.items.map((item) => defaultRetroactiveReviewItem(item));
-  await ref.set({
-    ...data,
-    items,
-    status: 'pending_admin',
-    createdAt: now,
-    updatedAt: now,
-  });
+  let created = false;
+
+  if (!existing.exists) {
+    const items = data.items.map((item) => defaultRetroactiveReviewItem(item));
+    await ref.set({
+      ...data,
+      items,
+      status: 'pending_admin',
+      createdAt: now,
+      updatedAt: now,
+    });
+    created = true;
+  } else {
+    await ref.set({ updatedAt: now }, { merge: true });
+  }
 
   await notifyAdminRetroactiveReview(db, tid, {
     reviewId,
@@ -215,7 +204,7 @@ async function ensureRetroactiveReview(
     targetEid: data.eid,
   });
 
-  return { created: true };
+  return { created };
 }
 
 export async function ensureTeijiRetroactiveReview(

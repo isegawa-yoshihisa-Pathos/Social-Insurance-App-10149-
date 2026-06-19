@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Firestore, collection, doc, getDocs, serverTimestamp, setDoc } from '@angular/fire/firestore';
+import { Firestore, collection, doc, getDocs, serverTimestamp, setDoc, deleteDoc } from '@angular/fire/firestore';
 import { normalizeEffectiveFrom } from '../../date-utils';
 import { InsuranceRateDocument, InsuranceRateSavePayload, ResolvedInsuranceRate, toResolvedInsuranceRate } from './social-insurance-document';
 import { lastDayOfYyyyMm } from './social-insurance-data.util';
@@ -43,6 +43,10 @@ export class InsuranceRateDataService {
       updatedAt: serverTimestamp(),
     });
     return ref.id;
+  }
+
+  async deleteRate(tid: string, id: string): Promise<void> {
+    await deleteDoc(doc(this.ratesCollection(tid), id));
   }
 
   async resolveRate(

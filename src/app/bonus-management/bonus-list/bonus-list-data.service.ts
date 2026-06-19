@@ -8,6 +8,7 @@ import {
   getDocs,
   serverTimestamp,
   setDoc,
+  writeBatch,
 } from '@angular/fire/firestore';
 import { EmployeeDocument } from '../../employee-document';
 import { BonusDocument, BonusPeriodDocument } from '../../bonus-document';
@@ -193,5 +194,64 @@ export class BonusListDataService {
     }
 
     return { eidByEmployeeId, eidsByDisplayName };
+  }
+
+  async addEmployeesWithEmptyData(
+    tid: string,
+    yyyyMm: string,
+    eids: readonly string[],
+  ): Promise<number> {
+    if (eids.length === 0) {
+      return 0;
+    }
+
+    const lookup = await this.loadEmployeeLookup(tid);
+    const batch = writeBatch(this.firestore);
+    let created = 0;
+
+    for (const eid of eids) {
+      const employee = lookup.get(eid);
+      if (!employee) {
+        continue;
+      }
+
+      const employeeRef = doc(
+        this.firestore,
+        'tenants',
+        tid,
+        'bonus-records',
+        yyyyMm,
+        'employees',
+        eid,
+      );
+      const existing = await getDoc(employeeRef);
+      if (existing.exists()) {
+        continue;
+      }
+
+      batch.set(employeeRef, {
+        uid: employee.uid,
+        displayName: employee.displayName,
+        updatedAt: serverTimestamp(),
+      });
+      created++;
+    }
+
+    if (created === 0) {
+      return 0;
+    }
+
+    this.touchPeriodInBatch(batch, tid, yyyyMm);
+    await batch.commit();
+
+    await this.auditLog.recordCreate({
+      tid,
+      category: 'bonus.add_employees',
+      summary: '賞与データに従業員を追加',
+      target: this.auditLog.bonusTarget(yyyyMm),
+      metadata: { created, eids: eids.slice(0, created) },
+    });
+
+    return created;
   }
 }

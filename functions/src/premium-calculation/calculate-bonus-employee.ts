@@ -90,6 +90,7 @@ export async function calculateBonusEmployee(
     rates: rate.rates,
     employeeRate: rate.employeeRate,
     roundingBy: rate.roundingBy,
+    roundingBoundaryType: rate.roundingBoundaryType,
   });
 
   const calculationSnapshot = omitUndefinedFields({
@@ -110,6 +111,7 @@ export async function calculateBonusEmployee(
       care: rate.roundingBy.careInsurance,
       pension: rate.roundingBy.pensionInsurance,
     },
+    roundingBoundaryType: rate.roundingBoundaryType,
     standardBonus: standardBonus.standardBonus,
     bonusAmount: standardBonus.bonusAmount,
     rawStandardBonus: standardBonus.rawStandardBonus,

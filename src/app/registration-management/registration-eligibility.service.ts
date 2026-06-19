@@ -85,9 +85,6 @@ export class RegistrationEligibilityService {
     if (monthCount === 0) {
       return ineligible(`${teijiYear}年4〜6月の月次給与データがありません`);
     }
-    if (monthCount < 3) {
-      return ineligible(`${teijiYear}年4〜6月の月次給与が${monthCount}ヶ月分のみ（3ヶ月必要）`);
-    }
 
     return eligible(
       `${teijiYear}年定時決定（健保${teiji.doc.healthGrade}等級・改定${teiji.doc.effectiveFrom.slice(0, 7)}〜）`,

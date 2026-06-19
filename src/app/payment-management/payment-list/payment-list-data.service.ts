@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Firestore, collection, getDocs, getDoc, doc } from '@angular/fire/firestore';
 import { EmployeeDocument } from '../../employee-document';
-import { MonthlyDocument } from '../../monthly-document';
+import { MonthlyDocument, PremiumData } from '../../monthly-document';
 import { BonusDocument } from '../../bonus-document';
 import { PaymentListRow } from './payment-list-columns';
 import { StandardRemunerationDataService } from '../../social-insurance/monthly/standard-remuneration-data.service';
@@ -9,7 +9,16 @@ import { toPaymentListRow } from './payment-list-row.mapper';
 import { TenantSettingDataService } from '../../tenant-setting/tenant-setting-data.service';
 import { addMonths } from '../../social-insurance/monthly/social-insurance-data.util';
 import { getTargetMonths } from '../../date-utils';
-import { mergePremiumData } from '../../../../shared/social-insurance/premium/resign-premium-collection';
+import { toFormDate } from '../../date-utils';
+import {
+  buildResignPremiumDisplayContext,
+  resolvePaymentDisplayPremium,
+  type ResignPremiumDisplayContext,
+} from '../../../../shared/social-insurance/premium/payment-resign-premium-display';
+import type {
+  ResignPremiumCollectionType,
+  SocialInsuranceCollectionMonth,
+} from '../../../../shared/social-insurance/premium/resign-premium-collection';
 import {
   getPaymentDisplayMonthForSalary,
   getPayrollPaymentMonthOffset,
@@ -31,6 +40,9 @@ export interface EmployeeLookupEntry {
   eid: string;
   employeeId: string;
   displayName: string;
+  licenceStartAt: Date | null;
+  licenseEndAt: Date | null;
+  resignAt: Date | null;
 }
 
 @Injectable({
@@ -60,6 +72,91 @@ export class PaymentListDataService {
 
   get payrollPaymentMonthOffset(): number {
     return getPayrollPaymentMonthOffset(this.payrollPaymentMonth);
+  }
+
+  private get socialInsuranceCollectionMonth(): SocialInsuranceCollectionMonth {
+    return this.tenantdata.form.socialInsuranceSettings.socialInsuranceCollectionMonth ?? 'nextMonth';
+  }
+
+  private get resignPremiumCollection(): ResignPremiumCollectionType {
+    return this.tenantdata.form.socialInsuranceSettings.resignPremiumCollection ?? 'monthly';
+  }
+
+  private buildResignContextForEmployee(
+    employee: EmployeeLookupEntry | undefined,
+  ): ResignPremiumDisplayContext | null {
+    if (!employee) {
+      return null;
+    }
+    return buildResignPremiumDisplayContext({
+      licenceStartAt: employee.licenceStartAt,
+      licenseEndAt: employee.licenseEndAt,
+      resignAt: employee.resignAt,
+      collectionMonth: this.socialInsuranceCollectionMonth,
+      payrollPaymentMonth: this.payrollPaymentMonth,
+      resignPremiumCollection: this.resignPremiumCollection,
+    });
+  }
+
+  private async loadPremiumByMonthForBulk(
+    tid: string,
+    eid: string,
+    bulkMonths: ReadonlySet<string>,
+    seeded: ReadonlyMap<string, PremiumData | undefined>,
+  ): Promise<Map<string, PremiumData | undefined>> {
+    const premiumByMonth = new Map<string, PremiumData | undefined>();
+
+    await Promise.all(
+      [...bulkMonths].map(async (yyyyMm) => {
+        if (seeded.has(yyyyMm)) {
+          premiumByMonth.set(yyyyMm, seeded.get(yyyyMm));
+          return;
+        }
+        const snap = await getDoc(
+          doc(this.firestore, 'tenants', tid, 'monthly-records', yyyyMm, 'employees', eid),
+        );
+        premiumByMonth.set(
+          yyyyMm,
+          snap.exists() ? (snap.data() as Partial<MonthlyDocument>).premiumData : undefined,
+        );
+      }),
+    );
+
+    return premiumByMonth;
+  }
+
+  private async resolveMonthlyPremiumForPaymentDisplay(
+    tid: string,
+    displayYyyyMm: string,
+    premiumMonth: string,
+    eid: string,
+    premiumFromFetchedMonth: PremiumData | undefined,
+    resignContext: ResignPremiumDisplayContext | null,
+  ): Promise<PremiumData | undefined> {
+    if (!resignContext?.isBulk || displayYyyyMm !== resignContext.finalPayrollDisplayMonth) {
+      return resolvePaymentDisplayPremium({
+        displayYyyyMm,
+        premiumMonthYyyyMm: premiumMonth,
+        premiumFromFetchedMonth,
+        premiumByMonth: new Map([[premiumMonth, premiumFromFetchedMonth]]),
+        resignContext,
+      });
+    }
+
+    const premiumByMonth = await this.loadPremiumByMonthForBulk(
+      tid,
+      eid,
+      resignContext.bulkMonths,
+      new Map([[premiumMonth, premiumFromFetchedMonth]]),
+    );
+
+    return resolvePaymentDisplayPremium({
+      displayYyyyMm,
+      premiumMonthYyyyMm: premiumMonth,
+      premiumFromFetchedMonth,
+      premiumByMonth,
+      resignContext,
+    });
   }
 
   /** 最終月次データ月の保険料が給与管理に表示される対象月 */
@@ -99,10 +196,14 @@ export class PaymentListDataService {
 
     for (const snap of employees.docs) {
       const data = snap.data() as Partial<EmployeeDocument>;
+      const employ = data.employeeEmployInfo;
       lookup.set(snap.id, {
         eid: snap.id,
-        employeeId: data.employeeEmployInfo?.employeeId ?? '',
+        employeeId: employ?.employeeId ?? '',
         displayName: data.employeePersonalInfo?.displayName ?? '',
+        licenceStartAt: toFormDate(employ?.licenseStartAt),
+        licenseEndAt: toFormDate(employ?.licenseEndAt),
+        resignAt: toFormDate(employ?.resignAt),
       });
     }
 
@@ -158,24 +259,33 @@ export class PaymentListDataService {
     );
 
     const eids = new Set([...monthlySalaryByEid.keys(), ...monthlyPremiumByEid.keys(), ...bonusByEid.keys()]);
-    const rows = [...eids].map((eid) => {
-      const monthlySalaryDoc = monthlySalaryByEid.get(eid) || {};
-      const monthlyPremiumDoc = monthlyPremiumByEid.get(eid) || {};
-      const mergedMonthlyDoc = {
-        ...monthlySalaryDoc,
-        calculationSnapshot: monthlyPremiumDoc.calculationSnapshot,
-        premiumData: mergePremiumData(
+    const rows = await Promise.all(
+      [...eids].map(async (eid) => {
+        const monthlySalaryDoc = monthlySalaryByEid.get(eid) || {};
+        const monthlyPremiumDoc = monthlyPremiumByEid.get(eid) || {};
+        const employee = employeeLookup.get(eid);
+        const resignContext = this.buildResignContextForEmployee(employee);
+        const resolvedPremium = await this.resolveMonthlyPremiumForPaymentDisplay(
+          tid,
+          yyyyMm,
+          premiumMonth,
+          eid,
           monthlyPremiumDoc.premiumData,
-          monthlySalaryDoc.resignBulkPremiumData,
-        ),
-      };
-      const row = toPaymentListRow(
-        eid,
-        mergedMonthlyDoc,
-        bonusByEid.get(eid),
-      );
-      return this.mergeEmployeeMeta(row, employeeLookup);
-    });
+          resignContext,
+        );
+        const mergedMonthlyDoc = {
+          ...monthlySalaryDoc,
+          calculationSnapshot: monthlyPremiumDoc.calculationSnapshot,
+          premiumData: resolvedPremium,
+        };
+        const row = toPaymentListRow(
+          eid,
+          mergedMonthlyDoc,
+          bonusByEid.get(eid),
+        );
+        return this.mergeEmployeeMeta(row, employeeLookup);
+      }),
+    );
 
     return this.enrichWithStandardRemuneration(tid, premiumMonth, rows);
   }
@@ -240,6 +350,21 @@ export class PaymentListDataService {
       maxBonusMonth,
     );
 
+    const resignContext = this.buildResignContextForEmployee(empMeta);
+    const premiumByMonth = new Map<string, PremiumData | undefined>();
+    await Promise.all(
+      recordsSnap.docs.map(async (periodDoc) => {
+        const snap = await getDoc(
+          doc(this.firestore, 'tenants', tid, 'monthly-records', periodDoc.id, 'employees', eid),
+        );
+        if (!snap.exists()) {
+          return;
+        }
+        const data = snap.data() as Partial<MonthlyDocument>;
+        premiumByMonth.set(periodDoc.id, data.premiumData);
+      }),
+    );
+
     const targetMonths = getTargetMonths(minDisplayMonth, maxDisplayMonth);
 
     const detailRows = (
@@ -272,13 +397,18 @@ export class PaymentListDataService {
             ? (monthlyPremiumSnap.data() as Partial<MonthlyDocument>)
             : {};
 
+          const resolvedPremium = resolvePaymentDisplayPremium({
+            displayYyyyMm: yyyyMm,
+            premiumMonthYyyyMm: premiumMonth,
+            premiumFromFetchedMonth: monthlyPremiumDoc.premiumData,
+            premiumByMonth,
+            resignContext,
+          });
+
           const mergedMonthlyDoc = {
             ...monthlySalaryDoc,
             calculationSnapshot: monthlyPremiumDoc.calculationSnapshot,
-            premiumData: mergePremiumData(
-              monthlyPremiumDoc.premiumData,
-              monthlySalaryDoc.resignBulkPremiumData,
-            ),
+            premiumData: resolvedPremium,
           };
           const bonusDoc = hasBonus
             ? (bonusSnap.data() as Partial<BonusDocument>)

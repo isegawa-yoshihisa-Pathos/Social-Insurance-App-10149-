@@ -2,27 +2,41 @@ import { Component, EventEmitter, Output, computed, inject, OnInit } from '@angu
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTableModule } from '@angular/material/table';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog } from '@angular/material/dialog';
 import { TenantInsuranceRateSettingDataService } from '../tenant-insurance-rate-setting-data.service';
 import { formatJapaneseDate } from '../../../date-utils';
+import {
+  normalizeRoundingBoundaryType,
+  ROUNDING_BOUNDARY_LABELS,
+  type RoundingBoundaryType,
+} from '../../../social-insurance/monthly/social-insurance-document';
+import type { InsuranceRateListItem } from '../../../social-insurance/monthly/insurance-rate-data.service';
+import { ErrorDialogCmp, mapFirebaseError } from '../../../error-dialog/error-dialog.cmp';
 
 @Component({
   selector: 'app-tenant-insurance-rate-setting-display',
   standalone: true,
-  imports: [CommonModule, MatButtonModule, MatTableModule],
+  imports: [CommonModule, MatButtonModule, MatTableModule, MatIconModule, MatTooltipModule],
   templateUrl: './tenant-insurance-rate-setting-display.cmp.html',
   styleUrl: './tenant-insurance-rate-setting-display.cmp.css'
 })
 export class TenantInsuranceRateSettingDisplayCmp implements OnInit {
   readonly dataService = inject(TenantInsuranceRateSettingDataService);
+  private readonly dialog = inject(MatDialog);
 
   @Output() readonly addRate = new EventEmitter<void>();
+
+  deleteBusy = false;
 
   readonly displayedColumns: string[] = [
     'effectiveFrom',
     'label',
     'rates',
     'rounding',
-    'rateSource'
+    'rateSource',
+    'deleteButton'
   ];
 
   private readonly sourceLabelMap: Record<string, string> = {
@@ -58,6 +72,24 @@ export class TenantInsuranceRateSettingDisplayCmp implements OnInit {
     return `${(rate * 100).toFixed(2)}%`;
   }
 
+  formatRounding(sen: number | undefined, boundaryType?: RoundingBoundaryType): string {
+    const amount = sen ?? 50;
+    const boundary = ROUNDING_BOUNDARY_LABELS[
+      normalizeRoundingBoundaryType(boundaryType)
+    ];
+    return `${amount}銭${boundary}`;
+  }
+
+  formatRoundingSummary(
+    roundingBy: { healthInsurance?: number; careInsurance?: number; pensionInsurance?: number },
+    boundaryType?: RoundingBoundaryType,
+  ): string {
+    const boundary = ROUNDING_BOUNDARY_LABELS[
+      normalizeRoundingBoundaryType(boundaryType)
+    ];
+    return `健${roundingBy.healthInsurance ?? 50}/介${roundingBy.careInsurance ?? 50}/厚${roundingBy.pensionInsurance ?? 50}（${boundary}）`;
+  }
+
   private getTodayYyyyMmDd(): string {
     const d = new Date();
     const y = d.getFullYear();
@@ -75,5 +107,51 @@ export class TenantInsuranceRateSettingDisplayCmp implements OnInit {
       return yyyyMmDd;
     }
     return formatJapaneseDate(new Date(year, month - 1, day));
+  }
+
+  canDeleteRate(row: InsuranceRateListItem): boolean {
+    if (this.deleteBusy) {
+      return false;
+    }
+    if (this.dataService.rates().length <= 1) {
+      return false;
+    }
+    const current = this.currentRate();
+    return current?.rateId !== row.rateId;
+  }
+
+  deleteTooltip(row: InsuranceRateListItem): string {
+    if (this.dataService.rates().length <= 1) {
+      return '最後の1件は削除できません';
+    }
+    const current = this.currentRate();
+    if (current?.rateId === row.rateId) {
+      return '現在有効な料率は削除できません';
+    }
+    return '削除';
+  }
+
+  async deleteRate(row: InsuranceRateListItem): Promise<void> {
+    if (!this.canDeleteRate(row)) {
+      return;
+    }
+
+    const confirmed = confirm(
+      `${this.formatEffectiveFrom(row.doc.effectiveFrom)}（${row.doc.label || 'ラベル未設定'}）の料率を削除しますか？\nこの操作は取り消せません。`,
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    this.deleteBusy = true;
+    try {
+      await this.dataService.deleteRate(row.rateId);
+    } catch (error) {
+      this.dialog.open(ErrorDialogCmp, {
+        data: { message: mapFirebaseError(error) },
+      });
+    } finally {
+      this.deleteBusy = false;
+    }
   }
 }

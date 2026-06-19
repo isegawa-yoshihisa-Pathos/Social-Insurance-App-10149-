@@ -13,6 +13,15 @@ export const PREMIUM_BONUS_LIST_COLUMN_KEYS = [
 
 export type PremiumBonusListColumnKey = (typeof PREMIUM_BONUS_LIST_COLUMN_KEYS)[number];
 
+export const PREMIUM_BONUS_LIST_EMPLOYEE_COLUMN_KEYS = [
+  'healthInsuranceEmployee',
+  'careInsuranceEmployee',
+  'pensionInsuranceEmployee',
+] as const;
+
+export type PremiumBonusListEmployeeColumnKey =
+  (typeof PREMIUM_BONUS_LIST_EMPLOYEE_COLUMN_KEYS)[number];
+
 const PREMIUM_COLUMN_LABELS: Record<PremiumBonusListColumnKey, string> = {
   standardBonusHealth: '標準賞与額（健保）',
   standardBonusPension: '標準賞与額（厚年）',
@@ -34,6 +43,16 @@ export function getPremiumColumnLabel(column: PremiumBonusListColumnKey): string
 
 export function getOptionalPremiumColumns(): { key: PremiumBonusListColumnKey; label: string }[] {
   return PREMIUM_BONUS_LIST_COLUMN_KEYS.map((key) => ({
+    key,
+    label: PREMIUM_COLUMN_LABELS[key],
+  }));
+}
+
+export function getOptionalEmployeePremiumColumns(): {
+  key: PremiumBonusListEmployeeColumnKey;
+  label: string;
+}[] {
+  return PREMIUM_BONUS_LIST_EMPLOYEE_COLUMN_KEYS.map((key) => ({
     key,
     label: PREMIUM_COLUMN_LABELS[key],
   }));

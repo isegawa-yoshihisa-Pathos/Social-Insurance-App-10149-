@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Firestore, collection, doc, getDoc, getDocs, serverTimestamp, setDoc } from '@angular/fire/firestore';
+import { Firestore, collection, doc, getDoc, getDocs, serverTimestamp, setDoc, deleteDoc } from '@angular/fire/firestore';
 import { StandardRemunerationDocument } from './social-insurance-document';
 import { AuditLogService } from '../../audit-log/audit-log.service';
 
@@ -27,6 +27,15 @@ export class StandardRemunerationDataService {
       eid,
       'standardRemuneration',
     );
+  }
+
+  private async employeeDisplayNameAndEmployeeId(tid: string, eid: string): Promise<{ displayName: string; employeeId: string }> {
+    const snap = await getDoc(doc(this.firestore, 'tenants', tid, 'employees', eid));
+    if (!snap.exists()) return { displayName: '', employeeId: '' };
+    return {
+      displayName: snap.data()?.['employeePersonalInfo']?.['displayName'] ?? '',
+      employeeId: snap.data()?.['employeeEmployInfo']?.['employeeId'] ?? '',
+    };
   }
 
   private docRef(tid: string, eid: string, yyyyMm: string) {
@@ -73,6 +82,7 @@ export class StandardRemunerationDataService {
   ): Promise<void> {
     const ref = this.docRef(tid, eid, yyyyMm);
     const existing = await getDoc(ref);
+    const { displayName, employeeId } = await this.employeeDisplayNameAndEmployeeId(tid, eid);
     await setDoc(ref, {
       ...payload,
       createdAt: existing.exists()
@@ -86,8 +96,34 @@ export class StandardRemunerationDataService {
       action: existing.exists() ? 'update' : 'create',
       category: 'standard_remuneration',
       summary: existing.exists() ? '標準報酬月額を更新' : '標準報酬月額を作成',
-      target: this.auditLog.employeeTarget(eid, '', undefined, yyyyMm),
+      target: this.auditLog.employeeTarget(eid, displayName, employeeId, yyyyMm),
       metadata: { source: payload.source },
+    });
+  }
+
+  async delete(
+    tid: string,
+    eid: string,
+    yyyyMm: string,
+  ): Promise<void> {
+    const ref = this.docRef(tid, eid, yyyyMm);
+    const existing = await getDoc(ref);
+    const { displayName, employeeId } = await this.employeeDisplayNameAndEmployeeId(tid, eid);
+    if (!existing.exists()) {
+      return;
+    }
+
+    await deleteDoc(ref);
+
+    await this.auditLog.record({
+      tid,
+      action: 'delete',
+      category: 'standard_remuneration',
+      summary: '標準報酬月額を削除',
+      target: this.auditLog.employeeTarget(eid, displayName, employeeId, yyyyMm),
+      metadata: {
+        source: (existing.data() as StandardRemunerationDocument).source,
+      },
     });
   }
 }

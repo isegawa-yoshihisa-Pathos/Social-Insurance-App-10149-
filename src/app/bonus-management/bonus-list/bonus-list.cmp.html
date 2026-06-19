@@ -8,7 +8,7 @@
       各従業員データはcsvファイルからインポートしてください。各項目のセルをクリックすることで編集が可能です。<br>
       チェックボックスで選択することで複数の従業員を一括で編集可能です。<br>
       「氏名」または「社員番号」のセルをクリックすると、各従業員の詳細ページに移動できます。<br>
-      「締切」ボタンを押すと、当月のデータを締め切ることができます。管理者であっても変更はできません。<br>
+      「締切」ボタンを押すと、当月のデータを締め、従業員のマイページに表示します。管理者であっても変更はできません。<br>
       表示項目、ソート、フィルタを反映したcsvファイルをダウンロードできます。
     </div>
   </div>
@@ -52,6 +52,16 @@
             [class.locked]="locked()"
           >
             <mat-icon>{{ locked() ? 'lock' : 'lock_open' }}</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            type="button"
+            matTooltip="賞与データを追加"
+            class="add-employee-button"
+            [disabled]="bulkSaving || locked()"
+            (click)="openAddEmployeesDialog()"
+          >
+            <mat-icon>add</mat-icon> 
           </button>
           <app-help-content key="bonusImport"></app-help-content>
           <input

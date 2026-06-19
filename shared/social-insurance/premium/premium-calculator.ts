@@ -5,7 +5,7 @@ import {
   premiumFromStandardRemuneration,
   type SplitPremiumResult,
 } from './rounding';
-import { EmployeeRateByInsurance, normalizeEmployeeRate, normalizeRoundingBy, RoundingByInsurance } from '../monthly/social-insurance-document';
+import { EmployeeRateByInsurance, normalizeEmployeeRate, normalizeRoundingBy, normalizeRoundingBoundaryType, RoundingByInsurance, type RoundingBoundaryType } from '../monthly/social-insurance-document';
 import {
   isBonusPremiumExemptForChildcareLeave,
   isMonthlyPremiumExemptForLeave,
@@ -42,6 +42,7 @@ export interface PremiumCalculationInput extends CareInsuranceCollectionInput {
   };
   rates: InsuranceRatesInput;
   employeeRate?: EmployeeRateByInsurance;
+  roundingBoundaryType?: RoundingBoundaryType;
   roundingBy?: RoundingByInsurance;
 }
 
@@ -196,6 +197,7 @@ export interface BonusPremiumCalculationInput extends CareInsuranceCollectionInp
   };
   rates: InsuranceRatesInput;
   employeeRate?: EmployeeRateByInsurance;
+  roundingBoundaryType?: RoundingBoundaryType;
   roundingBy?: RoundingByInsurance;
 }
 
@@ -225,6 +227,7 @@ export function calculateBonusPremium(input: BonusPremiumCalculationInput): Prem
     standardRemuneration: input.standardBonus,
     rates: input.rates,
     employeeRate: input.employeeRate,
+    roundingBoundaryType: input.roundingBoundaryType,
     roundingBy: input.roundingBy,
   });
 }
@@ -241,6 +244,7 @@ export function calculateMonthlyPremium(input: PremiumCalculationInput): Premium
   } = input;
   const rate = normalizeEmployeeRate(input.employeeRate);
   const rounding = normalizeRoundingBy(input.roundingBy);
+  const roundingBoundaryType = normalizeRoundingBoundaryType(input.roundingBoundaryType);
 
   let health: PremiumData['healthInsurance'] = {
     employer: null,
@@ -272,6 +276,7 @@ export function calculateMonthlyPremium(input: PremiumCalculationInput): Premium
         { 
           employeeRate: rate.healthInsurance,
           roundingBy: rounding.healthInsurance,
+          roundingBoundaryType,
         },
       );
       health = toPremiumPart(healthSplit);
@@ -284,6 +289,7 @@ export function calculateMonthlyPremium(input: PremiumCalculationInput): Premium
         { 
           employeeRate: rate.pensionInsurance,
           roundingBy: rounding.pensionInsurance,
+          roundingBoundaryType,
         },
       );
       pension = toPremiumPart(pensionSplit);
@@ -302,6 +308,7 @@ export function calculateMonthlyPremium(input: PremiumCalculationInput): Premium
         { 
           employeeRate: rate.careInsurance,
           roundingBy: rounding.careInsurance,
+          roundingBoundaryType,
         },
       );
       care = toPremiumPart(careSplit);

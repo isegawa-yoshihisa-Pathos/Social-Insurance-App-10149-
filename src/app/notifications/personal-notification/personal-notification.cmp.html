@@ -8,23 +8,25 @@
         <div class="notification-list">
             @for (notification of notificationService.personalNotifications(); track notification.id) {
                 <button (click)="notificationService.markAsRead(notification)" class="notification-item">
-                    <div class="notification-item-read">
-                        @if (!notification.read) {
-                            <div class="notification-item-read-dot"></div>
-                        }
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                        <div class="notification-item-read">
+                            @if (!notification.read) {
+                                <div class="notification-item-read-dot"></div>
+                            }
+                        </div>
+                        <div class="notification-item-title">
+                            <strong>{{ notification.title }}</strong>
+                        </div>
+                        <div class="notification-item-created-at">
+                            {{ formatDate(notification.createdAt) }}
+                        </div>
+                        <button mat-button (click)="deleteNotification(notification.id)" class="delete-button">
+                            ✕
+                        </button>
                     </div>
-                    <div class="notification-item-title">
-                        {{ notification.title }}
-                    </div>
-                    <div class="notification-item-body">
+                    <div class="notification-item-body" style="display: flex; justify-content: flex-start; text-align: left; margin-top: 3px; color: #666;">
                         {{ notification.body }}
                     </div>
-                    <div class="notification-item-created-at">
-                        {{ notification.createdAt }}
-                    </div>
-                    <button mat-button (click)="deleteNotification(notification.id)">
-                        ✕
-                    </button>
                 </button>
             }
         </div>

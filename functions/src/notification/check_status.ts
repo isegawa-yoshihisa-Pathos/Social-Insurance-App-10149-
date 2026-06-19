@@ -1,7 +1,7 @@
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import * as admin from 'firebase-admin';
 import type { EmployeeDocument } from '../../../shared/employee-document';
-import { getCalendarDateInTimeZone } from '../../../shared/date-utils';
+import { getCalendarDateInTimeZone, JAPAN_TIME_ZONE } from '../../../shared/date-utils';
 import { resolveEmploymentStatusAsOf } from '../../../shared/employment-status';
 
 if (admin.apps.length === 0) {
@@ -18,7 +18,7 @@ export const updateEmployeeStatusesDaily = onSchedule(
   },
   async () => {
     const db = admin.firestore();
-    const asOf = getCalendarDateInTimeZone('Asia/Tokyo');
+    const asOf = getCalendarDateInTimeZone(JAPAN_TIME_ZONE);
 
     try {
       const tenantsSnapshot = await db.collection('tenants').get();

@@ -12,7 +12,7 @@ import { TenantInsuranceRateSettingDataService, type InsuranceRateEditForm } fro
 import { TenantSettingDataService } from '../../tenant-setting-data.service';
 import { buildAssociationInsuranceRatePayload, CURRENT_ASSOCIATION_RATE_TABLE } from '../../../social-insurance/insurance-rates/association';
 import { toFormDate, toYyyyMmDd } from '../../../date-utils';
-import { roundPercent, roundRate } from '../../../social-insurance/premium/rounding';
+import { roundPercent, roundRate } from '../../../../../shared/social-insurance/premium/rounding';
 import { HelpContentCmp } from '../../../help-content/help-content.cmp';
 
 @Component({
@@ -54,7 +54,7 @@ export class TenantInsuranceRateSettingEditCmp implements OnInit {
     const next: InsuranceRateEditForm = {
       ...current,
       employeeRate: { ...current.employeeRate },
-      roundingBy: { ...current.roundingBy }
+      roundingBy: { ...current.roundingBy },
     };
     updater(next);
     this.dataService.editForm.set(next);
@@ -63,22 +63,40 @@ export class TenantInsuranceRateSettingEditCmp implements OnInit {
   onEffectiveFromDateChange(date: Date | null): void {
     this.effectiveFromDate = date;
     const next = date ? toYyyyMmDd(date) : '';
-    if (next === this.dataService.editForm().effectiveFrom) {
+    const form = this.dataService.editForm();
+    if (!next || next === form.effectiveFrom) {
       return;
     }
+
+    if (
+      this.tenantSetting.form.socialInsuranceSettings.healthInsuranceType !== 'association' ||
+      !form.prefectureCode
+    ) {
+      this.updateForm((f) => {
+        f.effectiveFrom = next;
+      });
+      return;
+    }
+
     const payload = buildAssociationInsuranceRatePayload(
-      this.dataService.editForm().prefectureCode as any,
+      form.prefectureCode as Parameters<typeof buildAssociationInsuranceRatePayload>[0],
       this.dataService.getAssociationRateTable(next),
-      { employeeRate: { healthInsurance: 0, careInsurance: 0, pensionInsurance: 0 } }
     );
 
     if (payload) {
-      this.updateForm(f => {
+      this.updateForm((f) => {
         f.effectiveFrom = next;
         f.healthInsuranceRate = payload.healthInsuranceRate;
-        f.employeeRate.healthInsurance = roundRate(payload.healthInsuranceRate / 2);
+        f.careInsuranceRate = payload.careInsuranceRate;
+        f.pensionInsuranceRate = payload.pensionInsuranceRate;
+        f.employeeRate = { ...payload.employeeRate };
       });
+      return;
     }
+
+    this.updateForm((f) => {
+      f.effectiveFrom = next;
+    });
   }
 
   get label(): string { return this.dataService.editForm().label; }
@@ -111,13 +129,20 @@ export class TenantInsuranceRateSettingEditCmp implements OnInit {
   get pensionRounding(): number { return this.dataService.editForm().roundingBy.pensionInsurance; }
   set pensionRounding(val: number) { this.updateForm(f => f.roundingBy.pensionInsurance = val); }
 
+  get roundingBoundaryType() { return this.dataService.editForm().roundingBoundaryType; }
+  set roundingBoundaryType(val: 'lessThan' | 'lessThanOrEqual') {
+    this.updateForm((f) => {
+      f.roundingBoundaryType = val;
+    });
+  }
+
   onPrefectureChange(prefCode: string): void {
     const target = this.prefectures.find(p => p.prefectureCode === prefCode);
-    
+    const effectiveFrom = this.dataService.editForm().effectiveFrom;
+
     const payload = buildAssociationInsuranceRatePayload(
-      prefCode as any,
-      CURRENT_ASSOCIATION_RATE_TABLE,
-      { employeeRate: { healthInsurance: 0, careInsurance: 0, pensionInsurance: 0 } }
+      prefCode as Parameters<typeof buildAssociationInsuranceRatePayload>[0],
+      this.dataService.getAssociationRateTable(effectiveFrom),
     );
 
     if (payload) {
@@ -125,11 +150,9 @@ export class TenantInsuranceRateSettingEditCmp implements OnInit {
         f.prefectureCode = prefCode;
         f.prefectureName = target ? target.prefectureName : null;
         f.healthInsuranceRate = payload.healthInsuranceRate;
-        f.employeeRate.healthInsurance = roundRate(payload.healthInsuranceRate / 2);
-        if (f.masterSnapshot) {
-          f.masterSnapshot.prefectureCode = prefCode;
-          f.masterSnapshot.healthInsuranceRate = payload.healthInsuranceRate;
-        }
+        f.careInsuranceRate = payload.careInsuranceRate;
+        f.pensionInsuranceRate = payload.pensionInsuranceRate;
+        f.employeeRate = { ...payload.employeeRate };
       });
     }
   }

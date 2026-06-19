@@ -172,16 +172,6 @@ async function notifyEmployeeConsent(
     targetEid: string;
   },
 ): Promise<void> {
-  const dedupeKey = `consent_${input.reviewId}`;
-  const existing = await db
-    .collection('accounts')
-    .doc(uid)
-    .collection('notifications')
-    .where('dedupeKey', '==', dedupeKey)
-    .limit(1)
-    .get();
-  if (!existing.empty) return;
-
   await db.collection('accounts').doc(uid).collection('notifications').add({
     scope: 'personal',
     type: input.type,
@@ -190,7 +180,7 @@ async function notifyEmployeeConsent(
     reviewId: input.reviewId,
     tid: input.tid,
     targetEid: input.targetEid,
-    dedupeKey,
+    dedupeKey: `consent_${input.reviewId}`,
     status: 'assigned',
     read: false,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -219,15 +209,6 @@ async function notifyAdminReview(
   for (const adminDoc of admins.docs) {
     const uid = adminDoc.data()?.uid as string | undefined;
     if (!uid) continue;
-
-    const existing = await db
-      .collection('accounts')
-      .doc(uid)
-      .collection('notifications')
-      .where('dedupeKey', '==', input.dedupeKey)
-      .limit(1)
-      .get();
-    if (!existing.empty) continue;
 
     await db.collection('accounts').doc(uid).collection('notifications').add({
       scope: 'tenant',
@@ -273,7 +254,7 @@ export async function ensureTeijiAnnualAverageConsentReview(
     `定時決定等級 ${teijiHealthGrade}/${teijiPensionGrade} → ` +
     `年間平均等級 ${grades.health.grade}/${grades.pension.grade}（${effectiveFrom}適用）`;
 
-  const { created } = await ensureReview(db, tid, reviewId, {
+  await ensureReview(db, tid, reviewId, {
     type: 'teiji_annual_average',
     eid,
     employeeDisplayName,
@@ -295,7 +276,6 @@ export async function ensureTeijiAnnualAverageConsentReview(
       divisor: screening.annualAverage.divisor,
     },
   });
-  if (!created) return { created: false };
 
   if (employeeUid) {
     await notifyEmployeeConsent(db, employeeUid, {
@@ -348,7 +328,7 @@ export async function ensureZuijiAnnualAverageConsentReview(
     `通常随時 ${normalZuijiGrades.health.grade}/${normalZuijiGrades.pension.grade} → ` +
     `年間平均等級 ${grades.health.grade}/${grades.pension.grade}（${effectiveFrom}適用）`;
 
-  const { created } = await ensureReview(db, tid, reviewId, {
+  await ensureReview(db, tid, reviewId, {
     type: 'zuiji_annual_average',
     eid,
     employeeDisplayName,
@@ -368,7 +348,6 @@ export async function ensureZuijiAnnualAverageConsentReview(
       averageRemuneration: screening.annualAverage.averageRemuneration,
     },
   });
-  if (!created) return;
 
   if (employeeUid) {
     await notifyEmployeeConsent(db, employeeUid, {
@@ -426,7 +405,7 @@ export async function ensureLeaveReturnConsentReview(
     employmentType,
   });
 
-  const { created } = await ensureReview(db, tid, reviewId, {
+  await ensureReview(db, tid, reviewId, {
     type: 'leave_return',
     eid,
     employeeDisplayName,
@@ -450,7 +429,6 @@ export async function ensureLeaveReturnConsentReview(
       pensionDiff: input.pensionDiff,
     },
   });
-  if (!created) return;
 
   if (employeeUid) {
     await notifyEmployeeConsent(db, employeeUid, {

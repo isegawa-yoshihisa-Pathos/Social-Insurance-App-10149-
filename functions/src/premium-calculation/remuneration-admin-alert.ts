@@ -111,45 +111,34 @@ export async function ensureTeijiNonTargetAlert(
     const ref = teijiNonTargetAlertRef(db, tid, eid, teijiYear);
     const existing = await ref.get();
     const now = admin.firestore.FieldValue.serverTimestamp();
+    const createdAt = existing.exists
+      ? (existing.data()?.createdAt ?? now)
+      : now;
 
-    if (!existing.exists) {
-      await ref.set({
-        eid,
-        teijiYear,
-        screeningYyyyMm,
-        effectiveYyyyMm,
-        employeeDisplayName,
-        reason,
-        createdAt: now,
-        updatedAt: now,
-      });
-
-      await notifyTenantAdmins(db, tid, {
-        scope: 'tenant',
-        type: 'teijiNonTarget',
-        title: buildTeijiNonTargetNotificationTitle(employeeDisplayName, teijiYear),
-        body: buildTeijiNonTargetNotificationBody(employeeDisplayName, teijiYear, reason),
-        targetEid: eid,
-        teijiYear,
-        screeningYyyyMm,
-        effectiveYyyyMm,
-        reason,
-        read: false,
-        tid,
-        createdAt: now,
-      });
-      return;
-    }
-
-    const current = existing.data() as TeijiNonTargetAlertDocument;
-    if (current.reason === reason) {
-      return;
-    }
-
-    await ref.update({
-      reason,
+    await ref.set({
+      eid,
+      teijiYear,
+      screeningYyyyMm,
+      effectiveYyyyMm,
       employeeDisplayName,
+      reason,
+      createdAt,
       updatedAt: now,
+    });
+
+    await notifyTenantAdmins(db, tid, {
+      scope: 'tenant',
+      type: 'teijiNonTarget',
+      title: buildTeijiNonTargetNotificationTitle(employeeDisplayName, teijiYear),
+      body: buildTeijiNonTargetNotificationBody(employeeDisplayName, teijiYear, reason),
+      targetEid: eid,
+      teijiYear,
+      screeningYyyyMm,
+      effectiveYyyyMm,
+      reason,
+      read: false,
+      tid,
+      createdAt: now,
     });
   } catch (err) {
     console.error('[teiji-non-target-alert] failed', { tid, eid, teijiYear, err });
@@ -170,13 +159,13 @@ export async function ensureStandardZuijiApplicableAlert(
   try {
     const ref = standardZuijiAlertRef(db, tid, eid, changeMonthYyyyMm);
     const existing = await ref.get();
-    if (existing.exists) {
-      return;
-    }
-
     const now = admin.firestore.FieldValue.serverTimestamp();
+    const createdAt = existing.exists
+      ? (existing.data()?.createdAt ?? now)
+      : now;
+
     const alert: Omit<StandardZuijiAlertDocument, 'createdAt' | 'updatedAt'> & {
-      createdAt: admin.firestore.FieldValue;
+      createdAt: admin.firestore.FieldValue | admin.firestore.Timestamp;
       updatedAt: admin.firestore.FieldValue;
     } = {
       eid,
@@ -188,7 +177,7 @@ export async function ensureStandardZuijiApplicableAlert(
       previousPensionGrade: previous.pensionGrade,
       newHealthGrade: outcome.grades.health.grade,
       newPensionGrade: outcome.grades.pension.grade,
-      createdAt: now,
+      createdAt,
       updatedAt: now,
     };
     await ref.set(alert);

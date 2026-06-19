@@ -7,6 +7,16 @@ export interface EmployeeRateByInsurance {
   pensionInsurance: number;
 }
 
+/** 端数の切り捨て境界（例: 50銭）に対する比較方法 */
+export type RoundingBoundaryType = 'lessThan' | 'lessThanOrEqual';
+
+export const DEFAULT_ROUNDING_BOUNDARY_TYPE: RoundingBoundaryType = 'lessThanOrEqual';
+
+export const ROUNDING_BOUNDARY_LABELS: Record<RoundingBoundaryType, string> = {
+  lessThan: '未満',
+  lessThanOrEqual: '以下',
+};
+
 export interface RoundingByInsurance {
   healthInsurance: number;
   careInsurance: number;
@@ -18,6 +28,12 @@ export const DEFAULT_ROUNDING_BY: RoundingByInsurance = {
   careInsurance: 50,
   pensionInsurance: 50,
 };
+
+export function normalizeRoundingBoundaryType(
+  value: RoundingBoundaryType | undefined,
+): RoundingBoundaryType {
+  return value === 'lessThan' ? 'lessThan' : DEFAULT_ROUNDING_BOUNDARY_TYPE;
+}
 
 export function normalizeEmployeeRate(
   value: EmployeeRateByInsurance | undefined,
@@ -49,6 +65,7 @@ export interface InsuranceRateDocument {
   careInsuranceRate: number;
   pensionInsuranceRate: number;
   employeeRate: EmployeeRateByInsurance;
+  roundingBoundaryType?: RoundingBoundaryType;
   roundingBy: RoundingByInsurance;
   createdAt: FirestoreTimestamp;
   updatedAt: FirestoreTimestamp;
@@ -66,6 +83,7 @@ export interface ResolvedInsuranceRate {
 
   rates: InsuranceRatesInput;
   employeeRate: EmployeeRateByInsurance;
+  roundingBoundaryType: RoundingBoundaryType;
   roundingBy: RoundingByInsurance;
 }
 
@@ -83,6 +101,7 @@ export function toResolvedInsuranceRate(
       pensionInsuranceRate: doc.pensionInsuranceRate,
     },
     employeeRate: doc.employeeRate,
+    roundingBoundaryType: normalizeRoundingBoundaryType(doc.roundingBoundaryType),
     roundingBy: doc.roundingBy,
   };
 }

@@ -1,8 +1,9 @@
 import { AllowanceData } from '../../payment-document';
-import { MonthlyListColumnKey } from './monthly-list-columns';
+import { MONTHLY_NET_PAYMENT_COLUMN_KEY, MonthlyListColumnKey } from './monthly-list-columns';
 import {
   BulkEditableStandardRemunerationColumnKey,
   isBulkEditableStandardRemunerationColumn,
+  isPremiumColumn,
 } from '../monthly-premium/monthly-premium-columns';
 import { allowanceTypeFromColumnKey } from '../../payment-management/payment-list/allowance-display.util';
 
@@ -19,14 +20,25 @@ export type BulkEditValue = number | null;
 
 export interface BulkEditTarget {
   eid: string;
+  paymentBaseDays: number;
   basicSalary: number;
   fringeBenefits: number;
   allowances: AllowanceData;
   retroactivePay: number | null;
+  bonusRelatedRemuneration: number;
 }
 
 export function isEditableColumn(column: MonthlyListColumnKey): column is BulkEditableColumn {
   if (column === 'displayName' || column === 'employeeId') {
+    return false;
+  }
+  if (column === MONTHLY_NET_PAYMENT_COLUMN_KEY) {
+    return false;
+  }
+  if (column === 'fixedWage' || column === 'variableWage') {
+    return false;
+  }
+  if (isPremiumColumn(column) && !isBulkEditableStandardRemunerationColumn(column)) {
     return false;
   }
   if (isBulkEditableStandardRemunerationColumn(column)) {
@@ -34,9 +46,6 @@ export function isEditableColumn(column: MonthlyListColumnKey): column is BulkEd
   }
   if (allowanceTypeFromColumnKey(column)) {
     return true;
-  }
-  if (column === 'fixedWage' || column === 'variableWage') {
-    return false;
   }
   return column === 'basicSalary' ||
     column === 'fringeBenefits' ||

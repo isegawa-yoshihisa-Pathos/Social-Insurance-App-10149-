@@ -1,6 +1,11 @@
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import * as admin from 'firebase-admin';
-import { getAgeAttainmentYyyyMm } from '../../../shared/date-utils';
+import {
+  getAgeAttainmentYyyyMm,
+  getCalendarDateInTimeZone,
+  JAPAN_TIME_ZONE,
+  toFormDate,
+} from '../../../shared/date-utils';
 
 if (admin.apps.length === 0) {
   admin.initializeApp();
@@ -19,7 +24,7 @@ export const checkAgeAttainmentAlerts = onSchedule(
   },
   async (event) => {
     const db = admin.firestore();
-    const today = new Date();
+    const today = getCalendarDateInTimeZone(JAPAN_TIME_ZONE);
 
     if (today.getDate() !== 1) {
       return;
@@ -45,13 +50,8 @@ export const checkAgeAttainmentAlerts = onSchedule(
           const employeeData = employeeDoc.data();
           if (!employeeData.birthDate) continue;
 
-          let birthDate: Date | null = null;
-          if (employeeData.birthDate.toDate) {
-            birthDate = employeeData.birthDate.toDate();
-          } else {
-            birthDate = new Date(employeeData.birthDate);
-          }
-          if (!birthDate || isNaN(birthDate.getTime())) continue;
+          const birthDate = toFormDate(employeeData.birthDate);
+          if (!birthDate) continue;
 
           for (const age of TARGET_AGES) {
             const attainmentYyyyMm = getAgeAttainmentYyyyMm(birthDate, age);

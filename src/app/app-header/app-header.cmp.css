@@ -99,10 +99,10 @@
 }
 
 .notification-row {
-    width: 280px;
     white-space: normal;
     line-height: 1.35;
     padding: 2px 0;
+    border-bottom: 1px solid #e0e0e0;
 }
 
 .notification-title-line {
@@ -119,8 +119,8 @@
 .notification-unread-dot {
     width: 7px;
     height: 7px;
-    background-color: #2f80ed;
-    border-radius: 999px;
+    background-color: #673ab7;
+    border-radius: 7px;
 }
 
 .notification-title {

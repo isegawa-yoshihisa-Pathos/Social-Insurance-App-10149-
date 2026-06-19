@@ -2,6 +2,12 @@
   display: block;
 }
 
+.list-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
 .loading-message,
 .empty-message {
   margin: 16px 0;
@@ -25,4 +31,8 @@
 
 .numeric-cell {
   text-align: right;
+}
+
+.actions-cell {
+  white-space: nowrap;
 }

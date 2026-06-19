@@ -8,9 +8,10 @@ import {
   getDocs,
   serverTimestamp,
   setDoc,
+  writeBatch,
 } from '@angular/fire/firestore';
 import { EmployeeDocument } from '../../employee-document';
-import { MonthlyDocument, MonthlyPeriodDocument } from '../../monthly-document';
+import { MonthlyDocument, MonthlyPeriodDocument, PayrollData } from '../../monthly-document';
 import { MonthlyListRow } from './monthly-list-columns';
 import { toMonthlyListRow } from './monthly-list-row.mapper';
 import { StandardRemunerationDataService } from '../../social-insurance/monthly/standard-remuneration-data.service';
@@ -250,5 +251,132 @@ export class MonthlyListDataService {
     }
 
     return { eidByEmployeeId, eidsByDisplayName };
+  }
+
+  async addEmployeesFromPreviousMonth(
+    tid: string,
+    yyyyMm: string,
+    eids: readonly string[],
+  ): Promise<number> {
+    if (eids.length === 0) {
+      return 0;
+    }
+
+    const previousYyyyMm = addMonths(yyyyMm, -1);
+    const lookup = await this.loadEmployeeLookup(tid);
+    const batch = writeBatch(this.firestore);
+    let created = 0;
+
+    for (const eid of eids) {
+      const employee = lookup.get(eid);
+      if (!employee) {
+        continue;
+      }
+
+      const employeeRef = doc(
+        this.firestore,
+        'tenants',
+        tid,
+        'monthly-records',
+        yyyyMm,
+        'employees',
+        eid,
+      );
+      const existing = await getDoc(employeeRef);
+      if (existing.exists()) {
+        continue;
+      }
+
+      const previousSnap = await getDoc(
+        doc(
+          this.firestore,
+          'tenants',
+          tid,
+          'monthly-records',
+          previousYyyyMm,
+          'employees',
+          eid,
+        ),
+      );
+
+      batch.set(
+        employeeRef,
+        previousSnap.exists()
+          ? this.buildMonthlyFromPrevious(employee, previousSnap.data() as MonthlyDocument)
+          : this.buildEmptyMonthlyDocument(employee),
+      );
+      created++;
+    }
+
+    if (created === 0) {
+      return 0;
+    }
+
+    this.touchPeriodInBatch(batch, tid, yyyyMm);
+    await batch.commit();
+
+    await this.auditLog.recordCreate({
+      tid,
+      category: 'monthly.add_employees',
+      summary: '月次データに従業員を追加',
+      target: this.auditLog.monthlyTarget(yyyyMm),
+      metadata: { created, eids: eids.slice(0, created) },
+    });
+
+    return created;
+  }
+
+  private buildMonthlyFromPrevious(
+    employee: EmployeeLookupEntry,
+    previous: MonthlyDocument,
+  ): {
+    uid: string;
+    displayName: string;
+    paymentBaseDays: number;
+    bonusRelatedRemuneration: number;
+    payrollData: PayrollData;
+    updatedAt: ReturnType<typeof serverTimestamp>;
+  } {
+    const payroll = previous.payrollData;
+    return {
+      uid: employee.uid,
+      displayName: employee.displayName,
+      paymentBaseDays: previous.paymentBaseDays ?? 0,
+      bonusRelatedRemuneration: previous.bonusRelatedRemuneration ?? 0,
+      payrollData: {
+        basicSalary: payroll?.basicSalary ?? 0,
+        fringeBenefits: payroll?.fringeBenefits ?? 0,
+        fixedWage: payroll?.fixedWage ?? null,
+        variableWage: payroll?.variableWage ?? null,
+        allowances: { ...(payroll?.allowances ?? {}) },
+        retroactivePay: payroll?.retroactivePay ?? null,
+      },
+      updatedAt: serverTimestamp(),
+    };
+  }
+
+  private buildEmptyMonthlyDocument(employee: EmployeeLookupEntry): {
+    uid: string;
+    displayName: string;
+    paymentBaseDays: number;
+    bonusRelatedRemuneration: number;
+    payrollData: PayrollData;
+    updatedAt: ReturnType<typeof serverTimestamp>;
+  } {
+    return {
+      uid: employee.uid,
+      displayName: employee.displayName,
+      paymentBaseDays: 0,
+      bonusRelatedRemuneration: 0,
+      payrollData: {
+        basicSalary: 0,
+        fringeBenefits: 0,
+        fixedWage: null,
+        variableWage: null,
+        allowances: {},
+        retroactivePay: null,
+      },
+      updatedAt: serverTimestamp(),
+    };
   }
 }

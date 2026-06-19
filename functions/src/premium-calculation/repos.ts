@@ -3,6 +3,7 @@ import type { BonusDocument, BonusPeriodDocument } from '../../../shared/bonus-d
 import type { EmployeeDocument } from '../../../shared/employee-document';
 import type { MonthlyDocument, MonthlyPeriodDocument } from '../../../shared/monthly-document';
 import { lastDayOfYyyyMm } from '../../../shared/social-insurance/monthly/social-insurance-data.util';
+import { normalizeRoundingBoundaryType } from '../../../shared/social-insurance/monthly/social-insurance-document';
 import { DEFAULT_BONUS_TYPE_DEFINITIONS, type BonusTypeDefinition } from '../../../shared/bonus-document';
 import { hasBonusData } from '../../../shared/bonus-data.util';
 import type { BonusRecordInPeriod } from '../../../shared/social-insurance/remuneration/bonus-remuneration-addition';
@@ -84,6 +85,7 @@ export interface ResolvedInsuranceRate {
     careInsurance: number;
     pensionInsurance: number;
   };
+  roundingBoundaryType?: 'lessThan' | 'lessThanOrEqual';
 }
 
 interface InsuranceRateDocument {
@@ -92,6 +94,7 @@ interface InsuranceRateDocument {
   careInsuranceRate: number;
   pensionInsuranceRate: number;
   employeeRate: ResolvedInsuranceRate['employeeRate'];
+  roundingBoundaryType?: ResolvedInsuranceRate['roundingBoundaryType'];
   roundingBy: ResolvedInsuranceRate['roundingBy'];
 }
 
@@ -424,6 +427,7 @@ async function resolveInsuranceRate(
       pensionInsuranceRate: best.doc.pensionInsuranceRate,
     },
     employeeRate: best.doc.employeeRate,
+    roundingBoundaryType: normalizeRoundingBoundaryType(best.doc.roundingBoundaryType),
     roundingBy: best.doc.roundingBy,
   };
 }

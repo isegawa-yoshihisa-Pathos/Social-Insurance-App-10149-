@@ -8,10 +8,14 @@ import {
 } from '@angular/fire/firestore';
 import { BonusDocument, BonusPeriodDocument } from '../bonus-document';
 import { MonthlyDocument, MonthlyPeriodDocument } from '../monthly-document';
-import { BonusListRow } from '../bonus-management/bonus-list/bonus-list-columns';
+import { BonusListRowForEmployee } from '../bonus-management/bonus-list/bonus-list-columns';
 import { toBonusListRow } from '../bonus-management/bonus-list/bonus-list-row.mapper';
-import { MonthlyListRow } from '../monthly-management/monthly-list/monthly-list-columns';
+import { MonthlyListRowForEmployee } from '../monthly-management/monthly-list/monthly-list-columns';
 import { toMonthlyListRow } from '../monthly-management/monthly-list/monthly-list-row.mapper';
+import {
+  toBonusListRowForEmployee,
+  toMonthlyListRowForEmployee,
+} from './main-page-payment-row.mapper';
 import { BonusManagementDataService } from '../bonus-management/bonus-management-data.service';
 import { addMonths } from '../social-insurance/monthly/social-insurance-data.util';
 import {
@@ -22,7 +26,7 @@ import {
 export type MainPagePaymentScope = 'monthly' | 'bonus';
 
 export interface MainPagePaymentRowResult {
-  row: MonthlyListRow | BonusListRow | null;
+  row: MonthlyListRowForEmployee | BonusListRowForEmployee | null;
   changeReasons: string[];
 }
 
@@ -84,12 +88,8 @@ export class MainPagePaymentDataService {
     }
 
     const data = snap.data() as Partial<MonthlyDocument>;
-    const row = toMonthlyListRow(eid, data);
-    const enrichedRow: MonthlyListRow = {
-      ...row,
-      employeeId: meta.employeeId,
-      displayName: meta.displayName || row.displayName,
-    };
+    const adminRow = toMonthlyListRow(eid, data);
+    const row = toMonthlyListRowForEmployee(adminRow);
 
     const previousYyyyMm = addMonths(yyyyMm, -1);
     const previousSnap = await getDoc(
@@ -108,7 +108,7 @@ export class MainPagePaymentDataService {
       previousPremium: previousData?.premiumData,
     });
 
-    return { row: enrichedRow, changeReasons };
+    return { row, changeReasons };
   }
 
   async loadBonusRow(
@@ -128,12 +128,8 @@ export class MainPagePaymentDataService {
     }
 
     const data = snap.data() as Partial<BonusDocument>;
-    const row = toBonusListRow(eid, data, bonusTypeDefinitions);
-    const enrichedRow: BonusListRow = {
-      ...row,
-      employeeId: meta.employeeId,
-      displayName: meta.displayName || row.displayName,
-    };
+    const adminRow = toBonusListRow(eid, data, bonusTypeDefinitions);
+    const row = toBonusListRowForEmployee(adminRow);
 
     const previousYyyyMm = addMonths(yyyyMm, -1);
     const previousSnap = await getDoc(
@@ -152,7 +148,7 @@ export class MainPagePaymentDataService {
       previousPremium: previousData?.premiumData,
     });
 
-    return { row: enrichedRow, changeReasons };
+    return { row, changeReasons };
   }
 }
 

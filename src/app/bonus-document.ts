@@ -33,6 +33,7 @@ export interface CalculationSnapshot {
         care: number;
         pension: number;
     };
+    roundingBoundaryType?: 'lessThan' | 'lessThanOrEqual';
     standardBonus: { health: number; pension: number };
     bonusAmount: number;
     rawStandardBonus: number;

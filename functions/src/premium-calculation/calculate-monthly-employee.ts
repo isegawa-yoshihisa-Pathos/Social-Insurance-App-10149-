@@ -63,7 +63,6 @@ import {
   ensureTeijiRetroactiveReview,
   ensureTeijiAnnualAverageRetroactiveReview,
 } from './retroactive-remuneration-review';
-import { updateResignBulkPremiumForEmployee } from './resign-bulk-premium';
 import { isMissingRequiredFields, skipMonthlyPremiumCalculationIfResigned } from './premium-calculation-skip';
 import {
   ensureStandardZuijiApplicableAlert,
@@ -146,6 +145,7 @@ export async function calculateMonthlyEmployee(
     rates: rate.rates,
     employeeRate: rate.employeeRate,
     roundingBy: rate.roundingBy,
+    roundingBoundaryType: rate.roundingBoundaryType,
   });
 
   const calculationSnapshot = {
@@ -166,6 +166,7 @@ export async function calculateMonthlyEmployee(
       care: rate.roundingBy.careInsurance,
       pension: rate.roundingBy.pensionInsurance,
     },
+    roundingBoundaryType: rate.roundingBoundaryType,
     healthGrade: standardRemuneration.healthGrade,
     pensionGrade: standardRemuneration.pensionGrade,
     standardRemuneration: standardRemuneration.standardRemuneration,
@@ -189,10 +190,6 @@ export async function calculateMonthlyEmployee(
     });
 
   await tryLeaveReturnRemunerationScreening(db, tid, eid, yyyyMm, ctx);
-
-  if (ctx.employee.employeeEmployInfo?.resignAt) {
-    await updateResignBulkPremiumForEmployee(db, tid, eid, ctx.employee, tenant);
-  }
 }
 
 async function loadContext(
@@ -400,24 +397,22 @@ async function tryMayJuneRaiseMonthScreening(
 
   const schedule = getMayJuneZuijiSchedule(yyyyMm);
   const employeeName = ctx.employee.employeePersonalInfo?.displayName ?? '未登録';
-  const { created } = await ensureMayJuneZuijiReviewPending(
+  await ensureMayJuneZuijiReviewPending(
     db,
     tid,
     eid,
     yyyyMm,
     employeeName,
   );
-  if (created) {
-    await notifyMayJuneZuijiPending(
-      db,
-      tid,
-      eid,
-      yyyyMm,
-      ctx,
-      yyyyMm,
-      schedule.effectiveYyyyMm,
-    );
-  }
+  await notifyMayJuneZuijiPending(
+    db,
+    tid,
+    eid,
+    yyyyMm,
+    ctx,
+    yyyyMm,
+    schedule.effectiveYyyyMm,
+  );
 }
 
 async function notifyMayJuneZuijiPending(
@@ -493,7 +488,6 @@ async function tryTeiji(
   if (!licenseDate) return null;
   const employeeName = ctx.employee.employeePersonalInfo?.displayName ?? '対象従業員';
   const monthKeys = [`${year}-04`, `${year}-05`, `${year}-06`] as const;
-  // 当年6月1日以降の資格取得者は定時決定の対象外
   if (licenseDate.getFullYear() === year && licenseDate.getMonth() >= 5) {
     await ensureTeijiNonTargetAlert(
       db,

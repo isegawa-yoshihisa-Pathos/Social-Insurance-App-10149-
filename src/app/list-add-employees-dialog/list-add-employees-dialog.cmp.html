@@ -1,0 +1,44 @@
+<h2 mat-dialog-title>{{ data.title }}</h2>
+
+<div mat-dialog-content>
+  @if (data.employees.length === 0) {
+    <p class="empty-message">追加できる従業員がいません。</p>
+  } @else {
+    <p class="hint">追加する従業員を選択してください。</p>
+
+    <mat-checkbox
+      [checked]="isAllSelected()"
+      (change)="toggleAll($event.checked)"
+    >
+      すべて選択
+    </mat-checkbox>
+
+    <div class="employee-list">
+      @for (employee of data.employees; track employee.eid) {
+        <div class="employee-row">
+          <mat-checkbox
+            [checked]="isSelected(employee.eid)"
+            (change)="toggleSelection(employee.eid, $event.checked)"
+          >
+            <span class="display-name">{{ employee.displayName || '（氏名未登録）' }}</span>
+            @if (employee.employeeId) {
+              <span class="employee-id">（{{ employee.employeeId }}）</span>
+            }
+          </mat-checkbox>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<div mat-dialog-actions align="end">
+  <button mat-button [mat-dialog-close]="undefined">キャンセル</button>
+  <button
+    mat-flat-button
+    color="primary"
+    [disabled]="selectedEids.size === 0"
+    (click)="add()"
+  >
+    追加
+  </button>
+</div>

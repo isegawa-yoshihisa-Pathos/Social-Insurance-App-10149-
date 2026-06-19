@@ -1,0 +1,39 @@
+.dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: min(480px, 90vw);
+  padding-top: 8px;
+}
+
+.dialog-note {
+  margin: 0 0 8px;
+  color: #666;
+  font-size: 13px;
+}
+
+.field-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.date-picker {
+  width: 140px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.grade-preview {
+  margin: 0;
+  color: #444;
+  font-size: 13px;
+}
+
+.validation-error {
+  margin: 0;
+  color: #c62828;
+  font-size: 13px;
+}

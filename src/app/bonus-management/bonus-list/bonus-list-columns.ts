@@ -9,14 +9,18 @@ import {
   getPremiumColumnLabel,
   getOptionalPremiumColumns,
   PREMIUM_BONUS_LIST_COLUMN_KEYS,
+  PREMIUM_BONUS_LIST_EMPLOYEE_COLUMN_KEYS,
   PremiumBonusListColumnKey,
+  PremiumBonusListEmployeeColumnKey,
 } from '../bonus-premium/bonus-premium-columns';
 
 export type BonusFormColumnKey = keyof BonusFormData;
 
 export const BONUS_NET_PAYMENT_COLUMN_KEY = 'netPayment' as const;
+export const BONUS_TOTAL_PAYMENT_COLUMN_KEY = 'totalPayment' as const;
 
 export type BonusSummaryColumnKey = typeof BONUS_NET_PAYMENT_COLUMN_KEY;
+export type BonusEmployeeSummaryColumnKey = typeof BONUS_TOTAL_PAYMENT_COLUMN_KEY;
 
 export type BonusColumnKey = `bonus-${number}`;
 
@@ -71,6 +75,41 @@ export function getOptionalBonusListColumns(
     ...getOptionalPremiumColumns(),
     { key: BONUS_NET_PAYMENT_COLUMN_KEY, label: '賞与総支払' },
   ];
+}
+
+export type BonusListColumnKeyForEmployee =
+  | BonusColumnKey
+  | PremiumBonusListEmployeeColumnKey
+  | BonusEmployeeSummaryColumnKey;
+
+export function getAllBonusListColumnKeysForEmployee(
+  definitions: BonusTypeDefinition[],
+): BonusListColumnKeyForEmployee[] {
+  return [
+    ...definitions.map((def) => bonusColumnKey(def.type)),
+    ...PREMIUM_BONUS_LIST_EMPLOYEE_COLUMN_KEYS,
+    BONUS_TOTAL_PAYMENT_COLUMN_KEY,
+  ] as BonusListColumnKeyForEmployee[];
+}
+
+export function getBonusListColumnLabelForEmployee(
+  column: BonusListColumnKeyForEmployee,
+  definitions: BonusTypeDefinition[],
+): string {
+  if (column === BONUS_TOTAL_PAYMENT_COLUMN_KEY) {
+    return '賞与総支払';
+  }
+
+  const bonusType = bonusTypeFromColumnKey(column);
+  if (bonusType) {
+    return definitions.find((def) => def.type === bonusType)?.label ?? column;
+  }
+
+  if ((PREMIUM_BONUS_LIST_EMPLOYEE_COLUMN_KEYS as readonly string[]).includes(column)) {
+    return getPremiumColumnLabel(column as PremiumBonusListEmployeeColumnKey);
+  }
+
+  return column;
 }
 
 export function getBonusListColumnLabel(

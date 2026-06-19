@@ -1,5 +1,5 @@
 import type { EmployeeLeaveRecord, EmployeeLeaveType } from '../../employee-document';
-import { toFormDate } from '../../date-utils';
+import { getCalendarDateInTimeZone, JAPAN_TIME_ZONE, toFormDate } from '../../date-utils';
 import { addMonths, parseYyyyMm } from '../monthly/social-insurance-data.util';
 
 export interface LeavePeriodInput {
@@ -23,7 +23,7 @@ export function dateToYyyyMm(date: Date): string {
 }
 
 export function normalizeCalendarDate(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  return getCalendarDateInTimeZone(JAPAN_TIME_ZONE, date);
 }
 
 export function dayAfter(date: Date): Date {

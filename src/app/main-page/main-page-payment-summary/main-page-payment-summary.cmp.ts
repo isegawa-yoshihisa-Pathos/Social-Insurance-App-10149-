@@ -9,13 +9,8 @@ import {
   formatPaymentPeriodLabel,
   MainPagePaymentDataService,
 } from '../main-page-payment-data.service';
-import { BonusListRow } from '../../bonus-management/bonus-list/bonus-list-columns';
-import { MonthlyListRow } from '../../monthly-management/monthly-list/monthly-list-columns';
-import {
-  bonusNetPayment,
-  monthlyNetPayment,
-  totalNetPayment,
-} from '../../../../shared/payment-summary.util';
+import { BonusListRowForEmployee } from '../../bonus-management/bonus-list/bonus-list-columns';
+import { MonthlyListRowForEmployee } from '../../monthly-management/monthly-list/monthly-list-columns';
 import { Format } from '../../format-number-jp';
 
 interface PaymentSummaryAmounts {
@@ -143,33 +138,12 @@ export class MainPagePaymentSummaryCmp {
         this.paymentDataService.loadBonusRow(tid, eid, yyyyMm, meta),
       ]);
 
-      const monthlyRow = monthlyResult.row as MonthlyListRow | null;
-      const bonusRow = bonusResult.row as BonusListRow | null;
+      const monthlyRow = monthlyResult.row as MonthlyListRowForEmployee | null;
+      const bonusRow = bonusResult.row as BonusListRowForEmployee | null;
 
-      const monthly = monthlyRow ? monthlyNetPayment(monthlyRow, monthlyRow) : 0;
-      const bonus = bonusRow
-        ? bonusNetPayment({
-            bonus: bonusRow.bonus,
-            bonusHealthInsuranceEmployee: bonusRow.healthInsuranceEmployee,
-            bonusCareInsuranceEmployee: bonusRow.careInsuranceEmployee,
-            bonusPensionInsuranceEmployee: bonusRow.pensionInsuranceEmployee,
-            bonusHealthInsuranceEmployer: bonusRow.healthInsuranceEmployer,
-            bonusCareInsuranceEmployer: bonusRow.careInsuranceEmployer,
-            bonusPensionInsuranceEmployer: bonusRow.pensionInsuranceEmployer,
-          })
-        : 0;
-
-      const total = monthlyRow && bonusRow
-        ? totalNetPayment(monthlyRow, monthlyRow, {
-            bonus: bonusRow.bonus,
-            bonusHealthInsuranceEmployee: bonusRow.healthInsuranceEmployee,
-            bonusCareInsuranceEmployee: bonusRow.careInsuranceEmployee,
-            bonusPensionInsuranceEmployee: bonusRow.pensionInsuranceEmployee,
-            bonusHealthInsuranceEmployer: bonusRow.healthInsuranceEmployer,
-            bonusCareInsuranceEmployer: bonusRow.careInsuranceEmployer,
-            bonusPensionInsuranceEmployer: bonusRow.pensionInsuranceEmployer,
-          })
-        : monthly + bonus;
+      const monthly = monthlyRow?.totalPayment ?? 0;
+      const bonus = bonusRow?.totalPayment ?? 0;
+      const total = monthly + bonus;
 
       this.amounts.set({ monthly, bonus, total });
     } finally {

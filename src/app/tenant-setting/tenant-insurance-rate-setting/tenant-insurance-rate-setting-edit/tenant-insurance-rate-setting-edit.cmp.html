@@ -89,6 +89,13 @@
     <section class="form-section">
       <h3>端数処理<app-help-content key="Rounding"></app-help-content></h3>
       <div class="rounding-box-wrapper">
+        <mat-form-field appearance="outline" class="rounding-boundary-field">
+          <mat-label>切り捨て境界</mat-label>
+          <mat-select [(ngModel)]="roundingBoundaryType" required>
+            <mat-option value="lessThanOrEqual">以下</mat-option>
+            <mat-option value="lessThan">未満</mat-option>
+          </mat-select>
+        </mat-form-field>
         <div class="input-grid-three">
           <mat-form-field appearance="outline">
             <mat-label>健康保険</mat-label>

@@ -13,6 +13,15 @@ export const PREMIUM_MONTHLY_LIST_COLUMN_KEYS = [
 
 export type PremiumMonthlyListColumnKey = (typeof PREMIUM_MONTHLY_LIST_COLUMN_KEYS)[number];
 
+export const PREMIUM_MONTHLY_LIST_EMPLOYEE_COLUMN_KEYS = [
+  'healthInsuranceEmployee',
+  'careInsuranceEmployee',
+  'pensionInsuranceEmployee',
+] as const;
+
+export type PremiumMonthlyListEmployeeColumnKey =
+  (typeof PREMIUM_MONTHLY_LIST_EMPLOYEE_COLUMN_KEYS)[number];
+
 export const BULK_EDITABLE_STANDARD_REMUNERATION_COLUMN_KEYS = [
   'standardRemunerationHealth',
   'standardRemunerationPension',
@@ -48,6 +57,16 @@ export function getPremiumColumnLabel(column: PremiumMonthlyListColumnKey): stri
 
 export function getOptionalPremiumColumns(): { key: PremiumMonthlyListColumnKey; label: string }[] {
   return PREMIUM_MONTHLY_LIST_COLUMN_KEYS.map((key) => ({
+    key,
+    label: PREMIUM_COLUMN_LABELS[key],
+  }));
+}
+
+export function getOptionalEmployeePremiumColumns(): {
+  key: PremiumMonthlyListEmployeeColumnKey;
+  label: string;
+}[] {
+  return PREMIUM_MONTHLY_LIST_EMPLOYEE_COLUMN_KEYS.map((key) => ({
     key,
     label: PREMIUM_COLUMN_LABELS[key],
   }));

@@ -3,12 +3,11 @@ import * as admin from 'firebase-admin';
 import { assertTenantAdmin, mapCoreErrorToHttpsError } from '../core-functions';
 import { toFormDate } from '../../../shared/date-utils';
 import { lastPremiumMonthYyyyMm } from '../../../shared/social-insurance/premium/insurance-period';
-import { getEmployee, getTenant } from './repos';
+import { getEmployee } from './repos';
 import { calculateMonthlyEmployee } from './calculate-monthly-employee';
 import {
   clearPremiumFieldsAfterResign,
   listEmployeeMonthlyRecords,
-  updateResignBulkPremiumForEmployee,
 } from './resign-bulk-premium';
 
 if (admin.apps.length === 0) {
@@ -45,10 +44,7 @@ export const recalculatePremiumsAfterResign = onCall<RecalculatePremiumsAfterRes
       mapCoreErrorToHttpsError(e);
     }
 
-    const [employee, tenant] = await Promise.all([
-      getEmployee(db, tid, eid),
-      getTenant(db, tid),
-    ]);
+    const employee = await getEmployee(db, tid, eid);
 
     const licenseEndAt = toFormDate(employee.employeeEmployInfo?.licenseEndAt);
     const resignAt = toFormDate(employee.employeeEmployInfo?.resignAt);
@@ -81,8 +77,6 @@ export const recalculatePremiumsAfterResign = onCall<RecalculatePremiumsAfterRes
         });
       }
     }
-
-    await updateResignBulkPremiumForEmployee(db, tid, eid, employee, tenant);
 
     return { status: 'ok', recalculatedMonths: recalcTargets.length };
   },

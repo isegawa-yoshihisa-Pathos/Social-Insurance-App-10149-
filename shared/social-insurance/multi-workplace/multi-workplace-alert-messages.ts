@@ -28,21 +28,3 @@ export function buildMultiWorkplaceManualPremiumNotificationBody(
     `自動計算された保険料をそのまま確定（ロック）せず、決定通知の金額を手入力してください。`
   );
 }
-
-export function buildMultiWorkplaceManualPremiumEmployeeNotificationTitle(
-  trigger: MultiWorkplacePremiumAlertTrigger,
-): string {
-  return `【保険料手入力のお知らせ】${TRIGGER_LABELS[trigger]}に伴う対応が必要です`;
-}
-
-export function buildMultiWorkplaceManualPremiumEmployeeNotificationBody(
-  trigger: MultiWorkplacePremiumAlertTrigger,
-  yyyyMm: string,
-): string {
-  const reason = TRIGGER_LABELS[trigger];
-  return (
-    `二以上事業所勤務のため、${reason}（${yyyyMm}）に伴い` +
-    `合算による保険料の決定通知に基づく手入力が必要です。` +
-    `事業所の管理者へお問い合わせください。`
-  );
-}
