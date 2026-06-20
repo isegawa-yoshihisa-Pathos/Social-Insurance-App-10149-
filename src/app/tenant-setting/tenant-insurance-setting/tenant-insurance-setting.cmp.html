@@ -150,9 +150,6 @@
                 <mat-option value="nextNextMonth">翌々月</mat-option>
             </mat-select>
         </mat-form-field>
-        @if (!isCollectionMonthOptionAllowed('currentMonth')) {
-            <span style="font-size: 12px; color: #666; grid-column: 2 / -1;">※給与支給が「翌月」の場合、徴収「当月」は選択できません。</span>
-        }
     </div>
     @if (showResignPremiumCollectionSetting) {
         <div class="field-container">

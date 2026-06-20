@@ -1,6 +1,6 @@
 import * as admin from 'firebase-admin';
 import type { EmployeeDocument } from '../../../shared/employee-document';
-import { hasMultipleWorkplacesEnabledForEmployee } from '../../../shared/social-insurance/multi-workplace/multi-workplace-settings';
+import { hasMultipleWorkplacesEnabledForEmployee, isSelectedWorkplace } from '../../../shared/social-insurance/multi-workplace/multi-workplace-settings';
 import {
   buildMultiWorkplaceManualPremiumNotificationBody,
   buildMultiWorkplaceManualPremiumNotificationTitle,
@@ -96,6 +96,7 @@ export async function ensureMultiWorkplaceManualPremiumAlert(
         employeeDisplayName,
         params.trigger,
         params.yyyyMm,
+        isSelectedWorkplace(employee.multiWorkplaceSettings),
       ),
       targetEid: eid,
       trigger: params.trigger,

@@ -47,6 +47,7 @@ export const DEFAULT_PAYMENT_LIST_COLUMNS: PaymentListColumnKey[] = [
   'employeeId',
   'basicSalary',
   'fringeBenefits',
+  'bonusRelatedRemuneration',
   'fixedWage',
   'variableWage',
   'bonus',

@@ -42,6 +42,12 @@ export function hasMultipleWorkplacesEnabledForEmployee(
   return hasMultipleWorkplacesEnabled(employee?.multiWorkplaceSettings);
 }
 
+export function isSelectedWorkplace(
+  settings: MultiWorkplaceSettings | null | undefined,
+): boolean {
+  return !isNonSelectedWorkplace(settings);
+}
+
 export function normalizeMultiWorkplaceSettings(
   settings: MultiWorkplaceSettings,
 ): MultiWorkplaceSettings {
