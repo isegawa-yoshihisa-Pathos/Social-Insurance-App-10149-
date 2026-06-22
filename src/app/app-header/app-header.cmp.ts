@@ -104,7 +104,11 @@ export class AppHeaderCmp {
   }
 
   navigateToPersonalSetting(): void {
-    this.routesService.redirectToPersonalSetting();
+    if (this.currentTenantService.affiliations().length === 1) {
+      this.routesService.redirectToEmployeeSetting();
+    } else {
+      this.routesService.redirectToPersonalSetting();
+    }
   }
 
   async readNotification(notification: AppNotification): Promise<void> {

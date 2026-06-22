@@ -23,7 +23,7 @@ export class AuthService {
     });
   }
 
-  whenReady(): Promise<void> {
+  async whenReady(): Promise<void> {
     if (this.ready()) return Promise.resolve();
     return firstValueFrom(
       toObservable(this.ready).pipe(filter(Boolean), take(1)),
