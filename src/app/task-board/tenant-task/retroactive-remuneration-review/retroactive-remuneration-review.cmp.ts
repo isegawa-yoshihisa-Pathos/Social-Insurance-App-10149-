@@ -1,4 +1,3 @@
-import { DecimalPipe } from '@angular/common';
 import { Component, effect, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
@@ -16,10 +15,11 @@ import {
   RetroactiveRemunerationAllocateDialogCmp,
   RetroactiveAllocateDialogResult,
 } from './retroactive-remuneration-allocate-dialog.cmp';
+import { Format } from '../../../format-number-jp';
 
 @Component({
   selector: 'app-retroactive-remuneration-review',
-  imports: [MatButtonModule, DecimalPipe],
+  imports: [MatButtonModule],
   templateUrl: './retroactive-remuneration-review.cmp.html',
   styleUrl: './retroactive-remuneration-review.cmp.css',
 })
@@ -28,6 +28,7 @@ export class RetroactiveRemunerationReviewCmp {
   private readonly tenant = inject(CurrentTenantService);
   private readonly functionsService = inject(FunctionsService);
   private readonly dialog = inject(MatDialog);
+  readonly Format = Format;
 
   loading = false;
   busyId: string | null = null;

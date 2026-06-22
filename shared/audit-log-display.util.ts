@@ -73,7 +73,7 @@ export const AUDIT_LOG_CHANGE_FIELD_LABELS: Record<string, string> = {
   paymentBaseDays: '支払基礎日数',
   basicSalary: '基本給与',
   fringeBenefits: '現物給与',
-  bonusRelatedRemuneration: '賞与にかかる報酬',
+  bonusRelatedRemuneration: '賞与に係る報酬',
   fixedWage: '固定的賃金',
   variableWage: '非固定的賃金',
   retroactivePay: '遡及支払',

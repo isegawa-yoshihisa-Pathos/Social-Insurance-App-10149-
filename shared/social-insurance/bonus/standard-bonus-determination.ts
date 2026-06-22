@@ -65,7 +65,7 @@ export function evaluateBonusPremiumEligibility(
 
     if (def.bonusFrequency === 'high') {
       skipReasons.push(
-        `${def.label}は年4回以上（high）のため定時決定で月次徴収`,
+        `${def.label}は年4回以上のため定時決定で月次徴収`,
       );
       continue;
     }

@@ -63,7 +63,7 @@ export type MonthlyListColumnKeyForEmployee =
 const STATIC_EMPLOYEE_COLUMN_LABELS: Record<BaseMonthlyListEmployeeColumnKey, string> = {
   basicSalary: '基本給与',
   fringeBenefits: '現物給与',
-  bonusRelatedRemuneration: '賞与にかかる報酬',
+  bonusRelatedRemuneration: '（賞与に係る報酬）',
   retroactivePay: '遡及支払',
 };
 
@@ -83,7 +83,7 @@ const STATIC_COLUMN_LABELS: Record<BaseMonthlyListColumnKey, string> = {
   paymentBaseDays: '支払基礎日数',
   basicSalary: '基本給与',
   fringeBenefits: '現物給与',
-  bonusRelatedRemuneration: '賞与にかかる報酬',
+  bonusRelatedRemuneration: '（賞与に係る報酬）',
   fixedWage: '固定的賃金',
   variableWage: '非固定的賃金',
   retroactivePay: '遡及支払',
@@ -114,7 +114,7 @@ export function getOptionalMonthlyListColumns(
     { key: 'paymentBaseDays', label: '支払基礎日数' },
     { key: 'basicSalary', label: '基本給与' },
     { key: 'fringeBenefits', label: '現物給与' },
-    { key: 'bonusRelatedRemuneration', label: '賞与にかかる報酬' },
+    { key: 'bonusRelatedRemuneration', label: '（賞与に係る報酬）' },
     { key: 'fixedWage', label: '固定的賃金' },
     { key: 'variableWage', label: '非固定的賃金' },
     ...allowanceColumns,

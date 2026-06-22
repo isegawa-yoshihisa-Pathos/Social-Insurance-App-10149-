@@ -14,7 +14,7 @@
             <div class="review-status">{{ statusLabel(review.status) }}</div>
             <div class="review-detail">
               {{ typeLabel(review.type) }} / {{ review.teijiYear }}年 / 遡及合計
-              {{ retroactiveTotal(review) | number }}円（{{ review.items.length }}件）
+              {{ Format(retroactiveTotal(review)) }}円（{{ review.items.length }}件）
             </div>
             @if (review.originalGrades) {
               <div class="review-detail">
@@ -26,7 +26,7 @@
               <div class="review-detail">
                 再計算後: 健保 {{ review.proposedGrades.healthGrade }}等級 /
                 厚年 {{ review.proposedGrades.pensionGrade }}等級 /
-                報酬月額 {{ review.proposedGrades.remuneration | number }}円
+                報酬月額 {{ Format(review.proposedGrades.remuneration) }}円
               </div>
             }
           </div>

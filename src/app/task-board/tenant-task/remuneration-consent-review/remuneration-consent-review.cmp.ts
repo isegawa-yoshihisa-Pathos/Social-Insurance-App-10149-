@@ -1,4 +1,3 @@
-import { DecimalPipe } from '@angular/common';
 import { Component, effect, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
@@ -12,10 +11,11 @@ import {
   remunerationConsentStatusLabel,
   remunerationConsentTypeLabel,
 } from '../../remuneration-consent-data.service';
+import { Format } from '../../../format-number-jp';
 
 @Component({
   selector: 'app-remuneration-consent-review',
-  imports: [MatButtonModule, DecimalPipe],
+  imports: [MatButtonModule],
   templateUrl: './remuneration-consent-review.cmp.html',
   styleUrl: './remuneration-consent-review.cmp.css',
 })
@@ -24,7 +24,7 @@ export class RemunerationConsentReviewCmp {
   private readonly tenant = inject(CurrentTenantService);
   private readonly functionsService = inject(FunctionsService);
   private readonly dialog = inject(MatDialog);
-
+  readonly Format = Format;
   loading = false;
   busyId: string | null = null;
   reviews: RemunerationConsentReviewItem[] = [];

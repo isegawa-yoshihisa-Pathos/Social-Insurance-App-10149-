@@ -18,7 +18,7 @@
             <div class="review-detail">
               健保 {{ review.proposedHealthGrade }}等級 /
               厚年 {{ review.proposedPensionGrade }}等級 /
-              報酬月額 {{ review.proposedRemuneration | number }}円
+              報酬月額 {{ Format(review.proposedRemuneration) }}円
             </div>
             <div class="review-note">{{ review.summaryBody }}</div>
           </div>

@@ -73,7 +73,6 @@ export function monthlyGrossPay(input: MonthlyPayInput): number {
   return (
     input.basicSalary
     + input.fringeBenefits
-    + (input.bonusRelatedRemuneration ?? 0)
     + sumAllowanceAmounts(input.allowances ?? {})
     + (input.retroactivePay ?? 0)
   );

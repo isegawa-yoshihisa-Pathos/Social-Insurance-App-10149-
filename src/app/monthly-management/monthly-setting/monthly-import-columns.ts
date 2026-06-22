@@ -56,7 +56,7 @@ export const STATIC_MONTHLY_IMPORT_COLUMNS: MonthlyImportColumnDef[] = [
   },
   {
     key: 'bonusRelatedRemuneration',
-    label: '賞与にかかる報酬',
+    label: '（賞与に係る報酬）',
     defaultHeader: 'bonusRelatedRemuneration',
     kind: 'number',
   },
