@@ -10,7 +10,7 @@
       「固定的賃金」と「非固定的賃金」は各項目の合計値を表しており、編集はできません。<br>
       「月次総支払」は、「当月に発生する給与」 - 「それに係る保険料（本人負担）」を表す参考値で編集はできません。<br>
       「氏名」または「社員番号」のセルをクリックすると、各従業員の詳細・標準報酬月額管理ページに移動できます。<br>
-      「締切」ボタンを押すと、当月のデータを締め、従業員のマイページに表示します。管理者であっても変更はできません。<br>
+      「締切」ボタンを押すと、当月のデータを確定させ、改ざんを防止します。管理者であっても変更はできません。<br>
       表示項目、ソート、フィルタを反映したcsvファイルをダウンロードできます。<br>
       <br>
       「遡及支払」は当月に支払った遡及支払の合計値を入力してください。定時決定および年間平均計算の算定期間に遡及支払がある場合、遡及支払を含めて再計算を行えます。<br>
@@ -172,13 +172,17 @@
 
           @for (col of visibleColumns(); track col) {
             <ng-container matColumnDef="{{ col }}">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header 
+              [class.summaryColumn]="col === 'netPayment' || col === 'fixedWage' || col === 'variableWage'"
+              [class.nameOrId]="col === 'displayName' || col === 'employeeId'">
                 {{ getColumnLabel(col) }}
               </th>
               <td
                 mat-cell
                 *matCellDef="let row"
                 (click)="onCellClick(row, col)"
+                [class.summaryColumn]="col === 'netPayment' || col === 'fixedWage' || col === 'variableWage'"
+                [class.nameOrId]="col === 'displayName' || col === 'employeeId'"
               >
                 {{ formatCellValue(row, col) }}
               </td>

@@ -168,13 +168,17 @@
 
             @for (col of visibleColumns(); track col) {
               <ng-container matColumnDef="{{ col }}">
-                <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                <th mat-header-cell *matHeaderCellDef mat-sort-header 
+                [class.summaryColumn]="col === 'netPayment'"
+                [class.nameOrId]="col === 'displayName' || col === 'employeeId'">
                   {{ getColumnLabel(col) }}
                 </th>
                 <td
                   mat-cell
                   *matCellDef="let row"
                   (click)="onCellClick(row, col)"
+                  [class.summaryColumn]="col === 'netPayment'"
+                  [class.nameOrId]="col === 'displayName' || col === 'employeeId'"
                 >
                   {{ formatCellValue(row, col) }}
                 </td>

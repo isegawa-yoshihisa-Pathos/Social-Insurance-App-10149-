@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Firestore, doc, getDoc } from '@angular/fire/firestore';
 import { EmployeeDocument } from '../employee-document';
+import { resolveEmploymentType, resolvePayType } from '../../../shared/employee-document';
 import { TenantDocument } from '../tenant-document';
 import { toFormDate, toYyyyMmDd } from '../date-utils';
 import {
@@ -47,8 +48,8 @@ function toEmployeeSnapshot(
     licenseEndAt: formatDate(employ.licenseEndAt),
     healthInsuranceRecordNumber: employ.healthInsuranceRecordNumber,
     pensionInsuranceRecordNumber: employ.pensionInsuranceRecordNumber,
-    employmentType: employ.employmentType,
-    payType: employ.payType,
+    employmentType: resolveEmploymentType(employ.employmentType),
+    payType: resolvePayType(employ.payType),
     status: employ.status,
     hasDependents: personal.hasDependents,
     dependentsInfo: personal.dependentsInfo ?? [],

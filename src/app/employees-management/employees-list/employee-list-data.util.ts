@@ -1,4 +1,7 @@
-export function formatEmployeeListValue(value: string): string {
+export function formatEmployeeListValue(value: string | boolean): string {
+  if (typeof value === 'boolean') {
+    return value ? '○' : '×';
+  }
   switch (value) {
     case '':
       return '';
@@ -28,6 +31,10 @@ export function formatEmployeeListValue(value: string): string {
       return '日給';
     case 'hourly':
       return '時給';
+    case 'true':
+      return '○';
+    case 'false':
+      return '×';
     default:
       return value;
   }

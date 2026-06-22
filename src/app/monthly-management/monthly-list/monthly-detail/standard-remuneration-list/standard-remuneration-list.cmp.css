@@ -5,7 +5,7 @@
 .list-header {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: 12px;
+  margin: 12px 0;
 }
 
 .loading-message,

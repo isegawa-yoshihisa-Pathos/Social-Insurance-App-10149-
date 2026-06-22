@@ -10,9 +10,9 @@ export type TeijiNonTargetReason =
 
 const TEIJI_NON_TARGET_REASON_LABELS: Record<TeijiNonTargetReason, string> = {
   insufficient_payment_base_days:
-    '4〜6月のいずれも支払基礎日数が算定基準を満たさないため、平均による定時決定ができません。',
+    '4〜6月のいずれも支払基礎日数が算定基準を満たさないため、平均による定時決定ができません。従前の等級を継続します。',
   on_leave_during_period:
-    '4〜6月に産休・育休等の休業があり、支払基礎日数が算定基準を満たさないため定時決定の対象外です。',
+    '4〜6月に産休・育休等の休業があり、支払基礎日数が算定基準を満たさないため定時決定の対象外です。従前の等級を継続します。',
   grade_not_found: '4〜6月の報酬から等級表に該当する標準報酬月額を決定できませんでした。',
   license_start_after_june: '当年6月1日以降に資格を取得したため、定時決定の対象外です。',
 };

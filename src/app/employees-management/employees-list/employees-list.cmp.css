@@ -53,6 +53,10 @@
   background-color: #f0f0f0;
 }
 
-.header.personal {
-  background-color: #f0f0f0;
+.nameOrId {
+  background-color: #bbd2e6 !important;
+}
+
+.personal {
+  background-color: #f0f0f0 !important;
 }

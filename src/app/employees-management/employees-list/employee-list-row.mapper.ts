@@ -1,4 +1,5 @@
 import { EmployeeDocument, EmployeeEmployInfo } from '../../employee-document';
+import { resolveEmploymentType, resolvePayType } from '../../../../shared/employee-document';
 import { EmployeeListRow } from './employee-list-columns';
 import { toFormDate, getAge } from '../../date-utils';
 
@@ -25,8 +26,8 @@ export function toEmployeeListRow(
     role: data.role ?? 'member',
     position: employ?.position ?? '',
     department: employ?.department ?? '',
-    payType: employ?.payType ?? '',
-    employmentType: employ?.employmentType ?? '',
+    payType: resolvePayType(employ?.payType),
+    employmentType: resolveEmploymentType(employ?.employmentType),
     status: employ?.status ?? 'active',
     joinedAt: formatDate(employ?.joinedAt),
     resignAt: formatDate(employ?.resignAt),

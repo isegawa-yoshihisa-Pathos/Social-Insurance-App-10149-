@@ -1,3 +1,4 @@
+import { resolveEmploymentType } from '../../../shared/employee-document';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import {
@@ -403,8 +404,7 @@ async function getEmployeeEmploymentType(
 ): Promise<'full-time' | 'short-time-worker' | 'short-time-labor'> {
   const snap = await db.collection('tenants').doc(tid).collection('employees').doc(eid).get();
   const type = snap.data()?.employeeEmployInfo?.employmentType;
-  if (type === 'short-time-worker' || type === 'short-time-labor') return type;
-  return 'full-time';
+  return resolveEmploymentType(type);
 }
 
 interface RetroactiveActionInput {

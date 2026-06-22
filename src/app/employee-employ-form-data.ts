@@ -1,4 +1,5 @@
 import { EmployeeEmployFormData, EmployeeEmployInfo } from './employee-document';
+import { resolveEmploymentType, resolvePayType } from '../../shared/employee-document';
 import { formatJapaneseDate, toFirestoreTimestamp, toFormDate } from './date-utils';
 
 export function createEmptyEmployForm(): EmployeeEmployFormData {
@@ -33,8 +34,8 @@ export function employeeEmployInfoToForm(
     employeeId: info?.employeeId ?? '',
     position: info?.position ?? '',
     department: info?.department ?? '',
-    payType: info?.payType ?? 'monthly',
-    employmentType: info?.employmentType ?? 'full-time',
+    payType: resolvePayType(info?.payType),
+    employmentType: resolveEmploymentType(info?.employmentType),
     status: info?.status ?? 'active',
     healthInsuranceRecordNumber: info?.healthInsuranceRecordNumber ?? '',
     pensionInsuranceRecordNumber: info?.pensionInsuranceRecordNumber ?? '',

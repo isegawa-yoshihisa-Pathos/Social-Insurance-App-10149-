@@ -110,7 +110,7 @@
 }
 
 .footer-row {
-  background-color: #d4d4d4;
+  background-color: #d0d0d0;
 }
 
 .tenant-summary {
@@ -131,4 +131,12 @@
   margin: 0;
   font-size: 18px;
   font-weight: 600;
+}
+
+.summaryColumn {
+  background-color: #e0e0e0 !important;
+}
+
+.nameOrId {
+  background-color: #bbd2e6 !important;
 }

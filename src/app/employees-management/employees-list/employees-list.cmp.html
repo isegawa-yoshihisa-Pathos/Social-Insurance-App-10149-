@@ -83,11 +83,14 @@
 
         @for (col of visibleColumns(); track col) {
           <ng-container matColumnDef="{{ col }}">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header class="header"
+            <th mat-header-cell *matHeaderCellDef mat-sort-header
+            [class.nameOrId]="col === 'displayName' || col === 'employeeId'"
             [class.personal]="col === 'myNumber' || col === 'basicPensionNumber' || col === 'birthDate' || col === 'age' || col === 'hasDependents'">
               {{ getColumnLabel(col) }}
             </th>
-            <td mat-cell *matCellDef="let row" (click)="onCellClick(row, col)">
+            <td mat-cell *matCellDef="let row" (click)="onCellClick(row, col)" 
+            [class.nameOrId]="col === 'displayName' || col === 'employeeId'"
+            [class.personal]="col === 'myNumber' || col === 'basicPensionNumber' || col === 'birthDate' || col === 'age' || col === 'hasDependents'">
               {{ formatValue(row[col]) }}
             </td>
           </ng-container>

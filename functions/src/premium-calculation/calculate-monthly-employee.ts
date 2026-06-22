@@ -1,6 +1,6 @@
 import * as admin from 'firebase-admin';
 import type { MonthlyDocument } from '../../../shared/monthly-document';
-import type { EmployeeDocument } from '../../../shared/employee-document';
+import { resolveEmploymentType, type EmployeeDocument } from '../../../shared/employee-document';
 import { calculateMonthlyPremium } from '../../../shared/social-insurance/premium/premium-calculator';
 import { employeeLeaveRecordsToPeriodInputs } from '../../../shared/social-insurance/premium/leave-premium-exemption';
 import {
@@ -232,7 +232,7 @@ async function loadContext(
   return {
     employee,
     monthly,
-    employmentType: employee.employeeEmployInfo?.employmentType ?? 'full-time',
+    employmentType: resolveEmploymentType(employee.employeeEmployInfo?.employmentType),
     birthDate: toFormDate(employee.employeePersonalInfo?.birthDate),
   };
 }
