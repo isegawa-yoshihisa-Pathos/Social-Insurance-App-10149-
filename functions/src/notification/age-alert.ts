@@ -99,7 +99,7 @@ async function createAgeAlertNotifications(
   });
 
   if (employeeData.uid) {
-    await db.collection('users').doc(employeeData.uid).collection('notifications').add({
+    await db.collection('accounts').doc(employeeData.uid).collection('notifications').add({
       title: `【社会保険】満${age}歳到達に伴う保険料変更のお知らせ`,
       body: `いつもご利用ありがとうございます。お客様は${yyyyMm}月に満${age}歳に到達されるため、社会保険上の区分が変更（${legalReason}）となります。これに伴い、給与から控除される保険料が変更される場合がありますのであらかじめお知らせいたします。`,
       type: 'ageAttainment',

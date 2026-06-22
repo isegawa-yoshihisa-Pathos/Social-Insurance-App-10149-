@@ -32,6 +32,13 @@ import { TenantSettingDataService } from '../../tenant-setting/tenant-setting-da
 import { downloadCsvFile } from '../../csv/csv-file.util';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Format } from '../../format-number-jp';
+import { MatDialog } from '@angular/material/dialog';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { FunctionsService } from '../../functions.service';
+import { MainPagePaymentDataService } from '../../main-page/main-page-payment-data.service';
+import { ErrorDialogCmp, mapFirebaseError } from '../../error-dialog/error-dialog.cmp';
+import { SuccessDialogCmp } from '../../success-dialog/success-dialog.cmp';
+import { formatPaymentStatementDisplayMonthLabel } from '../../../../shared/social-insurance/payment/payment-statement-delivery-messages';
 
 @Component({
   selector: 'app-payment-list',
@@ -45,6 +52,7 @@ import { Format } from '../../format-number-jp';
     MatTooltipModule,
     MatIconModule,
     MatButtonModule,
+    MatProgressSpinnerModule,
   ],
   templateUrl: './payment-list.cmp.html',
   styleUrl: './payment-list.cmp.css',
@@ -61,6 +69,9 @@ export class PaymentListCmp implements OnInit {
   private readonly bonusSettingDataService = inject(BonusSettingDataService);
   private readonly tenantSettingDataService = inject(TenantSettingDataService);
   private readonly insuranceRateDataService = inject(InsuranceRateDataService);
+  private readonly functionsService = inject(FunctionsService);
+  private readonly mainPagePaymentDataService = inject(MainPagePaymentDataService);
+  private readonly dialog = inject(MatDialog);
 
   readonly visibleColumns = computed(() => this.paymentSettingDataService.visibleColumns());
   readonly tableColumns = computed(() => this.visibleColumns());
@@ -76,6 +87,8 @@ export class PaymentListCmp implements OnInit {
 
   dataSource = new MatTableDataSource<PaymentListRow>([]);
   loading = true;
+  delivering = false;
+  deliveryStatus: { deliveredCount: number; lastDeliveredAt: Date | null } | null = null;
   private loadToken = 0;
   private settingsLoadedTid: string | null = null;
 
@@ -236,6 +249,7 @@ export class PaymentListCmp implements OnInit {
 
   private async loadForPeriod(tid: string, ym: string, token: number): Promise<void> {
     this.loading = true;
+    this.deliveryStatus = null;
     this.searchQuery = '';
     this.dataSource.filter = '';
     this.refreshTableView();
@@ -250,12 +264,14 @@ export class PaymentListCmp implements OnInit {
         if (token !== this.loadToken) return;
         this.settingsLoadedTid = tid;
       }
-      const [data, rate] = await Promise.all([
+      const [data, rate, deliveryStatus] = await Promise.all([
         this.listDataService.loadAggregatedRows(tid, ym),
         this.insuranceRateDataService.resolveRateForMonth(tid, ym),
+        this.mainPagePaymentDataService.loadDeliveryStatus(tid, ym),
       ]);
       if (token !== this.loadToken) return;
       this.employerBurdenRounding.set(toEmployerBurdenRoundingSettings(rate));
+      this.deliveryStatus = deliveryStatus;
       this.dataSource.data = data;
       this.refreshTableView();
     } finally {
@@ -323,5 +339,52 @@ export class PaymentListCmp implements OnInit {
 
   formatAmount(amount: number): string {
     return amount === 0 ? '0' : Format(amount);
+  }
+
+  deliveryStatusLabel(): string {
+    if (!this.deliveryStatus) {
+      return '未送付';
+    }
+    const label = formatPaymentStatementDisplayMonthLabel(this.yyyyMm());
+    const date = this.deliveryStatus.lastDeliveredAt;
+    const dateText = date
+      ? `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`
+      : '';
+    return `${label}分を ${this.deliveryStatus.deliveredCount} 名に送付済み${dateText ? `（${dateText}）` : ''}`;
+  }
+
+  async deliverToEmployees(): Promise<void> {
+    const tid = this.currentTenantService.currentTid();
+    const ym = this.yyyyMm();
+    if (!tid || !ym || !this.hasRecords() || this.delivering) {
+      return;
+    }
+
+    this.delivering = true;
+    try {
+      const result = await this.functionsService.deliverPaymentStatements({
+        tid,
+        displayYyyyMm: ym,
+      });
+      this.deliveryStatus = {
+        deliveredCount: result.delivered,
+        lastDeliveredAt: new Date(),
+      };
+      this.dialog.open(SuccessDialogCmp, {
+        data: {
+          message:
+            `${formatPaymentStatementDisplayMonthLabel(ym)}分の給与明細を ${result.delivered} 名の従業員へ送付しました。` +
+            (result.skippedNoAccount > 0
+              ? `\n（アカウント未連携 ${result.skippedNoAccount} 名はマイページ通知を省略しました）`
+              : ''),
+        },
+      });
+    } catch (error) {
+      this.dialog.open(ErrorDialogCmp, {
+        data: { message: mapFirebaseError(error) },
+      });
+    } finally {
+      this.delivering = false;
+    }
   }
 }

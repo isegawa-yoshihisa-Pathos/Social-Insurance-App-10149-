@@ -1,13 +1,10 @@
 import type { PremiumData } from '../../monthly-document';
-import {
-  getPaymentDisplayMonthForSalary,
-  type PayrollPaymentMonth,
-} from '../payroll/payroll-payment-timing';
+import { type PayrollPaymentMonth } from '../payroll/payroll-payment-timing';
+import { resignPayMonthYyyyMm } from './insurance-period';
 import {
   computeResignBulkPremiumData,
   listBulkCollectedPremiumMonths,
   mergePremiumData,
-  resignLastPayrollMonthYyyyMm,
   shouldShowResignPremiumCollectionSetting,
   type ResignPremiumCollectionType,
   type ResignBulkPremiumScheduleInput,
@@ -17,7 +14,8 @@ import {
 export interface ResignPremiumDisplayContext {
   scheduleInput: ResignBulkPremiumScheduleInput;
   bulkMonths: ReadonlySet<string>;
-  finalPayrollDisplayMonth: string;
+  /** 一括徴収保険料を合算する給与管理表示月（退職月） */
+  bulkPremiumDisplayMonth: string;
   isBulk: boolean;
 }
 
@@ -50,19 +48,12 @@ export function buildResignPremiumDisplayContext(
     scheduleInput.resignPremiumCollection === 'bulk' &&
     shouldShowResignPremiumCollectionSetting(scheduleInput.collectionMonth);
   const bulkMonths = new Set(listBulkCollectedPremiumMonths(scheduleInput));
-  const lastPayrollMonth = resignLastPayrollMonthYyyyMm(
-    input.resignAt,
-    scheduleInput.payrollPaymentMonth,
-  );
-  const finalPayrollDisplayMonth = getPaymentDisplayMonthForSalary(
-    lastPayrollMonth,
-    scheduleInput.payrollPaymentMonth,
-  );
+  const bulkPremiumDisplayMonth = resignPayMonthYyyyMm(input.resignAt);
 
   return {
     scheduleInput,
     bulkMonths,
-    finalPayrollDisplayMonth,
+    bulkPremiumDisplayMonth,
     isBulk,
   };
 }
@@ -77,7 +68,7 @@ export interface ResolvePaymentDisplayPremiumInput {
 
 /**
  * 給与管理の表示月に対する月次保険料を解決する。
- * 退職時一括徴収設定では、通常表示月から保険料を除き、最終給与表示月に合算する。
+ * 退職時一括徴収設定では、通常表示月から保険料を除き、退職月表示に合算する。
  */
 export function resolvePaymentDisplayPremium(
   input: ResolvePaymentDisplayPremiumInput,
@@ -94,7 +85,7 @@ export function resolvePaymentDisplayPremium(
     return premiumFromFetchedMonth;
   }
 
-  if (displayYyyyMm === resignContext.finalPayrollDisplayMonth) {
+  if (displayYyyyMm === resignContext.bulkPremiumDisplayMonth) {
     const regularPremium = resignContext.bulkMonths.has(premiumMonthYyyyMm)
       ? undefined
       : premiumFromFetchedMonth;

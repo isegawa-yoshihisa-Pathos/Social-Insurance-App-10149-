@@ -63,12 +63,18 @@ import {
   ensureTeijiRetroactiveReview,
   ensureTeijiAnnualAverageRetroactiveReview,
 } from './retroactive-remuneration-review';
-import { isMissingRequiredFields, skipMonthlyPremiumCalculationIfResigned } from './premium-calculation-skip';
+import {
+  buildPremiumCalculationSkipMessage,
+  isMissingRequiredFields,
+  skipMonthlyPremiumCalculationIfResigned,
+} from './premium-calculation-skip';
 import {
   ensureStandardZuijiApplicableAlert,
   ensureTeijiNonTargetAlert,
 } from './remuneration-admin-alert';
 import { ensureMultiWorkplaceManualPremiumAlert } from './multi-workplace-premium-alert';
+import { ensureAgePremiumTransitionAlerts } from './age-premium-alert';
+import { ensureLeavePremiumExemptionAlerts } from './leave-premium-alert';
 import type { MultiWorkplacePremiumAlertTrigger } from '../../../shared/social-insurance/multi-workplace/multi-workplace-alert-messages';
 
 interface CalculationContext {
@@ -94,7 +100,7 @@ export async function calculateMonthlyEmployee(
     throw new Error(`従業員${ctx.employee.employeePersonalInfo?.displayName}は${errorMessage}です。`);
   }
   if (await skipMonthlyPremiumCalculationIfResigned(db, tid, eid, yyyyMm, ctx.employee)) {
-    throw new Error(`従業員${ctx.employee.employeePersonalInfo?.displayName}は資格取得前または資格喪失後です。`);
+    throw new Error(buildPremiumCalculationSkipMessage(ctx.employee, yyyyMm));
   }
   await ensureBonusRelatedRemunerationCarriedForward(db, tid, eid, yyyyMm, ctx);
   const personalInfo = ctx.employee.employeePersonalInfo;
@@ -133,13 +139,15 @@ export async function calculateMonthlyEmployee(
     throw new Error('保険料率が見つかりません');
   }
 
+  const leaveRecords = employeeLeaveRecordsToPeriodInputs(ctx.employee.leaveInfo);
+
   const premiumData = calculateMonthlyPremium({
     yyyyMm,
     birthDate: ctx.birthDate,
     licenceStartAt: toFormDate(ctx.employee.employeeEmployInfo?.licenseStartAt),
     resignAt: toFormDate(ctx.employee.employeeEmployInfo?.resignAt),
     licenseEndAt: toFormDate(ctx.employee.employeeEmployInfo?.licenseEndAt),
-    leaveRecords: employeeLeaveRecordsToPeriodInputs(ctx.employee.leaveInfo),
+    leaveRecords,
     ...careInsuranceCollection,
     standardRemuneration: standardRemuneration.standardRemuneration,
     rates: rate.rates,
@@ -188,6 +196,22 @@ export async function calculateMonthlyEmployee(
       calculationSnapshot,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
+
+  await ensureAgePremiumTransitionAlerts(db, tid, eid, ctx.employee, {
+    premiumKind: 'monthly',
+    yyyyMm,
+    birthDate: ctx.birthDate,
+    licenceStartAt: toFormDate(ctx.employee.employeeEmployInfo?.licenseStartAt),
+    resignAt: toFormDate(ctx.employee.employeeEmployInfo?.resignAt),
+    licenseEndAt: toFormDate(ctx.employee.employeeEmployInfo?.licenseEndAt),
+    ...careInsuranceCollection,
+  });
+
+  await ensureLeavePremiumExemptionAlerts(db, tid, eid, ctx.employee, {
+    yyyyMm,
+    premiumKind: 'monthly',
+    leaveRecords,
+  });
 
   await tryLeaveReturnRemunerationScreening(db, tid, eid, yyyyMm, ctx);
 }

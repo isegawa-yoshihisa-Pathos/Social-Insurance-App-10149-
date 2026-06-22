@@ -257,7 +257,10 @@ export class MonthlyPaymentCmp {
         this.settingsLoadedTid = tid;
       }
 
-      const periods = await this.paymentDataService.loadLockedPeriods(tid, eid, scope);
+      const periods =
+        scope === 'monthly'
+          ? await this.paymentDataService.loadMonthlyDisplayMonths(tid, eid)
+          : await this.paymentDataService.loadBonusDisplayMonths(tid, eid);
       if (token !== this.loadToken) {
         return;
       }

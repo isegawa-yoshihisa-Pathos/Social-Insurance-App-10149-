@@ -28,4 +28,36 @@ h3 {
   flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 8px;
+  align-items: center;
+}
+
+.status-badge {
+  font-size: 0.85rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.status-pending {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.status-approved {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-rejected {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.application-card.is-completed {
+  background: #fafafa;
+}
+
+.applied-at {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.9rem;
+  margin-top: 8px;
 }

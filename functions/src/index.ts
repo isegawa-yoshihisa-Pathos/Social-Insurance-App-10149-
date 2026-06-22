@@ -32,6 +32,7 @@ export {
 export { checkAgeAttainmentAlerts } from './notification/age-alert';
 export { updateEmployeeStatusesDaily } from './notification/check_status';
 export { requestEmployeeInput } from './notification/employee-input-request';
+export { deliverPaymentStatements } from './payment-statement/deliver-payment-statements';
 // import {onRequest} from "firebase-functions/https";
 // import * as logger from "firebase-functions/logger";
 

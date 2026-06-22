@@ -15,9 +15,28 @@ import { allowanceTypeFromColumnKey } from '../payment-management/payment-list/a
 import { bonusTypeFromColumnKey } from '../bonus-management/bonus-list/bonus-display.util';
 import { Format } from '../format-number-jp';
 import { bonusNetPayment, monthlyNetPayment } from '../../../shared/payment-summary.util';
+import { paymentListMonthlyNetPayment } from '../payment-management/payment-list/payment-list-summary.util';
+import type { PaymentListRow } from '../payment-management/payment-list/payment-list-columns';
 import type { PremiumMonthlyListEmployeeColumnKey } from '../monthly-management/monthly-premium/monthly-premium-columns';
 import type { PremiumBonusListEmployeeColumnKey } from '../bonus-management/bonus-premium/bonus-premium-columns';
 
+export function toMonthlyListRowForEmployeeFromPaymentRow(
+  row: PaymentListRow,
+): MonthlyListRowForEmployee {
+  return {
+    totalPayment: paymentListMonthlyNetPayment(row),
+    basicSalary: row.basicSalary,
+    fringeBenefits: row.fringeBenefits,
+    bonusRelatedRemuneration: row.bonusRelatedRemuneration,
+    allowances: row.allowances,
+    retroactivePay: row.retroactivePay,
+    healthInsuranceEmployee: row.healthInsuranceEmployee,
+    careInsuranceEmployee: row.careInsuranceEmployee,
+    pensionInsuranceEmployee: row.pensionInsuranceEmployee,
+  };
+}
+
+/** @deprecated toMonthlyListRowForEmployeeFromPaymentRow を使用 */
 export function toMonthlyListRowForEmployee(row: MonthlyListRow): MonthlyListRowForEmployee {
   return {
     totalPayment: monthlyNetPayment(row, row),

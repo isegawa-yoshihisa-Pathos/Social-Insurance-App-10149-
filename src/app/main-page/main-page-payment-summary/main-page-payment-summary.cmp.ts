@@ -9,8 +9,6 @@ import {
   formatPaymentPeriodLabel,
   MainPagePaymentDataService,
 } from '../main-page-payment-data.service';
-import { BonusListRowForEmployee } from '../../bonus-management/bonus-list/bonus-list-columns';
-import { MonthlyListRowForEmployee } from '../../monthly-management/monthly-list/monthly-list-columns';
 import { Format } from '../../format-number-jp';
 
 interface PaymentSummaryAmounts {
@@ -37,14 +35,14 @@ export class MainPagePaymentSummaryCmp {
   private readonly employeeDetailDataService = inject(EmployeeDetailDataService);
   private readonly paymentDataService = inject(MainPagePaymentDataService);
 
-  readonly lockedPeriods = signal<string[]>([]);
+  readonly displayMonths = signal<string[]>([]);
   readonly selectedYyyyMm = signal<string | null>(null);
   readonly loading = signal(false);
   readonly amounts = signal<PaymentSummaryAmounts | null>(null);
 
   private loadToken = 0;
 
-  readonly hasLockedPeriods = computed(() => this.lockedPeriods().length > 0);
+  readonly hasDisplayMonths = computed(() => this.displayMonths().length > 0);
 
   constructor() {
     effect(() => {
@@ -84,7 +82,7 @@ export class MainPagePaymentSummaryCmp {
   }
 
   private resetState(): void {
-    this.lockedPeriods.set([]);
+    this.displayMonths.set([]);
     this.selectedYyyyMm.set(null);
     this.amounts.set(null);
     this.loading.set(false);
@@ -96,19 +94,12 @@ export class MainPagePaymentSummaryCmp {
     untracked(() => this.selectedYyyyMm.set(null));
 
     try {
-      const [monthlyPeriods, bonusPeriods] = await Promise.all([
-        this.paymentDataService.loadLockedPeriods(tid, eid, 'monthly'),
-        this.paymentDataService.loadLockedPeriods(tid, eid, 'bonus'),
-      ]);
-
+      const periods = await this.paymentDataService.loadPaymentSummaryDisplayMonths(tid, eid);
       if (token !== this.loadToken) {
         return;
       }
 
-      const periods = [...new Set([...monthlyPeriods, ...bonusPeriods])].sort((a, b) =>
-        b.localeCompare(a),
-      );
-      this.lockedPeriods.set(periods);
+      this.displayMonths.set(periods);
 
       const initialPeriod = periods[0] ?? null;
       if (!initialPeriod) {
@@ -124,28 +115,18 @@ export class MainPagePaymentSummaryCmp {
     }
   }
 
-  private async loadSummary(tid: string, eid: string, yyyyMm: string): Promise<void> {
+  private async loadSummary(tid: string, eid: string, displayYyyyMm: string): Promise<void> {
     this.loading.set(true);
     try {
-      const meta = {
-        employeeId: this.employeeDetailDataService.employForm.employeeId,
-        displayName: this.employeeDetailDataService.personalForm.displayName,
-        birthDate: this.employeeDetailDataService.personalForm.birthDate,
-      };
-
-      const [monthlyResult, bonusResult] = await Promise.all([
-        this.paymentDataService.loadMonthlyRow(tid, eid, yyyyMm, meta),
-        this.paymentDataService.loadBonusRow(tid, eid, yyyyMm, meta),
-      ]);
-
-      const monthlyRow = monthlyResult.row as MonthlyListRowForEmployee | null;
-      const bonusRow = bonusResult.row as BonusListRowForEmployee | null;
-
-      const monthly = monthlyRow?.totalPayment ?? 0;
-      const bonus = bonusRow?.totalPayment ?? 0;
-      const total = monthly + bonus;
-
-      this.amounts.set({ monthly, bonus, total });
+      const summary = await this.paymentDataService.loadPaymentSummaryAmounts(
+        tid,
+        eid,
+        displayYyyyMm,
+        {
+          birthDate: this.employeeDetailDataService.personalForm.birthDate,
+        },
+      );
+      this.amounts.set(summary);
     } finally {
       this.loading.set(false);
     }

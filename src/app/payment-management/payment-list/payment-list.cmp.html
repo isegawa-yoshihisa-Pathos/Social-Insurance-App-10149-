@@ -9,7 +9,8 @@
       各従業員の行をクリックすると、該当従業員の詳細ページに移動できます。<br>
       「月次・賞与総支払」は、「当月に支給する給与・賞与」 - 「当月に徴収する保険料（本人負担）」を表す計算値です。<br>
       「合計総支払」は、「月次・賞与総支払」の合計値です。<br>
-      表示項目、ソート、フィルタを反映したcsvファイルをダウンロードできます。
+      表示項目、ソート、フィルタを反映したcsvファイルをダウンロードできます。<br>
+      「従業員へ送付」で、表示中の月の給与明細を従業員のマイページへ公開します（ロックとは独立）。再送付で内容を更新できます。
     </div>
   </div>
   <div class="payment-list-content">
@@ -42,11 +43,27 @@
         </button>
       </div>
       <div class="action-buttons">
+        <button
+          mat-flat-button
+          color="primary"
+          [disabled]="!hasRecords() || delivering || loading"
+          (click)="deliverToEmployees()"
+        >
+          @if (delivering) {
+            送付中...
+          } @else {
+            従業員へ送付
+          }
+        </button>
         <button mat-icon-button matTooltip="CSVファイルをダウンロード" (click)="exportData()">
           <mat-icon>download</mat-icon>
         </button>
       </div>
     </div>
+
+    @if (!loading && hasRecords()) {
+      <p class="delivery-status">{{ deliveryStatusLabel() }}</p>
+    }
 
     <div class="search-container">
       <mat-form-field appearance="outline">

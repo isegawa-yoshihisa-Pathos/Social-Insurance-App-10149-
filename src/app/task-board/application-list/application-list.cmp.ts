@@ -1,6 +1,9 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
+import { NavigationEnd, Router } from '@angular/router';
+import { filter } from 'rxjs/operators';
 import {
   ApplicationDataService,
   ApplicationListItem,
@@ -23,6 +26,8 @@ export class ApplicationListCmp implements OnInit {
   private readonly applicationDataService = inject(ApplicationDataService);
   private readonly tenant = inject(CurrentTenantService);
   private readonly dialog = inject(MatDialog);
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   loading = false;
   busyId: string | null = null;
@@ -31,6 +36,17 @@ export class ApplicationListCmp implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.reload();
+
+    this.router.events
+      .pipe(
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((event) => {
+        if (event.urlAfterRedirects.startsWith('/task-board/personal')) {
+          void this.reload();
+        }
+      });
   }
 
   leavePeriod(application: ApplicationListItem): string {
@@ -56,6 +72,16 @@ export class ApplicationListCmp implements OnInit {
     return status === 'pending' ? '未承認' : status === 'approved' ? '承認' : '却下';
   }
 
+  statusBadgeClass(status: ApplicationListItem['status']): string {
+    if (status === 'approved') {
+      return 'status-badge status-approved';
+    }
+    if (status === 'rejected') {
+      return 'status-badge status-rejected';
+    }
+    return 'status-badge status-pending';
+  }
+
   applicationTypeLabel(application: ApplicationListItem): string {
     switch (application.type) {
       case 'leave':
@@ -76,7 +102,7 @@ export class ApplicationListCmp implements OnInit {
   private async reload(): Promise<void> {
     const tid = this.tenant.currentTid();
     if (!tid) return;
-    const eid = this.tenant.currentEmployeeId();
+    const eid = this.tenant.currentEid();
     if (!eid) return;
 
     this.loading = true;

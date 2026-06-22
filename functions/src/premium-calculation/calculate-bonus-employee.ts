@@ -3,7 +3,8 @@ import type { BonusDocument } from '../../../shared/bonus-document';
 import { hasBonusData, sumBonusDataAmount } from '../../../shared/bonus-data.util';
 import type { EmployeeDocument } from '../../../shared/employee-document';
 import { calculateBonusPremium } from '../../../shared/social-insurance/premium/premium-calculator';
-import { employeeLeaveRecordsToPeriodInputs } from '../../../shared/social-insurance/premium/leave-premium-exemption';
+import { getResignBonusPremiumSkipReason } from '../../../shared/social-insurance/premium/insurance-period';
+import { employeeLeaveRecordsToPeriodInputs, getBonusPremiumLeaveExemptReason } from '../../../shared/social-insurance/premium/leave-premium-exemption';
 import {
   determineStandardBonus,
   evaluateBonusPremiumEligibility,
@@ -36,8 +37,14 @@ import {
   type StandardBonusDocument,
   type StandardBonusSavePayload,
 } from './repos';
-import { skipBonusPremiumCalculationIfResigned, isMissingRequiredFields } from './premium-calculation-skip';
+import {
+  buildPremiumCalculationSkipMessage,
+  isMissingRequiredFields,
+  skipBonusPremiumCalculationIfResigned,
+} from './premium-calculation-skip';
 import { ensureMultiWorkplaceManualPremiumAlert } from './multi-workplace-premium-alert';
+import { ensureAgePremiumTransitionAlerts } from './age-premium-alert';
+import { ensureLeavePremiumExemptionAlerts } from './leave-premium-alert';
 
 interface CalculationContext {
   employee: EmployeeDocument;
@@ -61,7 +68,7 @@ export async function calculateBonusEmployee(
     throw new Error(`従業員${ctx.employee.employeePersonalInfo?.displayName}は${errorMessage}です。`);
   }
   if (await skipBonusPremiumCalculationIfResigned(db, tid, eid, yyyyMm, ctx.employee)) {
-    throw new Error(`従業員${ctx.employee.employeePersonalInfo?.displayName}は資格取得前または資格喪失後です。`);
+    throw new Error(buildPremiumCalculationSkipMessage(ctx.employee, yyyyMm));
   }
   const personalInfo = ctx.employee.employeePersonalInfo;
   const careInsuranceCollection = {
@@ -78,13 +85,14 @@ export async function calculateBonusEmployee(
     throw new Error('保険料率が見つかりません');
   }
 
+  const leaveRecords = employeeLeaveRecordsToPeriodInputs(ctx.employee.leaveInfo);
   const premiumData = calculateBonusPremium({
     yyyyMm,
     birthDate: ctx.birthDate,
     licenceStartAt: toFormDate(ctx.employee.employeeEmployInfo?.licenseStartAt),
     resignAt: toFormDate(ctx.employee.employeeEmployInfo?.resignAt),
     licenseEndAt: toFormDate(ctx.employee.employeeEmployInfo?.licenseEndAt),
-    leaveRecords: employeeLeaveRecordsToPeriodInputs(ctx.employee.leaveInfo),
+    leaveRecords,
     ...careInsuranceCollection,
     standardBonus: standardBonus.standardBonus,
     rates: rate.rates,
@@ -92,6 +100,15 @@ export async function calculateBonusEmployee(
     roundingBy: rate.roundingBy,
     roundingBoundaryType: rate.roundingBoundaryType,
   });
+
+  const resignBonusSkipReason = getResignBonusPremiumSkipReason(
+    toFormDate(ctx.employee.employeeEmployInfo?.resignAt),
+    yyyyMm,
+  );
+  const leaveBonusExemptReason = getBonusPremiumLeaveExemptReason(yyyyMm, leaveRecords);
+  const skipReason = [standardBonus.skipReason, resignBonusSkipReason, leaveBonusExemptReason]
+    .filter(Boolean)
+    .join(' / ') || undefined;
 
   const calculationSnapshot = omitUndefinedFields({
     rateId: rate.rateId,
@@ -116,7 +133,7 @@ export async function calculateBonusEmployee(
     bonusAmount: standardBonus.bonusAmount,
     rawStandardBonus: standardBonus.rawStandardBonus,
     source: standardBonus.source,
-    skipReason: standardBonus.skipReason,
+    skipReason,
     calculatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 
@@ -139,6 +156,22 @@ export async function calculateBonusEmployee(
     trigger: 'bonus',
     yyyyMm,
     employeeDisplayName: ctx.employee.employeePersonalInfo?.displayName,
+  });
+
+  await ensureAgePremiumTransitionAlerts(db, tid, eid, ctx.employee, {
+    premiumKind: 'bonus',
+    yyyyMm,
+    birthDate: ctx.birthDate,
+    licenceStartAt: toFormDate(ctx.employee.employeeEmployInfo?.licenseStartAt),
+    resignAt: toFormDate(ctx.employee.employeeEmployInfo?.resignAt),
+    licenseEndAt: toFormDate(ctx.employee.employeeEmployInfo?.licenseEndAt),
+    ...careInsuranceCollection,
+  });
+
+  await ensureLeavePremiumExemptionAlerts(db, tid, eid, ctx.employee, {
+    yyyyMm,
+    premiumKind: 'bonus',
+    leaveRecords,
   });
 }
 

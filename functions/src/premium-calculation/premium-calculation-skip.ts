@@ -1,7 +1,10 @@
 import * as admin from 'firebase-admin';
 import type { EmployeeDocument } from '../../../shared/employee-document';
 import { toFormDate } from '../../../shared/date-utils';
-import { shouldSkipPremiumCalculationForResignedEmployee } from '../../../shared/social-insurance/premium/insurance-period';
+import {
+  getPremiumCalculationSkipReason,
+  shouldSkipPremiumCalculationForResignedEmployee,
+} from '../../../shared/social-insurance/premium/insurance-period';
 
 function employeeEmployDates(employee: EmployeeDocument) {
   const employInfo = employee.employeeEmployInfo;
@@ -23,6 +26,26 @@ export function shouldSkipPremiumCalculation(
     resignAt,
     yyyyMm,
   );
+}
+
+export function buildPremiumCalculationSkipMessage(
+  employee: EmployeeDocument,
+  yyyyMm: string,
+): string {
+  const { licenceStartAt, licenseEndAt, resignAt } = employeeEmployDates(employee);
+  const name = employee.employeePersonalInfo?.displayName ?? '';
+  const reason = getPremiumCalculationSkipReason(
+    licenceStartAt,
+    licenseEndAt,
+    resignAt,
+    yyyyMm,
+  );
+
+  if (reason === 'before_license_start') {
+    return `従業員${name}は${yyyyMm}は資格取得前のため、被保険者資格がなく社会保険料の算定対象外です。`;
+  }
+
+  return `従業員${name}は${yyyyMm}は資格喪失後のため、被保険者資格がなく社会保険料の算定対象外です。`;
 }
 
 async function clearMonthlyPremiumFields(

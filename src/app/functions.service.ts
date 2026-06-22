@@ -52,6 +52,8 @@ export class FunctionsService {
 
   private requestEmployeeInputFn = httpsCallable(this.functions, 'requestEmployeeInput');
 
+  private deliverPaymentStatementsFn = httpsCallable(this.functions, 'deliverPaymentStatements');
+
   async registerAdminAndTenant(payload: any) {
     return await this.registerFn(payload);
   }
@@ -184,6 +186,15 @@ export class FunctionsService {
       notified: number;
       skippedNoAccount: number;
       skippedNotFound: number;
+    };
+  }
+
+  async deliverPaymentStatements(payload: { tid: string; displayYyyyMm: string; eids?: string[] }) {
+    const result = await this.deliverPaymentStatementsFn(payload);
+    return result.data as {
+      delivered: number;
+      skippedNoAccount: number;
+      skippedNoData: number;
     };
   }
 }

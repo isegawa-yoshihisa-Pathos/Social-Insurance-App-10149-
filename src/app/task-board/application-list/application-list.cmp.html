@@ -1,17 +1,17 @@
 <div class="accept-application">
-    <h3>申請一覧</h3>
+    <h3>申請履歴</h3>
   
     @if (loading) {
-      <p>申請一覧を読み込んでいます...</p>
+      <p>申請履歴を読み込んでいます...</p>
     } @else if (applications.length === 0) {
-      <p class="empty-message">申請はありません。</p>
+      <p class="empty-message">申請履歴はありません。</p>
     } @else {
       <div class="application-list">
         @for (application of applications; track application.id) {
           <div class="application-card" [class.is-completed]="application.status !== 'pending'">
             <div class="application-header">
               <strong>{{ applicationTypeLabel(application) }}</strong>
-              <span class="status-badge">{{ formatStatus(application.status) }}</span>
+              <span [class]="statusBadgeClass(application.status)">{{ formatStatus(application.status) }}</span>
             </div>
             <div class="application-body">
               @if (application.type === 'leave') {

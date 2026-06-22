@@ -3,7 +3,22 @@ import type { CalculationSnapshot as BonusCalculationSnapshot } from '../../bonu
 import type { PremiumData } from '../../monthly-document';
 import type { StandardRemunerationSource } from '../monthly/social-insurance-document';
 import type { StandardBonusSource } from '../bonus/social-insurance-document';
-import { addMonths } from '../monthly/social-insurance-data.util';
+import type { EmployeeLeaveType } from '../../employee-document';
+import { getAgeAttainmentYyyyMm } from '../../date-utils';
+import {
+  detectAgePremiumTransitions,
+  type AgePremiumTransitionKind,
+  type DetectAgePremiumTransitionsInput,
+} from './age-premium-transition';
+import {
+  detectLeavePremiumExemptions,
+  type LeavePeriodInput,
+} from './leave-premium-exemption';
+import {
+  hasCareInsuranceAgeDependent,
+  isCareInsuranceTarget,
+  isSpecificInsuranceCollectionEnabled,
+} from './premium-calculator';
 
 const STANDARD_REMUNERATION_SOURCE_LABELS: Record<StandardRemunerationSource, string> = {
   initial: '初回算定',
@@ -19,45 +34,160 @@ const STANDARD_BONUS_SOURCE_LABELS: Record<StandardBonusSource, string> = {
   manual: '手入力',
 };
 
-function ageAtEndOfMonth(birthDate: Date, yyyyMm: string): number {
-  const [year, month] = yyyyMm.split('-').map((v) => parseInt(v, 10));
-  const endOfMonth = new Date(year, month, 0);
-  let age = endOfMonth.getFullYear() - birthDate.getFullYear();
-  const monthDiff = endOfMonth.getMonth() - birthDate.getMonth();
-  const dayDiff = endOfMonth.getDate() - birthDate.getDate();
-  if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
-    age -= 1;
-  }
-  return age;
-}
+const LEAVE_TYPE_LABELS: Record<Extract<EmployeeLeaveType, 'maternity' | 'childcare'>, string> = {
+  maternity: '産前産後休業',
+  childcare: '育児休業等',
+};
 
-function ageMilestoneReasons(
+const AGE_TRANSITION_CHANGE_REASONS: Partial<Record<AgePremiumTransitionKind, string>> = {
+  care_insurance_collection_start:
+    '40歳到達により、介護保険第2号被保険者として介護保険料の徴収が開始されました。',
+  care_insurance_collection_end:
+    '65歳到達により、介護保険料の徴収が終了しました。',
+  specific_care_insurance_collection_start:
+    '特定被保険者に該当するため、介護保険料の徴収が開始されました。',
+  specific_care_insurance_collection_end:
+    '特定被保険者としての介護保険料徴収が終了しました。',
+  health_insurance_end: '75歳到達により健康保険料の対象外となりました。',
+  pension_insurance_end: '70歳到達により厚生年金保険料の対象外となりました。',
+};
+
+const AGE_MILESTONE_MESSAGES: ReadonlyArray<{ age: number; message: string }> = [
+  { age: 40, message: '40歳到達により介護保険料の対象となりました。' },
+  { age: 65, message: '65歳到達により介護保険料の対象外となりました。' },
+  { age: 70, message: '70歳到達により厚生年金保険料の対象外となりました。' },
+  { age: 75, message: '75歳到達により健康保険料の対象外となりました。' },
+];
+
+/** 保険料算定と同じ到達月（reachedMonth）基準で年齢 milestone を判定する */
+function ageMilestoneReasonsForMonth(
   birthDate: Date | null,
-  yyyyMm: string,
-  previousYyyyMm: string,
+  premiumMonthYyyyMm: string,
 ): string[] {
   if (!birthDate) {
     return [];
   }
 
-  const reasons: string[] = [];
-  const currentAge = ageAtEndOfMonth(birthDate, yyyyMm);
-  const previousAge = ageAtEndOfMonth(birthDate, previousYyyyMm);
+  return AGE_MILESTONE_MESSAGES
+    .filter(({ age }) => getAgeAttainmentYyyyMm(birthDate, age) === premiumMonthYyyyMm)
+    .map(({ message }) => message);
+}
 
-  if (previousAge < 40 && currentAge >= 40) {
-    reasons.push('40歳到達により介護保険料の対象となりました。');
+function ageTransitionChangeReasons(
+  premiumMonthYyyyMm: string,
+  birthDate: Date | null,
+  agePremiumContext?: Omit<DetectAgePremiumTransitionsInput, 'yyyyMm'>,
+): string[] {
+  if (!agePremiumContext) {
+    return ageMilestoneReasonsForMonth(birthDate, premiumMonthYyyyMm);
   }
-  if (previousAge < 65 && currentAge >= 65) {
-    reasons.push('65歳到達により介護保険料の対象外となりました。');
+
+  return detectAgePremiumTransitions({
+    ...agePremiumContext,
+    yyyyMm: premiumMonthYyyyMm,
+  })
+    .map(({ kind }) => AGE_TRANSITION_CHANGE_REASONS[kind])
+    .filter((message): message is string => !!message);
+}
+
+function leaveExemptionChangeReasons(
+  premiumMonthYyyyMm: string,
+  previousPremiumMonthYyyyMm: string | undefined,
+  leaveRecords?: readonly LeavePeriodInput[],
+): string[] {
+  if (!leaveRecords?.length) {
+    return [];
   }
-  if (previousAge < 70 && currentAge >= 70) {
-    reasons.push('70歳到達により厚生年金保険料の対象外となりました。');
+
+  const reasons: string[] = [];
+  const currentExemptions = detectLeavePremiumExemptions(
+    premiumMonthYyyyMm,
+    leaveRecords,
+    'monthly',
+  );
+
+  for (const { leaveType } of currentExemptions) {
+    reasons.push(
+      `${LEAVE_TYPE_LABELS[leaveType]}の取得期間に該当するため、社会保険料は休業のため免除されています。`,
+    );
   }
-  if (previousAge < 75 && currentAge >= 75) {
-    reasons.push('75歳到達により健康保険料の対象外となりました。');
+
+  if (previousPremiumMonthYyyyMm && currentExemptions.length === 0) {
+    const previousExemptions = detectLeavePremiumExemptions(
+      previousPremiumMonthYyyyMm,
+      leaveRecords,
+      'monthly',
+    );
+    if (previousExemptions.length > 0) {
+      reasons.push('休業明けにより保険料免除が終了し、通常の保険料算定となりました。');
+    }
   }
 
   return reasons;
+}
+
+function ongoingSpecificCareCollectionReason(
+  premiumMonthYyyyMm: string,
+  currentPremium: PremiumData | undefined,
+  agePremiumContext?: Omit<DetectAgePremiumTransitionsInput, 'yyyyMm'>,
+): string | null {
+  if (!agePremiumContext || !currentPremium) {
+    return null;
+  }
+
+  const careAmount = currentPremium.careInsurance.employee ?? 0;
+  if (careAmount <= 0) {
+    return null;
+  }
+
+  if (!isSpecificInsuranceCollectionEnabled(agePremiumContext.specificInsuranceCollectionType)) {
+    return null;
+  }
+
+  if (isCareInsuranceTarget(agePremiumContext.birthDate ?? null, premiumMonthYyyyMm)) {
+    return null;
+  }
+
+  if (
+    !hasCareInsuranceAgeDependent(
+      agePremiumContext.dependentsInfo,
+      premiumMonthYyyyMm,
+      agePremiumContext.hasDependents,
+    )
+  ) {
+    return null;
+  }
+
+  return '特定被保険者に該当するため、介護保険料が徴収されています。';
+}
+
+function appendSpecificCareCollectionReason(
+  reasons: string[],
+  premiumMonthYyyyMm: string,
+  currentPremium: PremiumData | undefined,
+  agePremiumContext?: Omit<DetectAgePremiumTransitionsInput, 'yyyyMm'>,
+): void {
+  const hasSpecificTransition = reasons.some((reason) => reason.includes('特定被保険者'));
+  if (hasSpecificTransition) {
+    return;
+  }
+
+  const ongoingReason = ongoingSpecificCareCollectionReason(
+    premiumMonthYyyyMm,
+    currentPremium,
+    agePremiumContext,
+  );
+  if (ongoingReason) {
+    reasons.push(ongoingReason);
+  }
+}
+
+function hasCareInsuranceTransitionReasons(reasons: string[]): boolean {
+  return reasons.some(
+    (reason) =>
+      reason.includes('介護保険料')
+      || reason.includes('特定被保険者'),
+  );
 }
 
 function premiumTotal(premium?: PremiumData): number | null {
@@ -71,16 +201,46 @@ function premiumTotal(premium?: PremiumData): number | null {
 }
 
 export function buildMonthlyPremiumChangeReasons(params: {
-  yyyyMm: string;
+  /** 給与明細の表示月。指定時は前回の支払明細との比較として扱う */
+  displayYyyyMm?: string;
+  /** 表示されている保険料の算定月（月次管理） */
+  premiumMonthYyyyMm: string;
+  /** 前回明細で参照した保険料の算定月 */
+  previousPremiumMonthYyyyMm?: string;
   birthDate: Date | null;
+  leaveRecords?: readonly LeavePeriodInput[];
+  agePremiumContext?: Omit<DetectAgePremiumTransitionsInput, 'yyyyMm'>;
   current?: MonthlyCalculationSnapshot;
   previous?: MonthlyCalculationSnapshot;
   currentPremium?: PremiumData;
   previousPremium?: PremiumData;
 }): string[] {
-  const { yyyyMm, birthDate, current, previous, currentPremium, previousPremium } = params;
-  const previousYyyyMm = addMonths(yyyyMm, -1);
-  const reasons: string[] = [...ageMilestoneReasons(birthDate, yyyyMm, previousYyyyMm)];
+  const {
+    displayYyyyMm,
+    premiumMonthYyyyMm,
+    previousPremiumMonthYyyyMm,
+    birthDate,
+    leaveRecords,
+    agePremiumContext,
+    current,
+    previous,
+    currentPremium,
+    previousPremium,
+  } = params;
+  const reasons: string[] = [
+    ...leaveExemptionChangeReasons(
+      premiumMonthYyyyMm,
+      previousPremiumMonthYyyyMm,
+      leaveRecords,
+    ),
+    ...ageTransitionChangeReasons(premiumMonthYyyyMm, birthDate, agePremiumContext),
+  ];
+  appendSpecificCareCollectionReason(
+    reasons,
+    premiumMonthYyyyMm,
+    currentPremium,
+    agePremiumContext,
+  );
 
   if (!current) {
     if (reasons.length === 0) {
@@ -131,9 +291,17 @@ export function buildMonthlyPremiumChangeReasons(params: {
 
   const prevCareRate = previous.employeeRate.care ?? 0;
   const currentCareRate = current.employeeRate.care ?? 0;
-  if (prevCareRate === 0 && currentCareRate > 0) {
+  if (
+    !hasCareInsuranceTransitionReasons(reasons)
+    && prevCareRate === 0
+    && currentCareRate > 0
+  ) {
     reasons.push('介護保険料の負担が発生しました。');
-  } else if (prevCareRate > 0 && currentCareRate === 0) {
+  } else if (
+    !hasCareInsuranceTransitionReasons(reasons)
+    && prevCareRate > 0
+    && currentCareRate === 0
+  ) {
     reasons.push('介護保険料の負担が終了しました。');
   }
 
@@ -146,7 +314,11 @@ export function buildMonthlyPremiumChangeReasons(params: {
   }
 
   if (reasons.length === 0) {
-    reasons.push('前月と比べて保険料算定に大きな変更はありません。');
+    reasons.push(
+      displayYyyyMm
+        ? '前回の支払明細と比べて保険料算定に大きな変更はありません。'
+        : '前月と比べて保険料算定に大きな変更はありません。',
+    );
   }
 
   return reasons;
@@ -161,8 +333,7 @@ export function buildBonusPremiumChangeReasons(params: {
   previousPremium?: PremiumData;
 }): string[] {
   const { yyyyMm, birthDate, current, previous, currentPremium, previousPremium } = params;
-  const previousYyyyMm = addMonths(yyyyMm, -1);
-  const reasons: string[] = [...ageMilestoneReasons(birthDate, yyyyMm, previousYyyyMm)];
+  const reasons: string[] = [...ageMilestoneReasonsForMonth(birthDate, yyyyMm)];
 
   if (!current) {
     if (reasons.length === 0) {
@@ -177,7 +348,7 @@ export function buildBonusPremiumChangeReasons(params: {
   }
 
   if (!previous) {
-    reasons.push('初回の賞与保険料算定です。');
+    reasons.push('通常の賞与保険料算定です。');
     if (current.source) {
       reasons.push(`標準賞与額の根拠: ${STANDARD_BONUS_SOURCE_LABELS[current.source] ?? current.source}`);
     }

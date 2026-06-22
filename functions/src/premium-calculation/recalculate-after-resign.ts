@@ -2,7 +2,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { assertTenantAdmin, mapCoreErrorToHttpsError } from '../core-functions';
 import { toFormDate } from '../../../shared/date-utils';
-import { lastPremiumMonthYyyyMm } from '../../../shared/social-insurance/premium/insurance-period';
+import { lastPremiumMonthYyyyMm, resolveLicenseEndAt } from '../../../shared/social-insurance/premium/insurance-period';
 import { getEmployee } from './repos';
 import { calculateMonthlyEmployee } from './calculate-monthly-employee';
 import {
@@ -46,8 +46,10 @@ export const recalculatePremiumsAfterResign = onCall<RecalculatePremiumsAfterRes
 
     const employee = await getEmployee(db, tid, eid);
 
-    const licenseEndAt = toFormDate(employee.employeeEmployInfo?.licenseEndAt);
-    const resignAt = toFormDate(employee.employeeEmployInfo?.resignAt);
+    const licenseEndAt = resolveLicenseEndAt(
+      toFormDate(employee.employeeEmployInfo?.licenseEndAt),
+      toFormDate(employee.employeeEmployInfo?.resignAt),
+    );
     if (!licenseEndAt) {
       throw new HttpsError(
         'failed-precondition',
@@ -55,9 +57,10 @@ export const recalculatePremiumsAfterResign = onCall<RecalculatePremiumsAfterRes
       );
     }
 
+    const resignAt = toFormDate(employee.employeeEmployInfo?.resignAt);
     await clearPremiumFieldsAfterResign(db, tid, eid, licenseEndAt, resignAt);
 
-    const lastPremium = lastPremiumMonthYyyyMm(licenseEndAt, resignAt);
+    const lastPremium = lastPremiumMonthYyyyMm(licenseEndAt);
     const records = await listEmployeeMonthlyRecords(db, tid, eid);
     const recalcTargets = records
       .filter(({ yyyyMm, doc }) => yyyyMm <= lastPremium && doc.payrollData)

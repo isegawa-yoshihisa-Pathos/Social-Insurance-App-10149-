@@ -30,6 +30,18 @@
   align-items: center;
 }
 
+.action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.delivery-status {
+  margin: 0 0 12px;
+  color: rgba(0, 0, 0, 0.65);
+  font-size: 0.9rem;
+}
+
 .month-picker-container {
   display: flex;
   align-items: center;

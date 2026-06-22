@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Firestore, doc, getDoc, serverTimestamp, writeBatch, UpdateData, DocumentData } from '@angular/fire/firestore';
-import { toFirestoreTimestamp } from '../../date-utils';
+import { toFirestoreTimestamp, toFormDate } from '../../date-utils';
 import { EmployeesSettingDataService } from '../employees-setting/employees-setting-data.service';
 import { AuditLogService } from '../../audit-log/audit-log.service';
 import { EMPLOYEES_IMPORT_COLUMNS, EmployeesImportFieldKey } from '../employees-setting/employees-import-columns';
@@ -256,8 +256,8 @@ export class EmployeesListImportService {
       'joinedAt', 'resignAt', 'licenseStartAt', 'licenseEndAt',
     ] as EmployeesImportFieldKey[]) {
       setIfPresent(key, (v) => {
-        const date = new Date(v);
-        if (!Number.isNaN(date.getTime())) {
+        const date = toFormDate(v.trim());
+        if (date) {
           employee[`employeeEmployInfo.${key}`] = toFirestoreTimestamp(date);
         }
       });

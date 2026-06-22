@@ -19,7 +19,8 @@ export function employeeLeaveRecordsToPeriodInputs(
 }
 
 export function dateToYyyyMm(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  const normalized = normalizeCalendarDate(date);
+  return `${normalized.getFullYear()}-${String(normalized.getMonth() + 1).padStart(2, '0')}`;
 }
 
 export function normalizeCalendarDate(date: Date): Date {
@@ -132,14 +133,39 @@ function dateInLeavePeriod(target: Date, startAt: Date, endAt: Date): boolean {
 
 function lastDayOfMonthDate(yyyyMm: string): Date {
   const { year, month } = parseYyyyMm(yyyyMm);
-  return new Date(year, month, 0);
+  return normalizeCalendarDate(new Date(year, month, 0));
 }
 
 /**
- * 賞与にかかる保険料: 賞与月の末日が育児休業等に含まれ、
- * かつ当該末日を含む連続した1カ月超の育児休業等がある場合のみ免除。
+ * 賞与にかかる保険料: 賞与支給月の末日が休業期間に含まれ、
+ * かつ当該末日を含む休業が1カ月を超える場合に免除。
  */
-export function isBonusPremiumExemptForChildcareLeave(
+function isBonusPremiumExemptForLeavePeriod(
+  bonusYyyyMm: string,
+  startAt: Date,
+  endAt: Date | null,
+): boolean {
+  const monthEnd = lastDayOfMonthDate(bonusYyyyMm);
+  const start = normalizeCalendarDate(startAt);
+
+  if (endAt) {
+    if (!dateInLeavePeriod(monthEnd, startAt, endAt)) {
+      return false;
+    }
+  } else if (normalizeCalendarDate(monthEnd).getTime() < start.getTime()) {
+    return false;
+  }
+
+  const startMonth = dateToYyyyMm(startAt);
+  const endMonth = dateToYyyyMm(endAt ?? monthEnd);
+  return monthsBetweenInclusive(startMonth, endMonth) > 1;
+}
+
+/**
+ * 産前産後休業・育児休業等: 賞与支給月の末日を含む1カ月超の休業がある場合、
+ * 当該賞与に係る保険料を免除する。
+ */
+export function isBonusPremiumExemptForLeave(
   bonusYyyyMm: string,
   leaveRecords?: readonly LeavePeriodInput[],
 ): boolean {
@@ -147,25 +173,75 @@ export function isBonusPremiumExemptForChildcareLeave(
     return false;
   }
 
-  const monthEnd = lastDayOfMonthDate(bonusYyyyMm);
-
   for (const leave of leaveRecords) {
-    if (leave.type !== 'childcare' || !leave.startAt || !leave.endAt) {
+    if (!leave.startAt) {
       continue;
     }
-
-    if (!dateInLeavePeriod(monthEnd, leave.startAt, leave.endAt)) {
+    if (leave.type !== 'maternity' && leave.type !== 'childcare') {
       continue;
     }
-
-    const startMonth = dateToYyyyMm(leave.startAt);
-    const endMonth = dateToYyyyMm(leave.endAt);
-    if (monthsBetweenInclusive(startMonth, endMonth) <= 1) {
-      continue;
+    if (isBonusPremiumExemptForLeavePeriod(bonusYyyyMm, leave.startAt, leave.endAt)) {
+      return true;
     }
-
-    return true;
   }
 
   return false;
+}
+
+/** @deprecated isBonusPremiumExemptForLeave を使用 */
+export function isBonusPremiumExemptForChildcareLeave(
+  bonusYyyyMm: string,
+  leaveRecords?: readonly LeavePeriodInput[],
+): boolean {
+  return isBonusPremiumExemptForLeave(bonusYyyyMm, leaveRecords);
+}
+
+export function getBonusPremiumLeaveExemptReason(
+  bonusYyyyMm: string,
+  leaveRecords?: readonly LeavePeriodInput[],
+): string | null {
+  if (!isBonusPremiumExemptForLeave(bonusYyyyMm, leaveRecords)) {
+    return null;
+  }
+  return '産前産後休業または育児休業等の取得により、当該賞与に係る保険料は免除されます';
+}
+
+export type LeavePremiumExemptionAlert = {
+  leaveType: Extract<EmployeeLeaveType, 'maternity' | 'childcare'>;
+  yyyyMm: string;
+};
+
+/** 月次・賞与それぞれ、当該月に保険料免除が適用される休業種別を返す。 */
+export function detectLeavePremiumExemptions(
+  yyyyMm: string,
+  leaveRecords: readonly LeavePeriodInput[] | undefined,
+  premiumKind: 'monthly' | 'bonus',
+): LeavePremiumExemptionAlert[] {
+  if (!leaveRecords?.length) {
+    return [];
+  }
+
+  const results: LeavePremiumExemptionAlert[] = [];
+
+  for (const leave of leaveRecords) {
+    if (!leave.startAt) {
+      continue;
+    }
+    if (leave.type !== 'maternity' && leave.type !== 'childcare') {
+      continue;
+    }
+
+    const exempt =
+      premiumKind === 'monthly'
+        ? leave.type === 'maternity'
+          ? isMonthlyPremiumExemptForMaternityLeave(yyyyMm, leave.startAt, leave.endAt)
+          : isMonthlyPremiumExemptForChildcareLeave(yyyyMm, leave.startAt, leave.endAt)
+        : isBonusPremiumExemptForLeavePeriod(yyyyMm, leave.startAt, leave.endAt);
+
+    if (exempt) {
+      results.push({ leaveType: leave.type, yyyyMm });
+    }
+  }
+
+  return results;
 }

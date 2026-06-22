@@ -25,6 +25,7 @@ import { CurrentTenantService } from '../current-tenant.service';
 import { AuthService } from '../auth.service';
 import { leaveFormToRecord } from '../employee-leave.util';
 import { toFirestoreTimestamp, toFormDate } from '../date-utils';
+import { licenseEndAtFromResignAt } from '../../../shared/social-insurance/premium/insurance-period';
 import { FunctionsService } from '../functions.service';
 import {
   AllowanceApplicationFormData,
@@ -421,16 +422,6 @@ export class ApplicationDataService {
     });
   }
 
-  /** @deprecated listLeaveApplications を使用 */
-  async listPendingLeaveApplications(tid: string): Promise<PendingApplication[]> {
-    return this.listLeaveApplications(tid);
-  }
-
-  /** @deprecated listResignApplications を使用 */
-  async listPendingResignApplications(tid: string): Promise<PendingApplication[]> {
-    return this.listResignApplications(tid);
-  }
-
   async listApplications(tid: string, eid: string): Promise<ApplicationListItem[]> {
     const snap = await getDocs(
       query(
@@ -620,15 +611,13 @@ export class ApplicationDataService {
     }
     if (!application.resignDetails) throw new Error('退職申請の内容がありません。');
 
-    const resignAt = toFirestoreTimestamp(
-      toFormDate(application.resignDetails.resignAt),
-    );
-    if (!resignAt) throw new Error('退職日がありません。');
+    const resignCalendarDate = toFormDate(application.resignDetails.resignAt);
+    if (!resignCalendarDate) throw new Error('退職日がありません。');
 
-    const resignDate = resignAt.toDate();
-    const nextDayDate = new Date(resignDate);
-    nextDayDate.setDate(resignDate.getDate() + 1);
-    const licenseEndAt = toFirestoreTimestamp(nextDayDate);
+    const resignAt = toFirestoreTimestamp(resignCalendarDate);
+    const licenseEndAt = toFirestoreTimestamp(
+      licenseEndAtFromResignAt(resignCalendarDate),
+    );
 
     const employeeRef = doc(
       this.firestore,

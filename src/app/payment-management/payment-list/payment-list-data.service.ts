@@ -123,7 +123,7 @@ export class PaymentListDataService {
     premiumFromFetchedMonth: PremiumData | undefined,
     resignContext: ResignPremiumDisplayContext | null,
   ): Promise<PremiumData | undefined> {
-    if (!resignContext?.isBulk || displayYyyyMm !== resignContext.finalPayrollDisplayMonth) {
+    if (!resignContext?.isBulk || displayYyyyMm !== resignContext.bulkPremiumDisplayMonth) {
       return resolvePaymentDisplayPremium({
         displayYyyyMm,
         premiumMonthYyyyMm: premiumMonth,

@@ -3,7 +3,7 @@
     <div class="loading-container">
       <mat-spinner diameter="32"></mat-spinner>
     </div>
-  } @else if (!hasLockedPeriods()) {
+  } @else if (!hasDisplayMonths()) {
     <p class="empty-message">明細はありません。</p>
   } @else {
     <mat-form-field appearance="outline" class="period-select">
@@ -12,7 +12,7 @@
         [ngModel]="selectedYyyyMm()"
         (ngModelChange)="onPeriodSelected($event)"
       >
-        @for (yyyyMm of lockedPeriods(); track yyyyMm) {
+        @for (yyyyMm of displayMonths(); track yyyyMm) {
           <mat-option [value]="yyyyMm">{{ formatPeriodLabel(yyyyMm) }}</mat-option>
         }
       </mat-select>

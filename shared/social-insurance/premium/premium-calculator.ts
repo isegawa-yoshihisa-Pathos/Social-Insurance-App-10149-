@@ -7,13 +7,14 @@ import {
 } from './rounding';
 import { EmployeeRateByInsurance, normalizeEmployeeRate, normalizeRoundingBy, normalizeRoundingBoundaryType, RoundingByInsurance, type RoundingBoundaryType } from '../monthly/social-insurance-document';
 import {
-  isBonusPremiumExemptForChildcareLeave,
+  isBonusPremiumExemptForLeave,
   isMonthlyPremiumExemptForLeave,
   type LeavePeriodInput,
 } from './leave-premium-exemption';
 import {
   isInsurancePeriodTargetByLicenseEnd,
-  licenseEndAtFromResignAt,
+  isBonusPremiumTargetForResignation,
+  resolveLicenseEndAt,
 } from './insurance-period';
 
 export interface InsuranceRatesInput {
@@ -52,13 +53,11 @@ export function isInsurancePeriodTarget(
   yyyyMm: string,
   licenseEndAt?: Date | null | undefined,
 ): boolean {
-  const resolvedLicenseEndAt =
-    licenseEndAt ?? (resignAt ? licenseEndAtFromResignAt(resignAt) : null);
+  const resolvedLicenseEndAt = resolveLicenseEndAt(licenseEndAt, resignAt);
   return isInsurancePeriodTargetByLicenseEnd(
     licenceStartAt,
     resolvedLicenseEndAt,
     yyyyMm,
-    resignAt,
   );
 }
 
@@ -210,7 +209,11 @@ function emptyPremiumData(): PremiumData {
 }
 
 export function calculateBonusPremium(input: BonusPremiumCalculationInput): PremiumData {
-  if (isBonusPremiumExemptForChildcareLeave(input.yyyyMm, input.leaveRecords)) {
+  if (isBonusPremiumExemptForLeave(input.yyyyMm, input.leaveRecords)) {
+    return emptyPremiumData();
+  }
+
+  if (!isBonusPremiumTargetForResignation(input.resignAt, input.yyyyMm)) {
     return emptyPremiumData();
   }
 

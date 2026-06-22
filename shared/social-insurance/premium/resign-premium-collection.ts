@@ -1,9 +1,6 @@
 import type { PremiumData } from '../../monthly-document';
 import { addMonths } from '../monthly/social-insurance-data.util';
-import {
-  getPayrollPaymentMonthOffset,
-  type PayrollPaymentMonth,
-} from '../payroll/payroll-payment-timing';
+import { type PayrollPaymentMonth } from '../payroll/payroll-payment-timing';
 import {
   isInsurancePeriodTargetByLicenseEnd,
   lastPremiumMonthYyyyMm,
@@ -34,7 +31,6 @@ export function getPayToPremiumMonthOffset(
   }
 }
 
-/** 保険料対象月から給与支払月までの遅延月数 */
 export function getPremiumToPayMonthDelay(
   collectionMonth: SocialInsuranceCollectionMonth | undefined,
 ): number {
@@ -156,18 +152,10 @@ export interface ResignBulkPremiumInput extends ResignBulkPremiumScheduleInput {
   premiumByMonth: ReadonlyMap<string, PremiumData | undefined>;
 }
 
-/** 退職時の最終給与が支払われる月（給与支給月設定を反映） */
-export function resignLastPayrollMonthYyyyMm(
-  resignAt: Date,
-  payrollPaymentMonth?: PayrollPaymentMonth,
-): string {
-  const resignPayMonth = resignPayMonthYyyyMm(resignAt);
-  return addMonths(resignPayMonth, -getPayrollPaymentMonthOffset(payrollPaymentMonth));
-}
 
 /**
  * 一括徴収の対象となる保険料対象月（yyyyMm）を列挙する。
- * 通常徴収予定月が最終給与月より後の月次保険料を、退職月給与でまとめて徴収する。
+ * 通常徴収予定月が退職月より後の月次保険料を、退職月の給与管理表示でまとめて徴収する。
  */
 export function listBulkCollectedPremiumMonths(
   input: ResignBulkPremiumScheduleInput,
@@ -187,12 +175,9 @@ export function listBulkCollectedPremiumMonths(
     return [];
   }
 
-  const lastPayrollMonth = resignLastPayrollMonthYyyyMm(
-    input.resignAt,
-    input.payrollPaymentMonth,
-  );
+  const resignPayMonth = resignPayMonthYyyyMm(input.resignAt);
   const licenceStartYyyyMm = toYyyyMmFromDate(input.licenceStartAt);
-  const lastPremium = lastPremiumMonthYyyyMm(licenseEndAt, input.resignAt);
+  const lastPremium = lastPremiumMonthYyyyMm(licenseEndAt);
 
   const months: string[] = [];
   let cursor = licenceStartYyyyMm;
@@ -202,14 +187,13 @@ export function listBulkCollectedPremiumMonths(
         input.licenceStartAt,
         licenseEndAt,
         cursor,
-        input.resignAt,
       )
     ) {
       const scheduledPayMonth = getScheduledPayMonthYyyyMm(
         cursor,
         input.collectionMonth,
       );
-      if (scheduledPayMonth > lastPayrollMonth) {
+      if (scheduledPayMonth > resignPayMonth) {
         months.push(cursor);
       }
     }
@@ -221,8 +205,9 @@ export function listBulkCollectedPremiumMonths(
 
 /**
  * 退職月給与で一括徴収する保険料を算出する。
- * 通常徴収予定月が最終給与月より後の保険料対象月分を合算する。
- * （例: 7月退職・当月給与・翌月徴収の場合、8月以降に徴収予定だった保険料を7月給与で一括徴収）
+ * 通常徴収予定月が退職月より後の保険料対象月分を合算する。
+ * （例: 7月末退職・翌月給与・翌月徴収の場合、7月表示で6月分給与に加え、
+ *  通常8月徴収予定だった7月分保険料を7月表示で一括徴収。8月表示は7月分給与のみ）
  */
 export function computeResignBulkPremiumData(
   input: ResignBulkPremiumInput,
@@ -243,10 +228,11 @@ export function shouldClearPremiumForMonth(
   yyyyMm: string,
   resignAt?: Date | null | undefined,
 ): boolean {
-  if (!licenseEndAt) {
+  const resolved = resolveLicenseEndAt(licenseEndAt, resignAt);
+  if (!resolved) {
     return false;
   }
-  return yyyyMm > lastPremiumMonthYyyyMm(licenseEndAt, resignAt);
+  return yyyyMm > lastPremiumMonthYyyyMm(resolved);
 }
 
 /** 同月得喪の資格喪失月（表示・検証用） */

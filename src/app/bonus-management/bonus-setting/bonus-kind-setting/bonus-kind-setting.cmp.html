@@ -9,9 +9,11 @@
       </div>
       <div class="import-file-setting">
           <div class="import-file-setting-content">
-              賞与の種別を追加できます。
-          </div>
-  
+              賞与の種別を追加できます。<br>
+              「年4回以上」と設定、または過去1年間の実績が年4回以上の場合は、定時決定時に当該種別の賞与の過去一年間の合計額が12等分され「賞与に係る報酬」として報酬月額に組み込まれます。<br>
+              「賞与に係る報酬」として算入された当該種別の賞与は、支給の際の保険料控除は行われません。<br>
+              対象区分を「労働」と設定すると、当該種別の賞与は社会保険料徴収対象となります。
+            </div>
         @for (item of types; track $index) {
           <div class="type-row">
             <label class="type-label">賞与種別#{{ $index + 1 }}</label>
