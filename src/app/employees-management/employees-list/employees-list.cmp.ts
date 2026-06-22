@@ -28,6 +28,9 @@ import { BulkEditableColumn, BulkEditValue } from './employees-bulk-edit.types';
 import { EmployeesListBulkEditService } from './employees-list-bulk-edit.service';
 import { toEmployeeListRow } from './employee-list-row.mapper';
 import { EmployeesListImportService } from './employees-list-import.service';
+import { EmployeesListExportService } from './employees-list-export.service';
+import { EmployeesSettingDataService } from '../employees-setting/employees-setting-data.service';
+import { downloadCsvFile } from '../../csv/csv-file.util';
 import { ErrorDialogCmp, mapFirebaseError } from '../../error-dialog/error-dialog.cmp';
 import { SuccessDialogCmp } from '../../success-dialog/success-dialog.cmp';
 import { HelpContentCmp } from '../../help-content/help-content.cmp';
@@ -54,6 +57,8 @@ export class EmployeesListCmp {
   private readonly dialog = inject(MatDialog);
   private readonly bulkEditService = inject(EmployeesListBulkEditService);
   private readonly importService = inject(EmployeesListImportService);
+  private readonly exportService = inject(EmployeesListExportService);
+  private readonly employeesSettingDataService = inject(EmployeesSettingDataService);
   private readonly inputRequestService = inject(EmployeeInputRequestService);
 
   readonly employeeListColumnLabels = EMPLOYEE_LIST_COLUMN_LABELS;
@@ -295,6 +300,27 @@ export class EmployeesListCmp {
 
   getColumnLabel(column: EmployeeListColumnKey): string {
     return this.employeeListColumnLabels[column];
+  }
+
+  async exportData(): Promise<void> {
+    const tid = this.currentTenantService.currentTid();
+    if (!tid || this.dataSource.data.length === 0) {
+      return;
+    }
+
+    await this.employeesSettingDataService.loadSettings(tid);
+
+    const filtered = this.dataSource.filteredData;
+    const rows = this.dataSource.sort
+      ? this.dataSource.sortData(filtered, this.dataSource.sort)
+      : filtered;
+
+    const csv = this.exportService.buildCsv(
+      this.visibleColumns(),
+      rows,
+      this.employeesSettingDataService.importHeaders(),
+    );
+    downloadCsvFile('employees.csv', csv);
   }
 
   async onCsvSelected(event: Event): Promise<void> {

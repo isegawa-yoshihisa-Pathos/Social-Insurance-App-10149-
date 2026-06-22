@@ -34,7 +34,13 @@
         </span>
       </mat-icon>
     </button>
-    <button mat-icon-button matTooltip="CSVエクスポート">
+    <button
+      mat-icon-button
+      type="button"
+      matTooltip="CSVエクスポート"
+      [disabled]="loading || bulkSaving || dataSource.data.length === 0"
+      (click)="exportData()"
+    >
       <mat-icon>download</mat-icon>
     </button>
   </div>
