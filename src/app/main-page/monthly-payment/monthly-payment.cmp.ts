@@ -71,6 +71,7 @@ export class MonthlyPaymentCmp {
   readonly loadingRow = signal(false);
   readonly exporting = signal(false);
   readonly changeReasons = signal<string[]>([]);
+  readonly tableRow = signal<PaymentTableRow | null>(null);
   readonly tableDataSource = new MatTableDataSource<PaymentTableRow>([]);
 
   private loadToken = 0;
@@ -78,16 +79,12 @@ export class MonthlyPaymentCmp {
   private settingsLoadedTid: string | null = null;
 
   readonly hasLockedPeriods = computed(() => this.lockedPeriods().length > 0);
-  readonly hasRow = computed(() => this.tableDataSource.data.length > 0);
+  readonly hasRow = computed(() => this.tableRow() !== null);
 
-  readonly netPayment = computed(() => {
-    const row = this.tableDataSource.data[0];
-    if (!row) return null;
-    return row.totalPayment;
-  });
+  readonly netPayment = computed(() => this.tableRow()?.totalPayment ?? null);
 
   readonly netPaymentLabel = computed(() =>
-    this.scope === 'monthly' ? '月次総支払' : '賞与総支払',
+    this.scope === 'monthly' ? '給与総支払' : '賞与総支払',
   );
 
   readonly tableColumns = computed(() =>
@@ -185,7 +182,7 @@ export class MonthlyPaymentCmp {
       ]);
 
       const prefix = this.scope === 'monthly' ? 'monthly' : 'bonus';
-      const row = this.tableDataSource.data[0];
+      const row = this.tableRow();
       if (!row) {
         return;
       }
@@ -210,6 +207,7 @@ export class MonthlyPaymentCmp {
   private resetState(): void {
     this.lockedPeriods.set([]);
     this.selectedYyyyMm.set(null);
+    this.tableRow.set(null);
     this.tableDataSource.data = [];
     this.changeReasons.set([]);
     this.loadingPeriods.set(false);
@@ -228,6 +226,7 @@ export class MonthlyPaymentCmp {
   }
 
   private setTableRow(row: PaymentTableRow | null, changeReasons: string[] = []): void {
+    this.tableRow.set(row);
     this.tableDataSource.data = row ? [row] : [];
     this.changeReasons.set(changeReasons);
   }
