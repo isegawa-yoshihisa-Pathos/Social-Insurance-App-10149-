@@ -19,6 +19,7 @@ export { startPremiumCalculationBatch } from './premium-calculation/batch';
 export { calculatePremiumTask } from './premium-calculation/task';
 export { recalculatePremiumsAfterResign } from './premium-calculation/recalculate-after-resign';
 export { approveMayJuneZuijiReview, rejectMayJuneZuijiReview } from './premium-calculation/may-june-zuiji-review';
+export { resolveBonusRemunerationMismatchReview } from './premium-calculation/bonus-remuneration-mismatch-review';
 export {
   submitRemunerationConsentReview,
   approveRemunerationConsentReview,

@@ -1,8 +1,8 @@
 import * as admin from 'firebase-admin';
 import type { BonusDocument, BonusPeriodDocument } from '../../../shared/bonus-document';
 import type { EmployeeDocument } from '../../../shared/employee-document';
-import type { MonthlyDocument, MonthlyPeriodDocument } from '../../../shared/monthly-document';
-import { lastDayOfYyyyMm } from '../../../shared/social-insurance/monthly/social-insurance-data.util';
+import type { MonthlyDocument, MonthlyPeriodDocument, PayrollData } from '../../../shared/monthly-document';
+import { addMonths, lastDayOfYyyyMm } from '../../../shared/social-insurance/monthly/social-insurance-data.util';
 import { normalizeRoundingBoundaryType } from '../../../shared/social-insurance/monthly/social-insurance-document';
 import { DEFAULT_BONUS_TYPE_DEFINITIONS, type BonusTypeDefinition } from '../../../shared/bonus-document';
 import { hasBonusData } from '../../../shared/bonus-data.util';
@@ -224,6 +224,94 @@ export async function updateMonthlyBonusRelatedRemuneration(
       },
       { merge: true },
     );
+}
+
+const PREVIOUS_MONTHLY_LOOKBACK_LIMIT = 24;
+
+/** 対象月より前で最も新しい報酬レコード（payrollData あり）を返す */
+export async function getPreviousMonthlyDocument(
+  db: admin.firestore.Firestore,
+  tid: string,
+  eid: string,
+  beforeYyyyMm: string,
+): Promise<MonthlyDocument | null> {
+  let ym = addMonths(beforeYyyyMm, -1);
+  for (let i = 0; i < PREVIOUS_MONTHLY_LOOKBACK_LIMIT; i++) {
+    const monthly = await getMonthlyDocument(db, tid, eid, ym);
+    if (monthly?.payrollData) return monthly;
+    ym = addMonths(ym, -1);
+  }
+  return null;
+}
+
+function emptyPayrollData(): PayrollData {
+  return {
+    basicSalary: 0,
+    fringeBenefits: 0,
+    fixedWage: null,
+    variableWage: null,
+    allowances: {},
+    retroactivePay: null,
+  };
+}
+
+export function buildMonthlyDocumentFromPrevious(
+  employee: { uid: string; displayName: string },
+  previous: MonthlyDocument,
+  bonusRelatedRemuneration: number,
+): Record<string, unknown> {
+  const payroll = previous.payrollData;
+  return {
+    uid: employee.uid,
+    displayName: employee.displayName,
+    paymentBaseDays: previous.paymentBaseDays ?? 0,
+    bonusRelatedRemuneration,
+    payrollData: {
+      basicSalary: payroll?.basicSalary ?? 0,
+      fringeBenefits: payroll?.fringeBenefits ?? 0,
+      fixedWage: payroll?.fixedWage ?? null,
+      variableWage: payroll?.variableWage ?? null,
+      allowances: { ...(payroll?.allowances ?? {}) },
+      retroactivePay: payroll?.retroactivePay ?? null,
+    },
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+}
+
+/** 報酬が無いとき、直前の報酬をコピーして bonusRelatedRemuneration のみ上書きして作成 */
+export async function seedMonthlyBonusRelatedRemuneration(
+  db: admin.firestore.Firestore,
+  tid: string,
+  eid: string,
+  yyyyMm: string,
+  bonusRelatedRemuneration: number,
+): Promise<void> {
+  const [employee, previous] = await Promise.all([
+    getEmployee(db, tid, eid),
+    getPreviousMonthlyDocument(db, tid, eid, yyyyMm),
+  ]);
+  const employeeMeta = {
+    uid: employee.uid,
+    displayName: employee.employeePersonalInfo?.displayName ?? '',
+  };
+  const payload = previous
+    ? buildMonthlyDocumentFromPrevious(employeeMeta, previous, bonusRelatedRemuneration)
+    : {
+        ...employeeMeta,
+        paymentBaseDays: 0,
+        bonusRelatedRemuneration,
+        payrollData: emptyPayrollData(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      };
+
+  await db
+    .collection('tenants')
+    .doc(tid)
+    .collection('monthly-records')
+    .doc(yyyyMm)
+    .collection('employees')
+    .doc(eid)
+    .set(payload, { merge: true });
 }
 
 export async function getBonusPeriod(

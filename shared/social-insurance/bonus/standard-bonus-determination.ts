@@ -72,7 +72,7 @@ export function evaluateBonusPremiumEligibility(
 
     if (options?.teijiIncludedBonusTypes?.has(type)) {
       skipReasons.push(
-        `${def.label}は定時決定で12等分され報酬月額に組み込まれたため都度徴収対象外`,
+        `${def.label}は報酬月額に12等分で組み込まれたため都度徴収対象外`,
       );
       continue;
     }

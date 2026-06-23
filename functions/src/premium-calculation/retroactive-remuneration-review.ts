@@ -325,7 +325,7 @@ async function recalcTeijiWithRetroactive(
 ): Promise<RetroactiveRemunerationProposedGrades> {
   const sources = await loadMonthSources(db, tid, eid, calculationMonthKeys);
   if (sources.length === 0) {
-    throw new HttpsError('failed-precondition', '定時決定用の月次データがありません。');
+    throw new HttpsError('failed-precondition', '定時決定用の報酬データがありません。');
   }
 
   const teijiBonus = await computeTeijiBonusRelatedRemuneration(db, tid, eid, teijiYear);

@@ -1,6 +1,7 @@
 import * as admin from 'firebase-admin';
 import {
   calculateBonusRemunerationAddition,
+  buildAdoptedBonusRelatedRemunerationPersistMonthKeys,
   buildBonusRelatedRemunerationApplicationMonthKeys,
   buildTeijiApplicationMonthKeys,
   qualifiesForTeijiBonusRemuneration,
@@ -11,12 +12,13 @@ import {
   listBonusRecordsInRange,
   getMonthlyDocument,
   getMonthlyPeriod,
+  seedMonthlyBonusRelatedRemuneration,
   updateMonthlyBonusRelatedRemuneration,
 } from './repos';
 
 export interface TeijiBonusRelatedRemunerationResult {
   addition: number;
-  /** 12等分の対象賞与が1件以上ある（このときのみ月次へ上書きする） */
+  /** 12等分の対象賞与が1件以上ある（このときのみ報酬へ上書きする） */
   qualifies: boolean;
 }
 
@@ -47,6 +49,36 @@ export async function computeTeijiBonusRelatedRemunerationAddition(
   return result.addition;
 }
 
+/** 判定採択後、当年7月〜effectiveFrom の報酬に「賞与に係る報酬」を保存する（過去の平均算定月は改変しない） */
+export async function saveAdoptedBonusRelatedRemunerationThroughEffectiveFrom(
+  db: admin.firestore.Firestore,
+  tid: string,
+  eid: string,
+  effectiveFrom: string,
+  bonusRelatedRemuneration: number,
+): Promise<void> {
+  const monthKeys = buildAdoptedBonusRelatedRemunerationPersistMonthKeys(effectiveFrom);
+  if (monthKeys.length === 0) return;
+
+  const seedYm = monthKeys[0];
+  await Promise.all(
+    monthKeys.map(async (ym) => {
+      const period = await getMonthlyPeriod(db, tid, ym);
+      if (period?.locked) return;
+
+      const monthly = await getMonthlyDocument(db, tid, eid, ym);
+      if (!monthly) {
+        if (ym === seedYm) {
+          await seedMonthlyBonusRelatedRemuneration(db, tid, eid, ym, bonusRelatedRemuneration);
+        }
+        return;
+      }
+
+      await updateMonthlyBonusRelatedRemuneration(db, tid, eid, ym, bonusRelatedRemuneration);
+    }),
+  );
+}
+
 export async function applyTeijiBonusRelatedRemunerationToMonthlyRecords(
   db: admin.firestore.Firestore,
   tid: string,
@@ -55,6 +87,7 @@ export async function applyTeijiBonusRelatedRemunerationToMonthlyRecords(
   addition: number,
   effectiveFrom?: string,
 ): Promise<void> {
+  const seedYm = effectiveFrom ?? `${teijiYear}-09`;
   const monthKeys = effectiveFrom
     ? buildBonusRelatedRemunerationApplicationMonthKeys(teijiYear, effectiveFrom)
     : buildTeijiApplicationMonthKeys(teijiYear);
@@ -64,7 +97,12 @@ export async function applyTeijiBonusRelatedRemunerationToMonthlyRecords(
       if (period?.locked) return;
 
       const monthly = await getMonthlyDocument(db, tid, eid, ym);
-      if (!monthly) return;
+      if (!monthly) {
+        if (ym === seedYm) {
+          await seedMonthlyBonusRelatedRemuneration(db, tid, eid, ym, addition);
+        }
+        return;
+      }
 
       await updateMonthlyBonusRelatedRemuneration(db, tid, eid, ym, addition);
     }),

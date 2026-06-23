@@ -88,8 +88,8 @@ export class MonthlySettingDataService {
     await this.auditLog.recordUpdate({
       tid,
       category: 'settings.monthly_list',
-      summary: '月次一覧表示設定を更新',
-      target: this.auditLog.settingsTarget('monthlyListSetting', '月次一覧設定'),
+      summary: '報酬一覧表示設定を更新',
+      target: this.auditLog.settingsTarget('monthlyListSetting', '報酬一覧設定'),
       after: { visibleColumns: this.visibleColumns() },
     });
   }

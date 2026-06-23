@@ -1,6 +1,6 @@
 <div class="monthly-detail-container">
   <div class="monthly-detail-header">
-    <button mat-icon-button (click)="redirectToMonthlyManagement()" matTooltip="月次一覧に戻る">
+    <button mat-icon-button (click)="redirectToMonthlyManagement()" matTooltip="報酬一覧に戻る">
       <mat-icon>arrow_back</mat-icon>
     </button>
     @if (!loading()) {
@@ -32,7 +32,7 @@
         [routerLink]="['/monthly-management', 'detail', currentEid, 'list']"
         [active]="isActive === 'list'"
       >
-        <span>月次詳細</span>
+        <span>報酬詳細</span>
       </a>
       <a
         mat-tab-link

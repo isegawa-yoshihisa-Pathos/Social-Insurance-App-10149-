@@ -7,7 +7,7 @@ export const PAYMENT_SUMMARY_COLUMN_KEYS = [
 export type PaymentSummaryColumnKey = (typeof PAYMENT_SUMMARY_COLUMN_KEYS)[number];
 
 export const PAYMENT_SUMMARY_COLUMN_LABELS: Record<PaymentSummaryColumnKey, string> = {
-  monthlyNetPayment: '月次総支払',
+  monthlyNetPayment: '報酬総支払',
   bonusNetPayment: '賞与総支払',
   totalNetPayment: '合計総支払',
 };

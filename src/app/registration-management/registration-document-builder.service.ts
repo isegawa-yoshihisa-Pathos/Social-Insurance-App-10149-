@@ -361,7 +361,7 @@ export class RegistrationDocumentBuilderService {
     const monthKeys = [`${teijiYear}-04`, `${teijiYear}-05`, `${teijiYear}-06`] as const;
     const months = await this.loadMonthlyBreakdowns(tid, eid, monthKeys);
     if (months.length === 0) {
-      throw new Error(`${teijiYear}年4〜6月の月次給与データがありません。`);
+      throw new Error(`${teijiYear}年4〜6月の報酬データがありません。`);
     }
 
     const prior = history.find(
@@ -412,7 +412,7 @@ export class RegistrationDocumentBuilderService {
     ] as const;
     const months = await this.loadMonthlyBreakdowns(tid, eid, monthKeys);
     if (months.length < 3) {
-      throw new Error('随時改定に必要な3ヶ月分の月次給与データがありません。');
+      throw new Error('随時改定に必要な3ヶ月分の報酬データがありません。');
     }
 
     const prior = history.find(

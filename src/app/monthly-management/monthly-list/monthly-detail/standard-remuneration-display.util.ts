@@ -18,6 +18,17 @@ const BASE_SOURCE_LABELS: Record<StandardRemunerationSource, string> = {
   carried: '従前標準報酬月額の継続',
 };
 
+/** 標準報酬月額の手動追加・編集で選択可能な決定区分 */
+export const EDITABLE_STANDARD_REMUNERATION_SOURCE_OPTIONS: ReadonlyArray<{
+  value: StandardRemunerationSource;
+  label: string;
+}> = [
+  { value: 'initial', label: BASE_SOURCE_LABELS.initial },
+  { value: 'teiji', label: BASE_SOURCE_LABELS.teiji },
+  { value: 'zuiji', label: BASE_SOURCE_LABELS.zuiji },
+  { value: 'manual', label: BASE_SOURCE_LABELS.manual },
+];
+
 export function formatYyyyMmLabel(yyyyMm: string): string {
   if (!yyyyMm || yyyyMm.length < 7) return yyyyMm;
   const [year, month] = yyyyMm.split('-');

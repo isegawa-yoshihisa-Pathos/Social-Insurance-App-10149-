@@ -3,6 +3,7 @@ import {
   resolveGradeFromStandardAmount,
 } from '../../../social-insurance/remuneration/grade-table';
 import { StandardRemunerationSavePayload } from '../../../social-insurance/monthly/standard-remuneration-data.service';
+import { StandardRemunerationSource } from '../../../social-insurance/monthly/social-insurance-document';
 
 export function tryResolveManualGrades(
   standardRemunerationHealth: number,
@@ -18,11 +19,12 @@ export function tryResolveManualGrades(
   }
 }
 
-export function buildManualStandardRemunerationPayload(input: {
+export function buildStandardRemunerationPayload(input: {
   effectiveFrom: string;
   standardRemunerationHealth: number;
   standardRemunerationPension: number;
   remuneration?: number | null;
+  source: StandardRemunerationSource;
 }): StandardRemunerationSavePayload {
   const grades = tryResolveManualGrades(
     input.standardRemunerationHealth,
@@ -39,10 +41,19 @@ export function buildManualStandardRemunerationPayload(input: {
       health: input.standardRemunerationHealth,
       pension: input.standardRemunerationPension,
     },
-    source: 'manual',
+    source: input.source,
     effectiveFrom: input.effectiveFrom,
     remuneration: input.remuneration ?? undefined,
   };
+}
+
+export function buildManualStandardRemunerationPayload(input: {
+  effectiveFrom: string;
+  standardRemunerationHealth: number;
+  standardRemunerationPension: number;
+  remuneration?: number | null;
+}): StandardRemunerationSavePayload {
+  return buildStandardRemunerationPayload({ ...input, source: 'manual' });
 }
 
 function resolveManualGrade(

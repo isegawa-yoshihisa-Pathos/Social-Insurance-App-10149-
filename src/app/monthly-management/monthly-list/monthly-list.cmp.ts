@@ -175,7 +175,7 @@ export class MonthlyListCmp implements OnInit {
     if (!tid || !ym || this.locked() || !this.monthlyRecordExists()) return;
 
     const confirmed = confirm(
-      `${ym} の月次データを締切しますか？\n締切後は給与データの変更・インポート・保険料の再計算ができなくなります。`,
+      `${ym} の報酬データを締切しますか？\n締切後は給与データの変更・インポート・保険料の再計算ができなくなります。`,
     );
     if (!confirmed) return;
 
@@ -628,7 +628,7 @@ export class MonthlyListCmp implements OnInit {
         tid,
         action: 'create',
         category: 'premium.calculate',
-        summary: '月次保険料を計算',
+        summary: '報酬に係る保険料を計算',
         target: this.auditLogService.monthlyTarget(ym),
       });
     } finally {
@@ -674,7 +674,7 @@ export class MonthlyListCmp implements OnInit {
     const dialogRef = this.dialog.open(ListAddEmployeesDialogCmp, {
       width: '480px',
       data: {
-        title: '月次データを追加',
+        title: '報酬データを追加',
         employees,
       },
     });
@@ -696,7 +696,7 @@ export class MonthlyListCmp implements OnInit {
           this.dialog.open(SuccessDialogCmp, {
             data: {
               title: '追加完了',
-              message: `${created}件の月次データを追加しました。`,
+              message: `${created}件の報酬データを追加しました。`,
             },
           });
         }

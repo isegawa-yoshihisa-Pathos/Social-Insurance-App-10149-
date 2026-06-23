@@ -211,7 +211,7 @@ export type LeavePremiumExemptionAlert = {
   yyyyMm: string;
 };
 
-/** 月次・賞与それぞれ、当該月に保険料免除が適用される休業種別を返す。 */
+/** 報酬・賞与それぞれ、当該月に保険料免除が適用される休業種別を返す。 */
 export function detectLeavePremiumExemptions(
   yyyyMm: string,
   leaveRecords: readonly LeavePeriodInput[] | undefined,

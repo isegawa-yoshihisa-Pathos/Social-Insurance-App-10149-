@@ -103,7 +103,7 @@ export function monthlyNetPayment(
   return monthlyGrossPay(pay) - monthlyEmployeePremium(premium);
 }
 
-/** 給与管理: 表示月に支給する給与 − その月に徴収する月次保険料（本人負担） */
+/** 給与管理: 表示月に支給する給与 − その月に徴収する報酬に係る保険料（本人負担） */
 export function paymentDisplayMonthlyNetPayment(
   pay: MonthlyPayInput,
   premium: MonthlyPremiumInput,
@@ -144,7 +144,7 @@ export function bonusNetPayment(input: BonusPremiumInput): number {
   return bonusGrossPay(input.bonus) - bonusEmployeePremium(input);
 }
 
-/** 給与管理: 表示月に支給する賞与 − その月に徴収する賞与保険料（本人負担） */
+/** 給与管理: 表示月に支給する賞与 − その月に徴収する賞与に係る保険料（本人負担） */
 export function paymentDisplayBonusNetPayment(input: BonusPremiumInput): number {
   return bonusNetPayment(input);
 }
@@ -157,7 +157,7 @@ export function totalNetPayment(
   return monthlyNetPayment(pay, monthlyPremium) + bonusNetPayment(bonusPremium);
 }
 
-/** 給与管理: 月次総支払 + 賞与総支払 */
+/** 給与管理: 報酬総支払 + 賞与総支払 */
 export function paymentDisplayTotalNetPayment(
   pay: MonthlyPayInput,
   monthlyPremium: MonthlyPremiumInput,

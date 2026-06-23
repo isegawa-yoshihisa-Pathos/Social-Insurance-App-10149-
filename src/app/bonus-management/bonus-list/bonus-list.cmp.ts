@@ -435,6 +435,8 @@ export class BonusListCmp implements OnInit {
       return {
         eid,
         bonus: row?.bonus ?? {},
+        standardBonusHealth: row?.standardBonusHealth ?? null,
+        standardBonusPension: row?.standardBonusPension ?? null,
         healthInsuranceEmployee: row?.healthInsuranceEmployee ?? null,
         healthInsuranceTotal: row?.healthInsuranceTotal ?? null,
         careInsuranceEmployee: row?.careInsuranceEmployee ?? null,
@@ -451,7 +453,7 @@ export class BonusListCmp implements OnInit {
       this.dialog.open(ErrorDialogCmp, {
         data: {
           title: 'エラー',
-          message: 'データの更新に失敗しました。',
+          message: mapFirebaseError(error),
         },
       });
     }
@@ -622,7 +624,7 @@ export class BonusListCmp implements OnInit {
         tid,
         action: 'create',
         category: 'premium.calculate',
-        summary: '賞与保険料を計算',
+        summary: '賞与に係る保険料を計算',
         target: this.auditLogService.monthlyTarget(ym),
       });
     } finally {

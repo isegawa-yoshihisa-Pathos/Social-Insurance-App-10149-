@@ -46,7 +46,7 @@
     } @else {
       @if (changeReasons().length > 0) {
         <div class="change-reasons">
-          <h4>{{ scope === 'monthly' ? '保険料変動の理由' : '賞与保険料変動の理由' }}</h4>
+          <h4>{{ scope === 'monthly' ? '保険料変動の理由' : '賞与に係る保険料変動の理由' }}</h4>
           <ul>
             @for (reason of changeReasons(); track reason) {
               <li>{{ reason }}</li>

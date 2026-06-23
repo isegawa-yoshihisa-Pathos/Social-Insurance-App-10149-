@@ -3,7 +3,7 @@ import type { AgePremiumTransitionKind } from './age-premium-transition';
 export type AgePremiumAlertPremiumKind = 'monthly' | 'bonus';
 
 const PREMIUM_KIND_LABELS: Record<AgePremiumAlertPremiumKind, string> = {
-  monthly: '月次',
+  monthly: '報酬',
   bonus: '賞与',
 };
 

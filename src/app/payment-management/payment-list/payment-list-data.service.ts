@@ -149,7 +149,7 @@ export class PaymentListDataService {
     });
   }
 
-  /** 最終月次データ月の保険料が給与管理に表示される対象月 */
+  /** 最終報酬データ月の保険料が給与管理に表示される対象月 */
   private maxPremiumDisplayMonthForSalaryData(maxSalaryMonth: string): string {
     return getScheduledPayMonthYyyyMm(maxSalaryMonth, this.socialInsuranceCollectionMonth);
   }

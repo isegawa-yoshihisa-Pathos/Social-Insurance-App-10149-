@@ -113,6 +113,7 @@ export class AppHeaderCmp {
 
   async readNotification(notification: AppNotification): Promise<void> {
     await this.notificationService.markAsRead(notification);
+    this.routesService.redirectToNotifications();
   }
 
   notificationMessage(notification: AppNotification): string {

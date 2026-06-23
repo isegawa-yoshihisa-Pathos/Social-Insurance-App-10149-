@@ -137,7 +137,27 @@ export function buildTeijiApplicationMonthKeys(teijiYear: number): string[] {
 }
 
 /**
- * bonusRelatedRemuneration を月次へ反映する対象月。
+ * 判定採択後に報酬へ保存する月キー: 適用年の7月〜effectiveFrom（含む）。
+ * 定時決定（9月適用）なら 7・8・9月。7月適用随時改定なら 7月のみ。
+ */
+export function buildAdoptedBonusRelatedRemunerationPersistMonthKeys(
+  effectiveFrom: string,
+): string[] {
+  const year = effectiveFrom.slice(0, 4);
+  const startYm = `${year}-07`;
+  if (startYm > effectiveFrom) return [];
+
+  const keys: string[] = [];
+  let ym = startYm;
+  while (ym <= effectiveFrom) {
+    keys.push(ym);
+    ym = addMonths(ym, 1);
+  }
+  return keys;
+}
+
+/**
+ * bonusRelatedRemuneration を報酬へ反映する対象月。
  * 定時決定は9月〜翌8月。7・8月適用の随時改定はそれぞれ7月・8月から翌8月まで。
  */
 export function buildBonusRelatedRemunerationApplicationMonthKeys(
@@ -162,6 +182,73 @@ export function parseMonthFromYyyyMm(yyyyMm: string): number {
 export function isTeijiReplacementZuijiEffectiveMonth(effectiveFrom: string): boolean {
   const month = parseMonthFromYyyyMm(effectiveFrom);
   return month === 7 || month === 8 || month === 9;
+}
+
+export interface BonusInclusionDeterminationInput {
+  source: string;
+  effectiveFrom: string;
+  bonusRemunerationMonthlyAddition?: number;
+}
+
+export interface BonusInclusionDetermination {
+  source: 'teiji' | 'zuiji';
+  effectiveFrom: string;
+  bonusRemunerationMonthlyAddition: number;
+}
+
+/** effectiveFrom（yyyy-MM または yyyy-MM-dd）から yyyy-MM を得る */
+export function effectiveFromToYyyyMm(effectiveFrom: string): string {
+  return effectiveFrom.slice(0, 7);
+}
+
+/**
+ * 賞与を12等分して報酬月額へ組み込む判定（定時決定 or 7・8・9月適用随時改定）か。
+ * bonusRemunerationMonthlyAddition が採用されていることが前提。
+ */
+export function isBonusInclusionDetermination(
+  doc: BonusInclusionDeterminationInput,
+): boolean {
+  if ((doc.bonusRemunerationMonthlyAddition ?? 0) <= 0) return false;
+  if (doc.source === 'teiji') return true;
+  return doc.source === 'zuiji' && isTeijiReplacementZuijiEffectiveMonth(doc.effectiveFrom);
+}
+
+/**
+ * 賞与支給月時点で有効な12等分採用判定を返す。
+ * effectiveFrom の降順で、適用開始月が賞与支給月以前のものを採用する。
+ */
+export function findActiveBonusInclusionDetermination(
+  history: readonly { doc: BonusInclusionDeterminationInput }[],
+  bonusYyyyMm: string,
+  isConfirmedSource: (source: string) => boolean,
+): BonusInclusionDetermination | null {
+  const active = history
+    .filter(
+      (item) =>
+        isConfirmedSource(item.doc.source) &&
+        isBonusInclusionDetermination(item.doc) &&
+        effectiveFromToYyyyMm(item.doc.effectiveFrom) <= bonusYyyyMm,
+    )
+    .sort((a, b) => b.doc.effectiveFrom.localeCompare(a.doc.effectiveFrom))[0];
+
+  if (!active) return null;
+
+  return {
+    source: active.doc.source as 'teiji' | 'zuiji',
+    effectiveFrom: active.doc.effectiveFrom,
+    bonusRemunerationMonthlyAddition: active.doc.bonusRemunerationMonthlyAddition!,
+  };
+}
+
+/** 月次の bonusRelatedRemuneration を優先し、無ければ標準報酬の採用値を使う */
+export function resolveAdoptedBonusRelatedRemuneration(
+  monthlyBonusRelatedRemuneration: number | undefined | null,
+  determination: BonusInclusionDetermination | null,
+): number {
+  if ((monthlyBonusRelatedRemuneration ?? 0) > 0) {
+    return monthlyBonusRelatedRemuneration!;
+  }
+  return determination?.bonusRemunerationMonthlyAddition ?? 0;
 }
 
 /** 7・8・9月適用の随時改定に対応する定時決定の対象年 */

@@ -6,6 +6,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { YEAR_OPTIONS, MONTH_OPTIONS } from '../../../../datePicker';
+import { StandardRemunerationSource } from '../../../../social-insurance/monthly/social-insurance-document';
+import { EDITABLE_STANDARD_REMUNERATION_SOURCE_OPTIONS } from '../standard-remuneration-display.util';
 import {
   parseYyyyMm,
   toYyyyMm,
@@ -16,6 +18,7 @@ export interface StandardRemunerationEditDialogData {
   mode: 'add' | 'edit';
   initial?: {
     effectiveFrom: string;
+    source: StandardRemunerationSource;
     standardRemunerationHealth: number;
     standardRemunerationPension: number;
     remuneration: number | null;
@@ -24,6 +27,7 @@ export interface StandardRemunerationEditDialogData {
 
 export interface StandardRemunerationEditDialogResult {
   effectiveFrom: string;
+  source: StandardRemunerationSource;
   standardRemunerationHealth: number;
   standardRemunerationPension: number;
   remuneration: number | null;
@@ -49,9 +53,11 @@ export class StandardRemunerationEditDialogCmp {
 
   readonly yearOptions = YEAR_OPTIONS;
   readonly monthOptions = MONTH_OPTIONS;
+  readonly sourceOptions = EDITABLE_STANDARD_REMUNERATION_SOURCE_OPTIONS;
 
   readonly selectedYear = signal(this.parseInitialYear());
   readonly selectedMonth = signal(this.parseInitialMonth());
+  selectedSource: StandardRemunerationSource;
   standardRemunerationHealth: number | null;
   standardRemunerationPension: number | null;
   remuneration: number | null;
@@ -67,6 +73,7 @@ export class StandardRemunerationEditDialogCmp {
   });
 
   constructor() {
+    this.selectedSource = this.resolveInitialSource();
     this.standardRemunerationHealth = this.data.initial?.standardRemunerationHealth ?? null;
     this.standardRemunerationPension = this.data.initial?.standardRemunerationPension ?? null;
     this.remuneration = this.data.initial?.remuneration ?? null;
@@ -95,10 +102,22 @@ export class StandardRemunerationEditDialogCmp {
     const effectiveFrom = toYyyyMm(this.selectedYear(), this.selectedMonth());
     this.dialogRef.close({
       effectiveFrom,
+      source: this.selectedSource,
       standardRemunerationHealth: health,
       standardRemunerationPension: pension,
       remuneration: this.remuneration,
     } satisfies StandardRemunerationEditDialogResult);
+  }
+
+  private resolveInitialSource(): StandardRemunerationSource {
+    const initial = this.data.initial?.source;
+    if (
+      initial &&
+      this.sourceOptions.some((option) => option.value === initial)
+    ) {
+      return initial;
+    }
+    return 'manual';
   }
 
   private parseInitialYear(): number {

@@ -203,7 +203,7 @@ function premiumTotal(premium?: PremiumData): number | null {
 export function buildMonthlyPremiumChangeReasons(params: {
   /** 給与明細の表示月。指定時は前回の支払明細との比較として扱う */
   displayYyyyMm?: string;
-  /** 表示されている保険料の算定月（月次管理） */
+  /** 表示されている保険料の算定月（報酬管理） */
   premiumMonthYyyyMm: string;
   /** 前回明細で参照した保険料の算定月 */
   previousPremiumMonthYyyyMm?: string;
@@ -337,18 +337,18 @@ export function buildBonusPremiumChangeReasons(params: {
 
   if (!current) {
     if (reasons.length === 0) {
-      reasons.push('賞与保険料の算定情報がありません。');
+      reasons.push('賞与に係る保険料の算定情報がありません。');
     }
     return reasons;
   }
 
   if (current.skipReason) {
-    reasons.push(`賞与保険料は徴収対象外です（${current.skipReason}）。`);
+    reasons.push(`賞与に係る保険料は徴収対象外です（${current.skipReason}）。`);
     return reasons;
   }
 
   if (!previous) {
-    reasons.push('通常の賞与保険料算定です。');
+    reasons.push('通常の賞与に係る保険料算定です。');
     if (current.source) {
       reasons.push(`標準賞与額の根拠: ${STANDARD_BONUS_SOURCE_LABELS[current.source] ?? current.source}`);
     }
@@ -384,12 +384,12 @@ export function buildBonusPremiumChangeReasons(params: {
   const currentTotal = premiumTotal(currentPremium);
   if (prevTotal != null && currentTotal != null && prevTotal !== currentTotal) {
     reasons.push(
-      `本人負担の賞与保険料合計が ${prevTotal.toLocaleString()}円 から ${currentTotal.toLocaleString()}円 に変動しました。`,
+      `本人負担の賞与に係る保険料合計が ${prevTotal.toLocaleString()}円 から ${currentTotal.toLocaleString()}円 に変動しました。`,
     );
   }
 
   if (reasons.length === 0) {
-    reasons.push('前回と比べて賞与保険料算定に大きな変更はありません。');
+    reasons.push('前回と比べて賞与に係る保険料算定に大きな変更はありません。');
   }
 
   return reasons;

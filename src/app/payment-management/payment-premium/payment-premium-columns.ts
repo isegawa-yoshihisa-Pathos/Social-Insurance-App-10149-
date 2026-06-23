@@ -46,12 +46,12 @@ export type BulkEditableStandardRemunerationColumnKey =
 const MONTHLY_PREMIUM_COLUMN_LABELS: Record<PremiumMonthlyPaymentListColumnKey, string> = {
   standardRemunerationHealth: '標準報酬月額（健保）',
   standardRemunerationPension: '標準報酬月額（厚年）',
-  healthInsuranceEmployee: '健保（本人・月次）',
-  healthInsuranceTotal: '健保（合計・月次）',
-  careInsuranceEmployee: '介護（本人・月次）',
-  careInsuranceTotal: '介護（合計・月次）',
-  pensionInsuranceEmployee: '厚年（本人・月次）',
-  pensionInsuranceTotal: '厚年（合計・月次）',
+  healthInsuranceEmployee: '健保（本人・報酬）',
+  healthInsuranceTotal: '健保（合計・報酬）',
+  careInsuranceEmployee: '介護（本人・報酬）',
+  careInsuranceTotal: '介護（合計・報酬）',
+  pensionInsuranceEmployee: '厚年（本人・報酬）',
+  pensionInsuranceTotal: '厚年（合計・報酬）',
 };
 
 const BONUS_PREMIUM_COLUMN_LABELS: Record<PremiumBonusPaymentListColumnKey, string> = {

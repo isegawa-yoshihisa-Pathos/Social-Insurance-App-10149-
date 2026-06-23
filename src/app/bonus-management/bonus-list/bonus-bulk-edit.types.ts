@@ -23,6 +23,8 @@ export type BulkEditValue = number | null;
 export interface BulkEditTarget {
   eid: string;
   bonus: BonusAmountMap;
+  standardBonusHealth: number | null;
+  standardBonusPension: number | null;
   healthInsuranceEmployee: number | null;
   healthInsuranceTotal: number | null;
   careInsuranceEmployee: number | null;

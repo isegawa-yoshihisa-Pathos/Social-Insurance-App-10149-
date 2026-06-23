@@ -67,7 +67,7 @@ export interface ResolvePaymentDisplayPremiumInput {
 }
 
 /**
- * 給与管理の表示月に対する月次保険料を解決する。
+ * 給与管理の表示月に対する報酬に係る保険料を解決する。
  * 退職時一括徴収設定では、通常表示月から保険料を除き、退職月表示に合算する。
  */
 export function resolvePaymentDisplayPremium(

@@ -2,7 +2,7 @@ import type { FirestoreTimestamp } from './firestore-types';
 import { StandardRemunerationSource } from "./social-insurance/monthly/social-insurance-document";
 import { AllowanceData } from "./payment-document";
 
-/** tenants/{tid}/monthly-records/{yyyyMm} の月次期間メタ */
+/** tenants/{tid}/monthly-records/{yyyyMm} の報酬期間メタ */
 export interface MonthlyPeriodDocument {
     yyyyMm: string;
     locked: boolean;

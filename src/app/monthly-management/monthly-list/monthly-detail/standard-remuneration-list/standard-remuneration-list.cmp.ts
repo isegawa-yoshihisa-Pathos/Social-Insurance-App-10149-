@@ -21,7 +21,8 @@ import {
   inferCalculationYyyyMm,
   resolveDeterminationLabel,
 } from '../standard-remuneration-display.util';
-import { buildManualStandardRemunerationPayload } from '../standard-remuneration-manual.util';
+import { buildStandardRemunerationPayload } from '../standard-remuneration-manual.util';
+import { StandardRemunerationSource } from '../../../../social-insurance/monthly/social-insurance-document';
 import {
   StandardRemunerationEditDialogCmp,
   StandardRemunerationEditDialogResult,
@@ -30,6 +31,7 @@ import {
 export interface StandardRemunerationHistoryRow {
   recordId: string;
   effectiveFrom: string;
+  source: StandardRemunerationSource;
   calculationYyyyMm: string;
   determinationLabel: string;
   healthGrade: number;
@@ -180,6 +182,7 @@ export class StandardRemunerationListCmp {
         initial: row
           ? {
               effectiveFrom: row.effectiveFrom,
+              source: row.source,
               standardRemunerationHealth: row.standardRemunerationHealth,
               standardRemunerationPension: row.standardRemunerationPension,
               remuneration: row.remuneration,
@@ -195,7 +198,7 @@ export class StandardRemunerationListCmp {
 
     this.saving = true;
     try {
-      const payload = buildManualStandardRemunerationPayload(result);
+      const payload = buildStandardRemunerationPayload(result);
       if (mode === 'edit' && row && row.recordId !== result.effectiveFrom) {
         await this.standardRemunerationDataService.delete(tid, eid, row.recordId);
       }
@@ -242,6 +245,7 @@ export class StandardRemunerationListCmp {
         return {
           recordId: item.yyyyMm,
           effectiveFrom,
+          source: doc.source,
           calculationYyyyMm,
           determinationLabel: resolveDeterminationLabel(
             effectiveFrom,

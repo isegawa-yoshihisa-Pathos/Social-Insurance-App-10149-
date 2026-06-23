@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Firestore, collection, doc, getDoc, getDocs, serverTimestamp, setDoc } from '@angular/fire/firestore';
+import { omitUndefinedFields } from '../../../../shared/omit-undefined-fields';
 import { StandardBonusDocument } from './social-insurance-document';
 import { AuditLogService } from '../../audit-log/audit-log.service';
 
@@ -63,13 +64,17 @@ export class StandardBonusDataService {
   ): Promise<void> {
     const ref = this.docRef(tid, eid, yyyyMm);
     const existing = await getDoc(ref);
-    await setDoc(ref, {
-      ...payload,
-      createdAt: existing.exists()
-        ? (existing.data() as StandardBonusDocument).createdAt
-        : serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
+    await setDoc(
+      ref,
+      omitUndefinedFields({
+        ...payload,
+        createdAt: existing.exists()
+          ? (existing.data() as StandardBonusDocument).createdAt
+          : serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }),
+      { merge: true },
+    );
 
     await this.auditLog.record({
       tid,

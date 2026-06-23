@@ -16,7 +16,9 @@ import {
 } from '../../../shared/social-insurance/bonus/social-insurance-data.util';
 import { toFormDate } from '../../../shared/date-utils';
 import {
+  findActiveBonusInclusionDetermination,
   getTeijiEligibleBonusTypes,
+  resolveAdoptedBonusRelatedRemuneration,
   teijiBonusLookbackRange,
   teijiYearFromEffectiveFrom,
 } from '../../../shared/social-insurance/remuneration/bonus-remuneration-addition';
@@ -24,17 +26,19 @@ import {
   assertBonusPeriodNotLocked,
   getBonusDocument,
   getEmployee,
-  getLatestStandardRemuneration,
   getMonthlyDocument,
   getStandardBonus,
+  isConfirmedStandardRemunerationSource,
   listBonusRecordsInRange,
   listStandardBonus,
+  listStandardRemuneration,
   resolveInsuranceRateForBonus,
   saveStandardBonus,
   getBonusTypeDefinitions,
   omitUndefinedFields,
   getTenant,
   type StandardBonusDocument,
+  type StandardRemunerationSource,
   type StandardBonusSavePayload,
 } from './repos';
 import {
@@ -232,17 +236,25 @@ async function resolveTeijiIncludedBonusTypes(
   yyyyMm: string,
   bonusDefs: Awaited<ReturnType<typeof getBonusTypeDefinitions>>,
 ): Promise<ReadonlySet<string>> {
-  const monthly = await getMonthlyDocument(db, tid, eid, yyyyMm);
-  if ((monthly?.bonusRelatedRemuneration ?? 0) <= 0) {
+  const [monthly, remunerationHistory] = await Promise.all([
+    getMonthlyDocument(db, tid, eid, yyyyMm),
+    listStandardRemuneration(db, tid, eid),
+  ]);
+
+  const activeDetermination = findActiveBonusInclusionDetermination(
+    remunerationHistory,
+    yyyyMm,
+    (source) => isConfirmedStandardRemunerationSource(source as StandardRemunerationSource),
+  );
+  const adoptedBonusRelatedRemuneration = resolveAdoptedBonusRelatedRemuneration(
+    monthly?.bonusRelatedRemuneration,
+    activeDetermination,
+  );
+  if (adoptedBonusRelatedRemuneration <= 0 || !activeDetermination) {
     return new Set();
   }
 
-  const latestRemuneration = await getLatestStandardRemuneration(db, tid, eid, yyyyMm);
-  if (!latestRemuneration || latestRemuneration.source !== 'teiji') {
-    return new Set();
-  }
-
-  const teijiYear = teijiYearFromEffectiveFrom(latestRemuneration.effectiveFrom);
+  const teijiYear = teijiYearFromEffectiveFrom(activeDetermination.effectiveFrom);
   const { from, to } = teijiBonusLookbackRange(teijiYear);
   const lookbackRecords = await listBonusRecordsInRange(db, tid, eid, from, to);
   return getTeijiEligibleBonusTypes(lookbackRecords, bonusDefs);

@@ -9,7 +9,7 @@ export interface PaymentStatementDeliveryDocument {
   deliveredByUid: string;
 }
 
-/** 月次データ参照権限（salaryMonth / premiumMonth） */
+/** 報酬データ参照権限（salaryMonth / premiumMonth） */
 export interface DeliveredSourceMonthDocument {
   displayYyyyMm: string;
   deliveredAt: FirestoreTimestamp;

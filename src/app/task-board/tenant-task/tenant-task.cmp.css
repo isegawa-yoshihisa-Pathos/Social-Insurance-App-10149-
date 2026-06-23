@@ -1,3 +1,19 @@
 :host {
   display: block;
 }
+
+.task-board-container {
+  padding: 16px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+  margin-bottom: 10px;
+}
+
+.employees-header-label {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  border-left: 4px solid #673ab7;
+  padding-left: 8px;
+}

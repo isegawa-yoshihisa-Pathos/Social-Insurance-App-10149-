@@ -18,8 +18,10 @@ import { StandardRemunerationDataService } from '../../social-insurance/monthly/
 import { addMonths } from '../../social-insurance/monthly/social-insurance-data.util';
 import { AuditLogService } from '../../audit-log/audit-log.service';
 
-export interface MonthlyDetailRow extends MonthlyListRow {
-  yyyyMm: string;
+/** 前月データ探索の上限（functions の getPreviousMonthlyDocument と同じ） */
+const PRIOR_RECORD_LOOKBACK_LIMIT = 24;
+
+export interface MonthlyDetailRow extends MonthlyListRow {  yyyyMm: string;
 }
 
 export interface EmployeeMonthlyHistoryResult {
@@ -73,7 +75,7 @@ export class MonthlyListDataService {
     await this.auditLog.recordUpdate({
       tid,
       category: 'monthly.lock',
-      summary: '月次給与を締切',
+      summary: '報酬を締切',
       target: this.auditLog.monthlyTarget(yyyyMm),
       after: { locked: true, yyyyMm },
     });
@@ -262,7 +264,6 @@ export class MonthlyListDataService {
       return 0;
     }
 
-    const previousYyyyMm = addMonths(yyyyMm, -1);
     const lookup = await this.loadEmployeeLookup(tid);
     const batch = writeBatch(this.firestore);
     let created = 0;
@@ -287,22 +288,12 @@ export class MonthlyListDataService {
         continue;
       }
 
-      const previousSnap = await getDoc(
-        doc(
-          this.firestore,
-          'tenants',
-          tid,
-          'monthly-records',
-          previousYyyyMm,
-          'employees',
-          eid,
-        ),
-      );
+      const priorMonthly = await this.findPreviousMonthlyDocument(tid, eid, yyyyMm);
 
       batch.set(
         employeeRef,
-        previousSnap.exists()
-          ? this.buildMonthlyFromPrevious(employee, previousSnap.data() as MonthlyDocument)
+        priorMonthly
+          ? this.buildMonthlyFromPrevious(employee, priorMonthly)
           : this.buildEmptyMonthlyDocument(employee),
       );
       created++;
@@ -318,7 +309,7 @@ export class MonthlyListDataService {
     await this.auditLog.recordCreate({
       tid,
       category: 'monthly.add_employees',
-      summary: '月次データに従業員を追加',
+      summary: '報酬データに従業員を追加',
       target: this.auditLog.monthlyTarget(yyyyMm),
       metadata: { created, eids: eids.slice(0, created) },
     });
@@ -326,8 +317,29 @@ export class MonthlyListDataService {
     return created;
   }
 
-  private buildMonthlyFromPrevious(
-    employee: EmployeeLookupEntry,
+  /** 対象月より前で、payrollData がある最も新しい報酬を返す */
+  private async findPreviousMonthlyDocument(
+    tid: string,
+    eid: string,
+    beforeYyyyMm: string,
+  ): Promise<MonthlyDocument | null> {
+    let ym = addMonths(beforeYyyyMm, -1);
+    for (let i = 0; i < PRIOR_RECORD_LOOKBACK_LIMIT; i++) {
+      const snap = await getDoc(
+        doc(this.firestore, 'tenants', tid, 'monthly-records', ym, 'employees', eid),
+      );
+      if (snap.exists()) {
+        const data = snap.data() as MonthlyDocument;
+        if (data.payrollData) {
+          return data;
+        }
+      }
+      ym = addMonths(ym, -1);
+    }
+    return null;
+  }
+
+  private buildMonthlyFromPrevious(    employee: EmployeeLookupEntry,
     previous: MonthlyDocument,
   ): {
     uid: string;

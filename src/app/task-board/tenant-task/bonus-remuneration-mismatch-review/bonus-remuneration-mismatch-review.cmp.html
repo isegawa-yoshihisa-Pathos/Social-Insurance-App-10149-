@@ -1,0 +1,81 @@
+<div class="accept-application">
+  <h3>賞与に係る報酬の入力値確認</h3>
+
+  @if (loading) {
+    <p class="loading-message">読み込み中...</p>
+  } @else if (reviews.length === 0) {
+    <p class="empty-message">確認タスクはありません。</p>
+  } @else {
+    <div class="review-list">
+      @for (review of reviews; track review.id) {
+        <div class="review-item" [class.is-completed]="!isPending(review)">
+          <div class="review-main">
+            <div class="review-name">{{ review.employeeDisplayName || '未登録' }}</div>
+            <div class="review-status">{{ statusLabel(review.status) }}</div>
+            <div class="review-detail">
+              {{ review.screeningYyyyMm }} 計算時 / 定時決定対象年 {{ review.teijiYear }}年
+            </div>
+            <div class="review-note">
+              実績算定値（{{ formatAmount(review.computedBonusRelatedRemuneration) }} 円）と
+              {{ review.screeningYyyyMm }} 時点の入力値（{{ formatAmount(review.storedBonusRelatedRemuneration) }} 円）が異なります。
+              判定に用いる値を選び、{{ review.screeningYyyyMm }} の計算を再実行してください。
+            </div>
+            @if (review.status === 'resolved_custom' && review.customBonusRelatedRemuneration != null) {
+              <div class="review-detail">
+                採択した任意の値: {{ formatAmount(review.customBonusRelatedRemuneration) }} 円
+              </div>
+            }
+          </div>
+          <div class="review-actions">
+            @if (isPending(review)) {
+              <button
+                mat-button
+                color="primary"
+                [disabled]="busyId === review.id"
+                (click)="resolve(review, 'computed', true)"
+              >
+                実績値で再計算
+              </button>
+              <button
+                mat-button
+                [disabled]="busyId === review.id"
+                (click)="resolve(review, 'stored', true)"
+              >
+                6月時点の入力値で再計算
+              </button>
+              <div class="custom-amount-row">
+                <mat-form-field appearance="outline" class="custom-amount-field">
+                  <mat-label>任意の値（円）</mat-label>
+                  <input
+                    matInput
+                    type="number"
+                    min="0"
+                    step="1"
+                    [ngModel]="customAmountFor(review.id)"
+                    (ngModelChange)="setCustomAmount(review.id, $event)"
+                    [disabled]="busyId === review.id"
+                  />
+                </mat-form-field>
+                <button
+                  mat-button
+                  [disabled]="busyId === review.id"
+                  (click)="resolveCustom(review)"
+                >
+                  任意の値で再計算
+                </button>
+              </div>
+            }
+            <button
+              mat-button
+              color="warn"
+              [disabled]="busyId === review.id"
+              (click)="deleteReview(review)"
+            >
+              削除
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

@@ -253,7 +253,7 @@ export class MonthlyListImportService {
     await this.auditLog.recordCreate({
       tid,
       category: 'monthly.import',
-      summary: '月次給与CSVをインポート',
+      summary: '報酬CSVをインポート',
       target: this.auditLog.monthlyTarget(targetYyyyMm),
       metadata: { ...result, fileName: file.name },
     });

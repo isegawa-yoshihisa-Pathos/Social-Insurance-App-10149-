@@ -83,7 +83,7 @@ export class RegistrationEligibilityService {
     const monthKeys = [`${teijiYear}-04`, `${teijiYear}-05`, `${teijiYear}-06`] as const;
     const monthCount = await this.countMonthlyRecords(tid, eid, monthKeys);
     if (monthCount === 0) {
-      return ineligible(`${teijiYear}年4〜6月の月次給与データがありません`);
+      return ineligible(`${teijiYear}年4〜6月の報酬データがありません`);
     }
 
     return eligible(
@@ -109,7 +109,7 @@ export class RegistrationEligibilityService {
     ] as const;
     const monthCount = await this.countMonthlyRecords(tid, eid, monthKeys);
     if (monthCount < 3) {
-      return ineligible(`改定前3ヶ月（${changeMonthYyyyMm}〜）の月次給与が${monthCount}ヶ月分のみ`);
+      return ineligible(`改定前3ヶ月（${changeMonthYyyyMm}〜）の報酬が${monthCount}ヶ月分のみ`);
     }
 
     const sourceLabel = zuiji.doc.source === 'provisional_zuiji' ? '暫定随時改定' : '随時改定';

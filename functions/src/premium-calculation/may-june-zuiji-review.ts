@@ -14,8 +14,13 @@ import {
 } from '../../../shared/social-insurance/remuneration/bonus-remuneration-addition';
 import {
   computeTeijiBonusRelatedRemuneration,
-  applyTeijiBonusRelatedRemunerationToMonthlyRecords,
+  saveAdoptedBonusRelatedRemunerationThroughEffectiveFrom,
 } from './teiji-bonus-remuneration';
+import {
+  resolveTeijiPeriodBonusRelatedRemuneration,
+  type TeijiPeriodBonusResolution,
+} from './bonus-remuneration-mismatch-review';
+import { resolveBonusRelatedRemunerationForAverage } from '../../../shared/social-insurance/remuneration/remuneration-month-input';
 import { parseYyyyMm } from '../../../shared/social-insurance/monthly/social-insurance-data.util';
 import type { MonthlyRemunerationSource } from '../../../shared/social-insurance/remuneration/remuneration-month-input';
 import { computeFixedWageFromPayroll } from '../../../shared/social-insurance/remuneration/fixed-wage';
@@ -298,16 +303,44 @@ export async function tryFinalizeApprovedMayJuneZuiji(
 
     const effectiveFrom = schedule.effectiveYyyyMm;
     let zuijiSources = loaded.zuijiSources;
-    let teijiPeriodBonusAddition: number | undefined;
-    let teijiPeriodBonusQualifies = false;
+    let teijiPeriodBonusResolution: TeijiPeriodBonusResolution | null = null;
+    let teijiYearForBonus: number | null = null;
+    let teijiBonusForPeriod: Awaited<ReturnType<typeof computeTeijiBonusRelatedRemuneration>> | null =
+      null;
+    let storedBonusForTeijiPeriod = 0;
 
     if (isTeijiReplacementZuijiEffectiveMonth(effectiveFrom)) {
-      const teijiYear = teijiYearFromEffectiveMonth(effectiveFrom);
-      const teijiBonus = await computeTeijiBonusRelatedRemuneration(db, tid, eid, teijiYear);
-      teijiPeriodBonusQualifies = teijiBonus.qualifies;
-      if (teijiBonus.qualifies) {
-        teijiPeriodBonusAddition = teijiBonus.addition;
-        zuijiSources = withBonusRelatedRemuneration(zuijiSources, teijiBonus.addition);
+      teijiYearForBonus = teijiYearFromEffectiveMonth(effectiveFrom);
+      teijiBonusForPeriod = await computeTeijiBonusRelatedRemuneration(
+        db,
+        tid,
+        eid,
+        teijiYearForBonus,
+      );
+      storedBonusForTeijiPeriod = resolveBonusRelatedRemunerationForAverage(zuijiSources);
+      const determinationMonthKeys = zuijiSources.map((m) => m.yyyyMm);
+      teijiPeriodBonusResolution = await resolveTeijiPeriodBonusRelatedRemuneration(
+        db,
+        tid,
+        eid,
+        teijiYearForBonus,
+        teijiBonusForPeriod,
+        storedBonusForTeijiPeriod,
+        {
+          applicationEffectiveFrom: effectiveFrom,
+          screeningYyyyMm: yyyyMm,
+          employeeDisplayName: review.employeeDisplayName || '対象従業員',
+          determinationMonthKeys,
+        },
+      );
+      if (teijiPeriodBonusResolution.blocked) {
+        continue;
+      }
+      if (teijiPeriodBonusResolution.valueForCalculation > 0) {
+        zuijiSources = withBonusRelatedRemuneration(
+          zuijiSources,
+          teijiPeriodBonusResolution.valueForCalculation,
+        );
       }
     }
 
@@ -322,22 +355,21 @@ export async function tryFinalizeApprovedMayJuneZuiji(
     const payload = gradesToZuijiPayload(
       effectiveFrom,
       outcome.grades,
-      teijiPeriodBonusQualifies && teijiPeriodBonusAddition != null && teijiPeriodBonusAddition > 0
-        ? teijiPeriodBonusAddition
+      teijiPeriodBonusResolution != null && teijiPeriodBonusResolution.valueToApply >= 0
+        ? teijiPeriodBonusResolution.valueToApply
         : undefined,
     );
     await saveStandardRemuneration(db, tid, eid, schedule.effectiveYyyyMm, payload);
-
-    if (teijiPeriodBonusQualifies && teijiPeriodBonusAddition != null) {
-      await applyTeijiBonusRelatedRemunerationToMonthlyRecords(
+    if (payload.bonusRemunerationMonthlyAddition !== undefined) {
+      await saveAdoptedBonusRelatedRemunerationThroughEffectiveFrom(
         db,
         tid,
         eid,
-        teijiYearFromEffectiveMonth(effectiveFrom),
-        teijiPeriodBonusAddition,
-        effectiveFrom,
+        schedule.effectiveYyyyMm,
+        payload.bonusRemunerationMonthlyAddition,
       );
     }
+
     return {
       payload,
       raiseMonthYyyyMm,

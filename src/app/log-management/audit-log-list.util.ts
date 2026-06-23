@@ -128,7 +128,7 @@ export function getAuditLogSortValue(
 export const AUDIT_LOG_TARGET_KIND_LABELS: Record<string, string> = {
   employee: '従業員',
   tenant: '事業所',
-  monthly: '月次給与',
+  monthly: '報酬',
   bonus: '賞与',
   payment: '給与',
   application: '申請',

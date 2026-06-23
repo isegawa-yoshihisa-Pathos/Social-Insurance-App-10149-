@@ -1,7 +1,16 @@
 <h2 mat-dialog-title>{{ title }}</h2>
 
 <mat-dialog-content class="dialog-content">
-  <p class="dialog-note">手動設定として保存されます。等級は標準報酬月額から自動判定します。</p>
+  <p class="dialog-note">等級は標準報酬月額から自動判定します。</p>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>決定区分</mat-label>
+    <mat-select [(ngModel)]="selectedSource">
+      @for (option of sourceOptions; track option.value) {
+        <mat-option [value]="option.value">{{ option.label }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
 
   <div class="field-row">
     <mat-form-field appearance="outline" class="date-picker">

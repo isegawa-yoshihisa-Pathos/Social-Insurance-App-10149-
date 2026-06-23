@@ -20,7 +20,7 @@ export function toMonthlyPayInput(row: PaymentListRow) {
   };
 }
 
-/** 表示月に徴収する月次保険料（premiumMonth の premiumData・本人負担） */
+/** 表示月に徴収する報酬に係る保険料（premiumMonth の premiumData・本人負担） */
 export function toMonthlyPremiumInput(row: PaymentListRow) {
   return {
     healthInsuranceEmployee: row.healthInsuranceEmployee,
@@ -32,7 +32,7 @@ export function toMonthlyPremiumInput(row: PaymentListRow) {
   };
 }
 
-/** 表示月に支給する賞与と、その月に徴収する賞与保険料 */
+/** 表示月に支給する賞与と、その月に徴収する賞与に係る保険料 */
 export function toBonusPremiumInput(row: PaymentListRow) {
   return {
     bonus: row.bonus,

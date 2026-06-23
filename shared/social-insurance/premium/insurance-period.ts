@@ -123,7 +123,7 @@ export function getResignBonusPremiumSkipReason(
   if (isLastDayOfMonth(resignAt)) {
     return null;
   }
-  return '退職月に支給される賞与（月末退職以外）のため、賞与保険料は徴収対象外です';
+  return '退職月に支給される賞与（月末退職以外）のため、賞与に係る保険料は徴収対象外です';
 }
 
 export function isBonusPremiumTargetForResignation(

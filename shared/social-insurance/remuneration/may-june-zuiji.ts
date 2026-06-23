@@ -44,12 +44,13 @@ export function getMayJuneZuijiSchedule(raiseMonthYyyyMm: string): MayJuneZuijiS
   };
 }
 
+/** 単月の報酬月額（固定＋変動＋賞与に係る報酬）。初回決定・随時改定平均と同様に加算する。 */
 export function computeTotalRemunerationFromMonthlySource(
   source: MonthlyRemunerationSource,
 ): number {
   const fixed = source.payroll.fixedWage ?? source.payroll.basicSalary + source.payroll.fringeBenefits;
   const variable = source.payroll.variableWage ?? 0;
-  return fixed + variable;
+  return fixed + variable + (source.bonusRelatedRemuneration ?? 0);
 }
 
 export function resolveGradesFromMonthlySource(

@@ -50,7 +50,7 @@ export function getScheduledPayMonthYyyyMm(
   return addMonths(premiumMonthYyyyMm, getPremiumToPayMonthDelay(collectionMonth));
 }
 
-/** 給与管理の表示月に、その月徴収する月次保険料が紐づく保険料対象月 */
+/** 給与管理の表示月に、その月徴収する報酬に係る保険料が紐づく保険料対象月 */
 export function getPremiumMonthForPaymentDisplay(
   displayYyyyMm: string,
   collectionMonth: SocialInsuranceCollectionMonth | undefined,
@@ -155,7 +155,7 @@ export interface ResignBulkPremiumInput extends ResignBulkPremiumScheduleInput {
 
 /**
  * 一括徴収の対象となる保険料対象月（yyyyMm）を列挙する。
- * 通常徴収予定月が退職月より後の月次保険料を、退職月の給与管理表示でまとめて徴収する。
+ * 通常徴収予定月が退職月より後の報酬に係る保険料を、退職月の給与管理表示でまとめて徴収する。
  */
 export function listBulkCollectedPremiumMonths(
   input: ResignBulkPremiumScheduleInput,
@@ -222,7 +222,7 @@ export function computeResignBulkPremiumData(
   return sumPremiumData(bulkItems);
 }
 
-/** licenseEndAt 以降の月次保険料をクリアすべきか */
+/** licenseEndAt 以降の報酬に係る保険料をクリアすべきか */
 export function shouldClearPremiumForMonth(
   licenseEndAt: Date | null | undefined,
   yyyyMm: string,

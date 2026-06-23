@@ -150,7 +150,7 @@ async function recordTaskResult(
       return;
     }
 
-    const label = kind === 'monthly' ? '月次' : '賞与';
+    const label = kind === 'monthly' ? '報酬' : '賞与';
 
     const uniqueMessages = Array.from(new Set(failedMessages));
     let bodyText = `${yyyyMm} / ${total}件中 ${nextSucceeded}件成功、${nextFailed}件失敗`;

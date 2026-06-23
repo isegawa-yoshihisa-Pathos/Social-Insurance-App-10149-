@@ -1,5 +1,8 @@
 import type { MonthlyRemunerationSource } from './remuneration-month-input';
-import { toMonthPaymentBaseInput } from './remuneration-month-input';
+import {
+  resolveBonusRelatedRemunerationForAverage,
+  toMonthPaymentBaseInput,
+} from './remuneration-month-input';
 
 export type EmploymentType =
   | 'full-time'
@@ -138,7 +141,7 @@ export function selectMonthsForLeaveReturnAverage(
 
 /**
  * 定時決定用: 条件を満たす月が1ヶ月でもあればその月（複数ならそれら）で平均。months は通常 4・5・6 月。
- * 報酬月額は固定的賃金・非固定的賃金・賞与関連報酬を含む。
+ * 報酬月額 = 対象月の給与（固定＋変動）の平均 ＋ 賞与に係る報酬（月額1つ）。
  */
 export function selectMonthsForRemunerationAverageSelection(
   category: EmploymentType,
@@ -181,11 +184,14 @@ function buildPayrollAverage(
   usedMonths: readonly MonthlyRemunerationSource[],
   tier: PaymentBaseDaysTier,
 ): RemunerationAverageSelectionResult {
-  const inputs = usedMonths.map((m) => toMonthPaymentBaseInput(m, { includeVariable: true }));
-  const total = inputs.reduce((s, m) => s + m.remuneration, 0);
+  const inputs = usedMonths.map((m) =>
+    toMonthPaymentBaseInput(m, { includeVariable: true, includeBonusRelatedRemuneration: false }),
+  );
+  const payrollTotal = inputs.reduce((s, m) => s + m.remuneration, 0);
+  const bonusRelatedRemuneration = resolveBonusRelatedRemunerationForAverage(usedMonths);
   return {
     usedMonths: inputs,
     tier,
-    averageRemuneration: total / usedMonths.length,
+    averageRemuneration: payrollTotal / usedMonths.length + bonusRelatedRemuneration,
   };
 }

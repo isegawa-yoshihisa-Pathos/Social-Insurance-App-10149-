@@ -16,7 +16,11 @@ import { BonusListRow } from './bonus-list-columns';
 import { toBonusListRow } from './bonus-list-row.mapper';
 import { BonusManagementDataService } from '../bonus-management-data.service';
 import { StandardBonusDataService } from '../../social-insurance/bonus/standard-bonus-data.service';
+import { addMonths } from '../../social-insurance/monthly/social-insurance-data.util';
 import { AuditLogService } from '../../audit-log/audit-log.service';
+
+/** 前月データ探索の上限（報酬追加と同じ） */
+const PRIOR_RECORD_LOOKBACK_LIMIT = 24;
 
 export interface BonusDetailRow extends BonusListRow {
   yyyyMm: string;
@@ -260,11 +264,14 @@ export class BonusListDataService {
         continue;
       }
 
-      batch.set(employeeRef, {
-        uid: employee.uid,
-        displayName: employee.displayName,
-        updatedAt: serverTimestamp(),
-      });
+      const priorBonus = await this.findPreviousBonusDocument(tid, eid, yyyyMm);
+
+      batch.set(
+        employeeRef,
+        priorBonus
+          ? this.buildBonusFromPrevious(employee, priorBonus)
+          : this.buildEmptyBonusDocument(employee),
+      );
       created++;
     }
 
@@ -284,5 +291,64 @@ export class BonusListDataService {
     });
 
     return created;
+  }
+
+  /** 対象月より前で、bonusData がある最も新しい賞与報酬を返す */
+  private async findPreviousBonusDocument(
+    tid: string,
+    eid: string,
+    beforeYyyyMm: string,
+  ): Promise<BonusDocument | null> {
+    let ym = addMonths(beforeYyyyMm, -1);
+    for (let i = 0; i < PRIOR_RECORD_LOOKBACK_LIMIT; i++) {
+      const snap = await getDoc(
+        doc(this.firestore, 'tenants', tid, 'bonus-records', ym, 'employees', eid),
+      );
+      if (snap.exists()) {
+        const data = snap.data() as BonusDocument;
+        if (data.bonusData) {
+          return data;
+        }
+      }
+      ym = addMonths(ym, -1);
+    }
+    return null;
+  }
+
+  private buildBonusFromPrevious(
+    employee: EmployeeLookupEntry,
+    previous: BonusDocument,
+  ): {
+    uid: string;
+    displayName: string;
+    bonusData?: BonusDocument['bonusData'];
+    updatedAt: ReturnType<typeof serverTimestamp>;
+  } {
+    const doc: {
+      uid: string;
+      displayName: string;
+      bonusData?: BonusDocument['bonusData'];
+      updatedAt: ReturnType<typeof serverTimestamp>;
+    } = {
+      uid: employee.uid,
+      displayName: employee.displayName,
+      updatedAt: serverTimestamp(),
+    };
+    if (previous.bonusData) {
+      doc.bonusData = { ...previous.bonusData };
+    }
+    return doc;
+  }
+
+  private buildEmptyBonusDocument(employee: EmployeeLookupEntry): {
+    uid: string;
+    displayName: string;
+    updatedAt: ReturnType<typeof serverTimestamp>;
+  } {
+    return {
+      uid: employee.uid,
+      displayName: employee.displayName,
+      updatedAt: serverTimestamp(),
+    };
   }
 }

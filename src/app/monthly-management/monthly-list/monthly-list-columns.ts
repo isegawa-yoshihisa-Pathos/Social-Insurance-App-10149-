@@ -47,7 +47,6 @@ export type BaseMonthlyListColumnKey = (typeof BASE_MONTHLY_LIST_COLUMN_KEYS)[nu
 export const BASE_MONTHLY_LIST_EMPLOYEE_COLUMN_KEYS = [
   'basicSalary',
   'fringeBenefits',
-  'bonusRelatedRemuneration',
   'retroactivePay',
 ] as const;
 
@@ -63,7 +62,6 @@ export type MonthlyListColumnKeyForEmployee =
 const STATIC_EMPLOYEE_COLUMN_LABELS: Record<BaseMonthlyListEmployeeColumnKey, string> = {
   basicSalary: '基本給与',
   fringeBenefits: '現物給与',
-  bonusRelatedRemuneration: '（賞与に係る報酬）',
   retroactivePay: '遡及支払',
 };
 
@@ -120,7 +118,7 @@ export function getOptionalMonthlyListColumns(
     ...allowanceColumns,
     { key: 'retroactivePay', label: '遡及支払' },
     ...getOptionalPremiumColumns(),
-    { key: MONTHLY_NET_PAYMENT_COLUMN_KEY, label: '月次総支払' },
+    { key: MONTHLY_NET_PAYMENT_COLUMN_KEY, label: '報酬総支払' },
   ];
 }
 
@@ -140,7 +138,7 @@ export function getMonthlyListColumnLabelForEmployee(
   definitions: AllowanceTypeDefinition[],
 ): string {
   if (column === MONTHLY_TOTAL_PAYMENT_COLUMN_KEY) {
-    return '月次総支払';
+    return '報酬総支払';
   }
 
   if (Object.hasOwn(STATIC_EMPLOYEE_COLUMN_LABELS, column)) {
@@ -164,7 +162,7 @@ export function getMonthlyListColumnLabel(
   definitions: AllowanceTypeDefinition[],
 ): string {
   if (column === MONTHLY_NET_PAYMENT_COLUMN_KEY) {
-    return '月次総支払';
+    return '報酬総支払';
   }
 
   if (Object.hasOwn(STATIC_COLUMN_LABELS, column)) {

@@ -40,7 +40,7 @@ import type { TeijiDeterminationOutcome } from '../../../shared/social-insurance
 import { isTeijiReplacementZuijiEffectiveMonth, teijiYearFromEffectiveMonth, isBonusRelatedRemunerationUnset, withBonusRelatedRemuneration } from '../../../shared/social-insurance/remuneration/bonus-remuneration-addition';
 import {
   computeTeijiBonusRelatedRemuneration,
-  applyTeijiBonusRelatedRemunerationToMonthlyRecords,
+  saveAdoptedBonusRelatedRemunerationThroughEffectiveFrom,
 } from './teiji-bonus-remuneration';
 import {
   buildMayJuneZuijiPendingNotificationBody,
@@ -54,6 +54,11 @@ import {
   hasTeijiReplacementZuijiForYear,
   tryFinalizeApprovedMayJuneZuiji,
 } from './may-june-zuiji-review';
+import {
+  resolveTeijiPeriodBonusRelatedRemuneration,
+  type TeijiPeriodBonusResolution,
+} from './bonus-remuneration-mismatch-review';
+import { resolveBonusRelatedRemunerationForAverage } from '../../../shared/social-insurance/remuneration/remuneration-month-input';
 import {
   ensureTeijiAnnualAverageConsentReview,
   ensureZuijiAnnualAverageConsentReview,
@@ -121,6 +126,15 @@ export async function calculateMonthlyEmployee(
       rawStandardRemuneration.effectiveFrom,
       rawStandardRemuneration,
     );
+    if (rawStandardRemuneration.bonusRemunerationMonthlyAddition !== undefined) {
+      await saveAdoptedBonusRelatedRemunerationThroughEffectiveFrom(
+        db,
+        tid,
+        eid,
+        rawStandardRemuneration.effectiveFrom,
+        rawStandardRemuneration.bonusRemunerationMonthlyAddition,
+      );
+    }
     await notifyMultiWorkplaceManualPremiumIfNeeded(
       db,
       tid,
@@ -227,7 +241,7 @@ async function loadContext(
     getMonthlyDocument(db, tid, eid, yyyyMm),
   ]);
   if (!monthly?.payrollData) {
-    throw new Error(`${yyyyMm} の月次給与データがありません。`);
+    throw new Error(`${yyyyMm} の報酬データがありません。`);
   }
   return {
     employee,
@@ -260,7 +274,7 @@ async function resolveStandardRemuneration(
   if (carried) return carried;
 
   throw new Error(
-    `${yyyyMm} の標準報酬を決定できません。月次給与または過去の標準報酬履歴を確認してください。`,
+    `${yyyyMm} の標準報酬を決定できません。報酬または過去の標準報酬履歴を確認してください。`,
   );
 }
 
@@ -315,16 +329,45 @@ async function tryZuiji(
 
   const effectiveFrom = addMonths(yyyyMm, 1);
   let zuijiMonths = sources.slice(1);
-  let teijiPeriodBonusAddition: number | undefined;
-  let teijiPeriodBonusQualifies = false;
+  let teijiPeriodBonusResolution: TeijiPeriodBonusResolution | null = null;
+  let teijiYearForBonus: number | null = null;
+  let teijiBonusForPeriod: Awaited<ReturnType<typeof computeTeijiBonusRelatedRemuneration>> | null =
+    null;
+  let storedBonusForTeijiPeriod = 0;
 
   if (isTeijiReplacementZuijiEffectiveMonth(effectiveFrom)) {
-    const teijiYear = teijiYearFromEffectiveMonth(effectiveFrom);
-    const teijiBonus = await computeTeijiBonusRelatedRemuneration(db, tid, eid, teijiYear);
-    teijiPeriodBonusQualifies = teijiBonus.qualifies;
-    if (teijiBonus.qualifies) {
-      teijiPeriodBonusAddition = teijiBonus.addition;
-      zuijiMonths = withBonusRelatedRemuneration(zuijiMonths, teijiBonus.addition);
+    teijiYearForBonus = teijiYearFromEffectiveMonth(effectiveFrom);
+    teijiBonusForPeriod = await computeTeijiBonusRelatedRemuneration(
+      db,
+      tid,
+      eid,
+      teijiYearForBonus,
+    );
+    storedBonusForTeijiPeriod = resolveBonusRelatedRemunerationForAverage(zuijiMonths);
+    const determinationMonthKeys = zuijiMonths.map((m) => m.yyyyMm);
+    const employeeNameForBonus = ctx.employee.employeePersonalInfo?.displayName ?? '対象従業員';
+    teijiPeriodBonusResolution = await resolveTeijiPeriodBonusRelatedRemuneration(
+      db,
+      tid,
+      eid,
+      teijiYearForBonus,
+      teijiBonusForPeriod,
+      storedBonusForTeijiPeriod,
+      {
+        applicationEffectiveFrom: effectiveFrom,
+        screeningYyyyMm: yyyyMm,
+        employeeDisplayName: employeeNameForBonus,
+        determinationMonthKeys,
+      },
+    );
+    if (teijiPeriodBonusResolution.blocked) {
+      return null;
+    }
+    if (teijiPeriodBonusResolution.valueForCalculation > 0) {
+      zuijiMonths = withBonusRelatedRemuneration(
+        zuijiMonths,
+        teijiPeriodBonusResolution.valueForCalculation,
+      );
     }
   }
 
@@ -357,27 +400,20 @@ async function tryZuiji(
     changeMonthYyyyMm,
   );
 
-  if (teijiPeriodBonusQualifies && teijiPeriodBonusAddition != null) {
-    await applyTeijiBonusRelatedRemunerationToMonthlyRecords(
-      db,
-      tid,
-      eid,
-      teijiYearFromEffectiveMonth(effectiveFrom),
-      teijiPeriodBonusAddition,
-      effectiveFrom,
-    );
-  }
-
   return {
     ...gradesToPayload('zuiji', effectiveFrom, outcome.grades),
-    bonusRemunerationMonthlyAddition:
-      teijiPeriodBonusQualifies && teijiPeriodBonusAddition != null && teijiPeriodBonusAddition > 0
-        ? teijiPeriodBonusAddition
-        : undefined,
+    bonusRemunerationMonthlyAddition: adoptedBonusRemunerationMonthlyAddition(teijiPeriodBonusResolution),
   };
 }
 
-/** 5・6月の月次計算時: 前月比で固定的賃金変動があれば単月判定し、管理者へ通知する */
+function adoptedBonusRemunerationMonthlyAddition(
+  resolution: TeijiPeriodBonusResolution | null,
+): number | undefined {
+  if (resolution == null) return undefined;
+  return resolution.valueToApply;
+}
+
+/** 5・6月の報酬計算時: 前月比で固定的賃金変動があれば単月判定し、管理者へ通知する */
 async function tryMayJuneRaiseMonthScreening(
   db: admin.firestore.Firestore,
   tid: string,
@@ -531,9 +567,29 @@ async function tryTeiji(
   if (sources.length === 0) return null;
 
   const teijiBonus = await computeTeijiBonusRelatedRemuneration(db, tid, eid, year);
-  const teijiSources = teijiBonus.qualifies
-    ? withBonusRelatedRemuneration(sources, teijiBonus.addition)
-    : sources;
+  const storedBonus = resolveBonusRelatedRemunerationForAverage(sources);
+  const determinationMonthKeys = [...monthKeys];
+  const teijiPeriodBonusResolution = await resolveTeijiPeriodBonusRelatedRemuneration(
+    db,
+    tid,
+    eid,
+    year,
+    teijiBonus,
+    storedBonus,
+    {
+      applicationEffectiveFrom: `${year}-09`,
+      screeningYyyyMm: yyyyMm,
+      employeeDisplayName: employeeName,
+      determinationMonthKeys,
+    },
+  );
+  if (teijiPeriodBonusResolution.blocked) {
+    return null;
+  }
+  const teijiSources =
+    teijiPeriodBonusResolution.valueForCalculation > 0
+      ? withBonusRelatedRemuneration(sources, teijiPeriodBonusResolution.valueForCalculation)
+      : sources;
 
   const outcome = determineTeiji(ctx.employmentType, teijiSources);
   if (outcome.kind !== 'invalid') {
@@ -562,16 +618,6 @@ async function tryTeiji(
       monthKeys,
     );
     return null;
-  }
-
-  if (teijiBonus.qualifies) {
-    await applyTeijiBonusRelatedRemunerationToMonthlyRecords(
-      db,
-      tid,
-      eid,
-      year,
-      teijiBonus.addition,
-    );
   }
 
   if (outcome.kind === 'continue_previous') {
@@ -603,15 +649,13 @@ async function tryTeiji(
       source: 'teiji',
       effectiveFrom: `${year}-09`,
       remuneration: prior.doc.remuneration,
-      bonusRemunerationMonthlyAddition:
-        teijiBonus.qualifies && teijiBonus.addition > 0 ? teijiBonus.addition : undefined,
+      bonusRemunerationMonthlyAddition: adoptedBonusRemunerationMonthlyAddition(teijiPeriodBonusResolution),
     };
   }
 
   return {
     ...gradesToPayload('teiji', `${year}-09`, outcome.grades),
-    bonusRemunerationMonthlyAddition:
-      teijiBonus.qualifies && teijiBonus.addition > 0 ? teijiBonus.addition : undefined,
+    bonusRemunerationMonthlyAddition: adoptedBonusRemunerationMonthlyAddition(teijiPeriodBonusResolution),
   };
 }
 

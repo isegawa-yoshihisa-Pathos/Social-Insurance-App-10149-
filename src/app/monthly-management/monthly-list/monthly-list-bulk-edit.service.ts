@@ -96,7 +96,7 @@ export class MonthlyListBulkEditService {
       await this.auditLog.recordUpdate({
         tid,
         category: 'monthly.payroll',
-        summary: `${yyyyMm} の月次給与を一括更新（${columnLabel}）`,
+        summary: `${yyyyMm} の報酬を一括更新（${columnLabel}）`,
         target: {
           kind: 'monthly',
           eid: target.eid,

@@ -11,11 +11,11 @@ export const AUDIT_LOG_CATEGORY_LABELS: Record<string, string> = {
   'employee.input_request': '従業員入力依頼',
   'employee.import': '従業員CSVインポート',
   'employee.multi_workplace': '二以上事業所勤務',
-  'monthly.payroll': '月次給与',
-  'monthly.standardRemuneration': '標準報酬月額（月次）',
-  'monthly.import': '月次CSVインポート',
-  'monthly.add_employees': '月次データ追加',
-  'monthly.lock': '月次締切',
+  'monthly.payroll': '報酬',
+  'monthly.standardRemuneration': '標準報酬月額',
+  'monthly.import': '報酬CSVインポート',
+  'monthly.add_employees': '報酬データ追加',
+  'monthly.lock': '報酬締切',
   'bonus.bulk_edit': '賞与一括編集',
   'bonus.import': '賞与CSVインポート',
   'bonus.add_employees': '賞与データ追加',
@@ -30,7 +30,7 @@ export const AUDIT_LOG_CATEGORY_LABELS: Record<string, string> = {
   'settings.allowance_kind': '手当種類設定',
   'settings.bonus_kind': '賞与種類設定',
   'settings.bonus_list': '賞与一覧設定',
-  'settings.monthly_list': '月次一覧設定',
+  'settings.monthly_list': '報酬一覧設定',
   'settings.payment_list': '給与一覧設定',
   'settings.employees_list': '従業員一覧設定',
   'settings.insurance_rate': '保険料率設定',
@@ -69,7 +69,7 @@ export const AUDIT_LOG_CHANGE_FIELD_LABELS: Record<string, string> = {
   healthInsuranceRecordNumber: '健康保険整理番号',
   pensionInsuranceRecordNumber: '厚生年金整理番号',
 
-  // 月次給与
+  // 報酬
   paymentBaseDays: '支払基礎日数',
   basicSalary: '基本給与',
   fringeBenefits: '現物給与',
@@ -163,7 +163,7 @@ export function formatAuditLogCategory(category: string): string {
     const groupLabels: Record<string, string> = {
       application: '申請',
       employee: '従業員',
-      monthly: '月次',
+      monthly: '報酬',
       bonus: '賞与',
       settings: '設定',
       registration: '届出',

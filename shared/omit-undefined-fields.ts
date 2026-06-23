@@ -6,12 +6,25 @@ function isFirestoreFieldValue(value: unknown): boolean {
   return '_methodName' in value || 'methodName' in value;
 }
 
+/** Firestore Timestamp をそのまま保持する */
+function isFirestoreTimestamp(value: unknown): boolean {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const candidate = value as { seconds?: unknown; nanoseconds?: unknown; toDate?: unknown };
+  return (
+    typeof candidate.seconds === 'number'
+    && typeof candidate.nanoseconds === 'number'
+    && typeof candidate.toDate === 'function'
+  );
+}
+
 /** Firestore に保存する前に undefined フィールドを除去する */
 export function omitUndefinedFields<T>(value: T): T {
   if (value === undefined) {
     return value;
   }
-  if (isFirestoreFieldValue(value)) {
+  if (isFirestoreFieldValue(value) || isFirestoreTimestamp(value)) {
     return value;
   }
   if (Array.isArray(value)) {

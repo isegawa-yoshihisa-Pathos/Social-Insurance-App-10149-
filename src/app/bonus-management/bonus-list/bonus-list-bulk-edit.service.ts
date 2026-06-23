@@ -121,6 +121,7 @@ export class BonusListBulkEditService {
           value,
           yyyyMm,
           sumBonusAmounts(target.bonus),
+          target,
         );
         await this.standardBonusDataService.save(tid, target.eid, yyyyMm, payload);
 
@@ -188,7 +189,7 @@ export class BonusListBulkEditService {
       await this.auditLog.recordUpdate({
         tid,
         category: 'bonus.premium',
-        summary: `${yyyyMm} の賞与保険料を一括更新（${columnLabel}）`,
+        summary: `${yyyyMm} の賞与に係る保険料を一括更新（${columnLabel}）`,
         target: {
           kind: 'bonus',
           eid: target.eid,
@@ -208,9 +209,12 @@ export class BonusListBulkEditService {
     value: number,
     yyyyMm: string,
     bonusAmount: number,
+    target: BulkEditTarget,
   ): StandardBonusSavePayload {
-    const existingHealth = existing?.standardBonus.health ?? 0;
-    const existingPension = existing?.standardBonus.pension ?? 0;
+    const existingHealth =
+      existing?.standardBonus.health ?? target.standardBonusHealth ?? 0;
+    const existingPension =
+      existing?.standardBonus.pension ?? target.standardBonusPension ?? 0;
     const health =
       column === 'standardBonusHealth' ? value : existingHealth;
     const pension =

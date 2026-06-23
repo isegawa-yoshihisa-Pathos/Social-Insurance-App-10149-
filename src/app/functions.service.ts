@@ -27,6 +27,11 @@ export class FunctionsService {
 
   private rejectMayJuneZuijiReviewFn = httpsCallable(this.functions, 'rejectMayJuneZuijiReview');
 
+  private resolveBonusRemunerationMismatchReviewFn = httpsCallable(
+    this.functions,
+    'resolveBonusRemunerationMismatchReview',
+  );
+
   private submitRemunerationConsentReviewFn = httpsCallable(this.functions, 'submitRemunerationConsentReview');
 
   private approveRemunerationConsentReviewFn = httpsCallable(this.functions, 'approveRemunerationConsentReview');
@@ -126,6 +131,22 @@ export class FunctionsService {
   }) {
     const result = await this.rejectMayJuneZuijiReviewFn(payload);
     return result.data as { status: 'rejected' };
+  }
+
+  async resolveBonusRemunerationMismatchReview(payload: {
+    tid: string;
+    eid: string;
+    teijiYear: number;
+    applyChoice: 'computed' | 'stored' | 'custom';
+    customBonusRelatedRemuneration?: number;
+    recalculatePremium: boolean;
+  }) {
+    const result = await this.resolveBonusRemunerationMismatchReviewFn(payload);
+    return result.data as {
+      status: 'resolved_computed' | 'resolved_stored' | 'resolved_custom';
+      recalculated: boolean;
+      recalculatedYyyyMm?: string;
+    };
   }
 
   async submitRemunerationConsentReview(payload: {

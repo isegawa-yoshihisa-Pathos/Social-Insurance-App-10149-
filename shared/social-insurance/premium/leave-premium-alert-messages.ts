@@ -3,7 +3,7 @@ import type { EmployeeLeaveType } from '../../employee-document';
 export type LeavePremiumAlertPremiumKind = 'monthly' | 'bonus';
 
 const PREMIUM_KIND_LABELS: Record<LeavePremiumAlertPremiumKind, string> = {
-  monthly: '月次',
+  monthly: '報酬',
   bonus: '賞与',
 };
 

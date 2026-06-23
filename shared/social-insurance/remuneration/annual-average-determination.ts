@@ -13,6 +13,7 @@ import {
   type StandardZuijiApplicableReason,
 } from './zuiji-determination';
 import { computeTotalRemunerationFromPayroll, computeFixedWageFromPayroll, computeVariableWageFromPayroll } from './fixed-wage';
+import { resolveBonusRelatedRemunerationForAverage } from './remuneration-month-input';
 import type { PreviousGrades } from './zuiji-determination';
 
 export const ANNUAL_AVERAGE_PERIOD_MONTH_COUNT = 12;
@@ -51,7 +52,7 @@ export function buildAnnualAveragePeriodMonthKeys(teijiYyyyMm: string): string[]
 }
 
 /**
- * 年間平均報酬月額 = 対象月の報酬総額合計 ÷ 対象月数
+ * 年間平均報酬月額 = 対象月の給与（固定的＋非固定的）の平均 ＋ 賞与に係る報酬（月額1つ）
  * 支払基礎日数が基準未満の月は除外。
  * 対象月が1つもない場合は invalid。
  */
@@ -62,22 +63,22 @@ export function calculateAnnualAverageRemuneration(
 ): AnnualAverageCalculationOutcome {
   const minDays = getPaymentBaseDaysThresholds(employmentType).primaryMinDays;
 
-  const usedMonths = months
-    .filter((m) => m.paymentBaseDays >= minDays)
-    .map((m) => ({
-      yyyyMm: m.yyyyMm,
-      paymentBaseDays: m.paymentBaseDays,
-      remuneration:
-        computeTotalRemunerationFromPayroll(m.payroll) + m.bonusRelatedRemuneration,
-    }));
+  const eligible = months.filter((m) => m.paymentBaseDays >= minDays);
+  const usedMonths = eligible.map((m) => ({
+    yyyyMm: m.yyyyMm,
+    paymentBaseDays: m.paymentBaseDays,
+    remuneration: computeTotalRemunerationFromPayroll(m.payroll),
+  }));
 
   if (usedMonths.length === 0) {
     return { kind: 'invalid', reason: 'no_eligible_months', totalRemuneration: 0 };
   }
 
-  const totalRemuneration = usedMonths.reduce((sum, m) => sum + m.remuneration, 0);
+  const payrollTotal = usedMonths.reduce((sum, m) => sum + m.remuneration, 0);
+  const bonusRelatedRemuneration = resolveBonusRelatedRemunerationForAverage(eligible);
   const divisor = usedMonths.length;
-  const averageRemuneration = totalRemuneration / divisor;
+  const averageRemuneration = payrollTotal / divisor + bonusRelatedRemuneration;
+  const totalRemuneration = payrollTotal + bonusRelatedRemuneration;
 
   const grades = resolveGradesFromRemuneration(gradeTable, averageRemuneration);
   if (!grades) {
@@ -257,7 +258,7 @@ export interface ZuijiAnnualAverageCalculationResult {
     usedMonths: EligibleMonthAmount[];
     average: number;
   };
-  /** 年間平均報酬月額 = 固定平均 + 非固定平均 */
+  /** 年間平均報酬月額 = 固定平均 + 非固定平均 + 賞与に係る報酬（月額1つ） */
   averageRemuneration: number;
   grades: ResolvedStandardRemuneration;
 }
@@ -277,13 +278,13 @@ export function calculateZuijiAnnualAverageRemuneration(
   gradeTable: RemunerationGradeTableSet = CURRENT_GRADE_TABLE,
 ): ZuijiAnnualAverageCalculationOutcome {
   const windows = buildZuijiAnnualAverageMonthWindows(changeMonthYyyyMm);
+  const byKey = new Map(months.map((m) => [m.yyyyMm, m]));
 
   const fixedAfterAverage = averageEligibleMonths(
     employmentType,
     months,
     windows.fixedAfterKeys,
-    (month) =>
-      computeFixedWageFromPayroll(month.payroll) + month.bonusRelatedRemuneration,
+    (month) => computeFixedWageFromPayroll(month.payroll),
   );
   if (!fixedAfterAverage) {
     return { kind: 'invalid', reason: 'no_eligible_fixed_months' };
@@ -299,8 +300,15 @@ export function calculateZuijiAnnualAverageRemuneration(
     return { kind: 'invalid', reason: 'no_eligible_variable_months' };
   }
 
+  const bonusRelatedRemuneration = resolveBonusRelatedRemunerationForAverage(
+    fixedAfterAverage.usedMonths.map((m) => ({
+      yyyyMm: m.yyyyMm,
+      bonusRelatedRemuneration: byKey.get(m.yyyyMm)?.bonusRelatedRemuneration ?? 0,
+    })),
+  );
+
   const averageRemuneration =
-    fixedAfterAverage.average + variableWindowAverage.average;
+    fixedAfterAverage.average + variableWindowAverage.average + bonusRelatedRemuneration;
 
   const grades = resolveGradesFromRemuneration(gradeTable, averageRemuneration);
   if (!grades) {

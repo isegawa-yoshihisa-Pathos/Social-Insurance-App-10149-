@@ -13,7 +13,7 @@ export interface PaymentDisplaySourceMonths {
   premiumMonth: string;
 }
 
-/** 給与管理表示月から、参照する月次給与・保険料のデータ月を解決する */
+/** 給与管理表示月から、参照する報酬・保険料のデータ月を解決する */
 export function resolvePaymentDisplaySourceMonths(
   displayYyyyMm: string,
   payrollPaymentMonth: PayrollPaymentMonth | undefined,

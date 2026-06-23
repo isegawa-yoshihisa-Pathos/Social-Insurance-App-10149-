@@ -3,8 +3,8 @@ import { addMonths } from '../monthly/social-insurance-data.util';
 export type PayrollPaymentMonth = 'currentMonth' | 'nextMonth';
 
 /**
- * 給与管理の表示月から月次給与データの参照月へのオフセット。
- * 翌月払いの場合は -1（表示月 n+1 → 月次データ n）。
+ * 給与管理の表示月から報酬データの参照月へのオフセット。
+ * 翌月払いの場合は -1（表示月 n+1 → 報酬データ n）。
  */
 export function getPayrollPaymentMonthOffset(
   payrollPaymentMonth: PayrollPaymentMonth | undefined,
@@ -18,7 +18,7 @@ export function getPayrollPaymentMonthOffset(
   }
 }
 
-/** 給与管理の表示月に対応する月次給与データの年月 */
+/** 給与管理の表示月に対応する報酬データの年月 */
 export function getSalaryMonthForPaymentDisplay(
   displayYyyyMm: string,
   payrollPaymentMonth: PayrollPaymentMonth | undefined,
@@ -26,7 +26,7 @@ export function getSalaryMonthForPaymentDisplay(
   return addMonths(displayYyyyMm, getPayrollPaymentMonthOffset(payrollPaymentMonth));
 }
 
-/** 月次給与データの年月に対応する給与管理の表示月 */
+/** 報酬データの年月に対応する給与管理の表示月 */
 export function getPaymentDisplayMonthForSalary(
   salaryYyyyMm: string,
   payrollPaymentMonth: PayrollPaymentMonth | undefined,

@@ -15,7 +15,7 @@ service cloud.firestore {
     // tenants/{tid}/invitations/{id} - 招待（作成は Cloud Functions）
     // tenants/{tid}/settings/{settingId} - 各種設定
     // tenants/{tid}/insuranceRates/{rateId} - 保険料率
-    // tenants/{tid}/monthly-records/{yyyyMm}/employees/{eid} - 月次給与
+    // tenants/{tid}/monthly-records/{yyyyMm}/employees/{eid} - 報酬
     // tenants/{tid}/bonus-records/{yyyyMm}/employees/{eid} - 賞与
     // tenants/{tid}/employees/{eid}/standardRemuneration|standardBonus/{yyyyMm}
     // invitation-mails/{id} - 開発用仮想メール（本番では無効化を推奨）
@@ -315,6 +315,12 @@ service cloud.firestore {
       }
 
       match /mayJuneZuijiReviews/{reviewId} {
+        allow read: if isTenantAdmin(tid);
+        allow delete: if isTenantAdmin(tid);
+        allow create, update: if false;
+      }
+
+      match /bonusRemunerationMismatchReviews/{reviewId} {
         allow read: if isTenantAdmin(tid);
         allow delete: if isTenantAdmin(tid);
         allow create, update: if false;
