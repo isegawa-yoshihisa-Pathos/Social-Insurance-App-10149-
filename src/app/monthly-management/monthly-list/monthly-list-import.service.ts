@@ -14,12 +14,16 @@ import {
   MonthlyImportColumnDef,
   buildMonthlyImportColumnDefs,
 } from '../monthly-setting/monthly-import-columns';
+import { AllowanceTypeDefinition } from '../../payment-document';
 import { MonthlyDocument, PayrollData } from '../../monthly-document';
 import { MonthlyListRow } from './monthly-list-columns';
 import { toMonthlyListRow } from './monthly-list-row.mapper';
 import { EmployeeLookupEntry, MonthlyListDataService } from './monthly-list-data.service';
 import { PaymentManagementDataService } from '../../payment-management/payment-management-data.service';
-import { buildPayrollWageFields } from '../../payment-management/payment-list/payroll-wage-update.util';
+import {
+  buildPayrollWageFields,
+  filterPayrollAllowances,
+} from '../../payment-management/payment-list/payroll-wage-update.util';
 import { resolveCsvImportLayout } from '../../csv/csv-file.util';
 import { AuditLogService } from '../../audit-log/audit-log.service';
 import { StandardRemunerationDataService } from '../../social-insurance/monthly/standard-remuneration-data.service';
@@ -164,7 +168,7 @@ export class MonthlyListImportService {
         cols,
         headerIndex,
         columnDefs,
-        existingRow,
+        definitions,
       );
       if (!this.hasImportPatch(importPatch)) {
         result.skippedEmpty++;
@@ -182,35 +186,22 @@ export class MonthlyListImportService {
       );
 
       if (existingRow) {
-        let touched = false;
-        if (importPatch.payroll) {
-          if (importPatch.payroll.bonusRelatedRemuneration === undefined) {
-            const previousBonus = previousBonusMap.get(matched) ?? 0;
-            const currentBonus = existingRow.bonusRelatedRemuneration;
-            if (
-              currentBonus == null ||
-              (currentBonus === 0 && previousBonus > 0)
-            ) {
-              importPatch.payroll.bonusRelatedRemuneration = previousBonus;
-            }
+        if (importPatch.payroll?.bonusRelatedRemuneration === undefined) {
+          const previousBonus = previousBonusMap.get(matched) ?? 0;
+          const currentBonus = existingRow.bonusRelatedRemuneration;
+          if (
+            importPatch.payroll &&
+            (currentBonus == null || (currentBonus === 0 && previousBonus > 0))
+          ) {
+            importPatch.payroll.bonusRelatedRemuneration = previousBonus;
           }
-          batch.update(
-            employeeRef,
-            this.buildMonthlyUpdatePayload(importPatch.payroll, existingRow, definitions),
-          );
-          touched = true;
         }
-        if (Object.keys(importPatch.premium).length > 0) {
-          batch.update(employeeRef, {
-            premiumData: mergePremiumAmountFields(
-              premiumDataFromRow(existingRow),
-              importPatch.premium,
-            ),
-            updatedAt: serverTimestamp(),
-          });
-          touched = true;
-        }
-        if (touched || Object.keys(importPatch.standardRemuneration).length > 0) {
+
+        const update = this.buildExistingRowUpdate(importPatch, existingRow, definitions);
+        if (update) {
+          batch.update(employeeRef, update);
+          result.updated++;
+        } else if (Object.keys(importPatch.standardRemuneration).length > 0) {
           result.updated++;
         }
       } else {
@@ -303,18 +294,23 @@ export class MonthlyListImportService {
     return null;
   }
 
+  /** 列ごとに対応フィールドへ振り分ける（保険料・標準報酬は payroll に混ぜない） */
   private extractImportPatch(
     cols: string[],
     idx: Record<string, number>,
     columnDefs: MonthlyImportColumnDef[],
-    existingRow: MonthlyListRow | undefined,
+    definitions: AllowanceTypeDefinition[],
   ): MonthlyImportPatch {
-    const payroll = this.extractPayrollPatch(cols, idx, columnDefs, existingRow);
+    const payroll: PayrollImportPatch = {};
     const standardRemuneration: StandardRemunerationImportPatch = {};
     const premium: Partial<Record<PremiumAmountColumnKey, number>> = {};
+    let hasPayroll = false;
 
     for (const col of columnDefs) {
-      if (col.kind !== 'number') continue;
+      if (col.key === 'displayName' || col.key === 'employeeId' || col.kind !== 'number') {
+        continue;
+      }
+
       const i = idx[col.key];
       if (i === undefined || i < 0) continue;
       const raw = (cols[i] ?? '').trim();
@@ -328,10 +324,32 @@ export class MonthlyListImportService {
         standardRemuneration.standardRemunerationPension = num;
       } else if (isPremiumAmountColumn(col.key)) {
         premium[col.key] = num;
+      } else if (col.key === 'basicSalary') {
+        payroll.basicSalary = num;
+        hasPayroll = true;
+      } else if (col.key === 'fringeBenefits') {
+        payroll.fringeBenefits = num;
+        hasPayroll = true;
+      } else if (col.key === 'retroactivePay') {
+        payroll.retroactivePay = num;
+        hasPayroll = true;
+      } else if (col.key === 'paymentBaseDays') {
+        payroll.paymentBaseDays = num;
+        hasPayroll = true;
+      } else if (col.key === 'bonusRelatedRemuneration') {
+        payroll.bonusRelatedRemuneration = num;
+        hasPayroll = true;
+      } else if (definitions.some((def) => def.type === col.key)) {
+        payroll.allowances = { ...(payroll.allowances ?? {}), [col.key]: num };
+        hasPayroll = true;
       }
     }
 
-    return { payroll, standardRemuneration, premium };
+    return {
+      payroll: hasPayroll ? payroll : null,
+      standardRemuneration,
+      premium,
+    };
   }
 
   private hasImportPatch(patch: MonthlyImportPatch): boolean {
@@ -368,109 +386,88 @@ export class MonthlyListImportService {
     await this.standardRemunerationDataService.save(tid, eid, yyyyMm, payload);
   }
 
-  private extractPayrollPatch(
-    cols: string[],
-    idx: Record<string, number>,
-    columnDefs: MonthlyImportColumnDef[],
-    existingRow: MonthlyListRow | undefined,
-  ): PayrollImportPatch | null {
-    const current = {
-      basicSalary: existingRow?.basicSalary ?? 0,
-      fringeBenefits: existingRow?.fringeBenefits ?? 0,
-      paymentBaseDays: existingRow?.paymentBaseDays ?? 0,
-      bonusRelatedRemuneration: existingRow?.bonusRelatedRemuneration ?? 0,
-      allowances: { ...(existingRow?.allowances ?? {}) },
-      retroactivePay: existingRow?.retroactivePay ?? null,
-    };
+  private buildExistingRowUpdate(
+    importPatch: MonthlyImportPatch,
+    existingRow: MonthlyListRow,
+    definitions: AllowanceTypeDefinition[],
+  ): UpdateData<DocumentData> | null {
+    const update: Record<string, unknown> = {};
+    const payrollPatch = importPatch.payroll;
+    const hasPremium = Object.keys(importPatch.premium).length > 0;
 
-    const patch: PayrollImportPatch = {};
-    let hasUpdate = false;
+    const sanitizedExistingAllowances = filterPayrollAllowances(
+      existingRow.allowances ?? {},
+      definitions,
+    );
+    const mergedAllowances = payrollPatch?.allowances
+      ? { ...sanitizedExistingAllowances, ...filterPayrollAllowances(payrollPatch.allowances, definitions) }
+      : sanitizedExistingAllowances;
 
-    for (const col of columnDefs) {
-      if (col.key === 'displayName' || col.key === 'employeeId' || col.kind !== 'number') {
-        continue;
-      }
+    const allowancesChanged =
+      JSON.stringify(existingRow.allowances ?? {}) !== JSON.stringify(mergedAllowances);
 
-      const i = idx[col.key];
-      if (i === undefined || i < 0) continue;
-      const raw = (cols[i] ?? '').trim();
-      if (!raw) continue;
-      const num = this.parseNumber(raw);
-      if (num === null) continue;
+    const touchesWageBase =
+      payrollPatch != null &&
+      (payrollPatch.basicSalary !== undefined ||
+        payrollPatch.fringeBenefits !== undefined ||
+        payrollPatch.allowances !== undefined ||
+        payrollPatch.retroactivePay !== undefined);
 
-      if (col.key === 'basicSalary') {
-        patch.basicSalary = num;
-        hasUpdate = true;
-      } else if (col.key === 'fringeBenefits') {
-        patch.fringeBenefits = num;
-        hasUpdate = true;
-      } else if (col.key === 'retroactivePay') {
-        patch.retroactivePay = num;
-        hasUpdate = true;
-      } else if (col.key === 'paymentBaseDays') {
-        patch.paymentBaseDays = num;
-        hasUpdate = true;
-      } else if (col.key === 'bonusRelatedRemuneration') {
-        patch.bonusRelatedRemuneration = num;
-        hasUpdate = true;
-      } else {
-        const allowances = { ...(patch.allowances ?? current.allowances) };
-        allowances[col.key] = num;
-        patch.allowances = allowances;
-        hasUpdate = true;
-      }
+    if (touchesWageBase || allowancesChanged) {
+      const wages = buildPayrollWageFields(
+        {
+          basicSalary: existingRow.basicSalary ?? 0,
+          fringeBenefits: existingRow.fringeBenefits ?? 0,
+          allowances: mergedAllowances,
+          retroactivePay: existingRow.retroactivePay ?? null,
+        },
+        {
+          basicSalary: payrollPatch?.basicSalary,
+          fringeBenefits: payrollPatch?.fringeBenefits,
+          retroactivePay: payrollPatch?.retroactivePay,
+        },
+        definitions,
+      );
+      update['payrollData.fixedWage'] = wages.fixedWage;
+      update['payrollData.variableWage'] = wages.variableWage;
+      update['payrollData.allowances'] = mergedAllowances;
     }
 
-    return hasUpdate ? patch : null;
-  }
-
-  private buildMonthlyUpdatePayload(
-    payrollPatch: PayrollImportPatch,
-    existingRow: MonthlyListRow,
-    definitions: ReturnType<PaymentManagementDataService['allowanceTypeDefinitions']>,
-  ): UpdateData<DocumentData> {
-    const current = {
-      basicSalary: existingRow.basicSalary ?? 0,
-      fringeBenefits: existingRow.fringeBenefits ?? 0,
-      allowances: { ...(existingRow.allowances ?? {}) },
-      retroactivePay: existingRow.retroactivePay ?? null,
-    };
-
-    const wages = buildPayrollWageFields(current, payrollPatch, definitions);
-    const update: Record<string, unknown> = {
-      'payrollData.fixedWage': wages.fixedWage,
-      'payrollData.variableWage': wages.variableWage,
-      updatedAt: serverTimestamp(),
-    };
-
-    if (payrollPatch.basicSalary !== undefined) {
+    if (payrollPatch?.basicSalary !== undefined) {
       update['payrollData.basicSalary'] = payrollPatch.basicSalary;
     }
-    if (payrollPatch.fringeBenefits !== undefined) {
+    if (payrollPatch?.fringeBenefits !== undefined) {
       update['payrollData.fringeBenefits'] = payrollPatch.fringeBenefits;
     }
-    if (payrollPatch.paymentBaseDays !== undefined) {
-      update['payrollData.paymentBaseDays'] = payrollPatch.paymentBaseDays;
+    if (payrollPatch?.paymentBaseDays !== undefined) {
+      update['paymentBaseDays'] = payrollPatch.paymentBaseDays;
     }
-    if (payrollPatch.bonusRelatedRemuneration !== undefined) {
+    if (payrollPatch?.bonusRelatedRemuneration !== undefined) {
       update['bonusRelatedRemuneration'] = payrollPatch.bonusRelatedRemuneration;
     }
-    if (payrollPatch.retroactivePay !== undefined) {
+    if (payrollPatch?.retroactivePay !== undefined) {
       update['payrollData.retroactivePay'] = payrollPatch.retroactivePay;
     }
-    if (payrollPatch.allowances !== undefined) {
-      for (const [type, amount] of Object.entries(payrollPatch.allowances)) {
-        update[`payrollData.allowances.${type}`] = amount;
-      }
+
+    if (hasPremium) {
+      update['premiumData'] = mergePremiumAmountFields(
+        premiumDataFromRow(existingRow),
+        importPatch.premium,
+      );
     }
 
+    if (Object.keys(update).length === 0) {
+      return null;
+    }
+
+    update['updatedAt'] = serverTimestamp();
     return update as UpdateData<DocumentData>;
   }
 
   private buildMonthlyDocument(
     employee: EmployeeLookupEntry,
     payrollPatch: PayrollImportPatch,
-    definitions: ReturnType<PaymentManagementDataService['allowanceTypeDefinitions']>,
+    definitions: AllowanceTypeDefinition[],
     carriedBonusRelatedRemuneration: number,
     premiumPatch: Partial<Record<PremiumAmountColumnKey, number>> = {},
   ): {
@@ -482,22 +479,29 @@ export class MonthlyListImportService {
     premiumData?: ReturnType<typeof mergePremiumAmountFields>;
     updatedAt: ReturnType<typeof serverTimestamp>;
   } {
-    const current = {
-      basicSalary: 0,
-      fringeBenefits: 0,
-      paymentBaseDays: 0,
-      allowances: {},
-      retroactivePay: null,
-    };
-
-    const wages = buildPayrollWageFields(current, payrollPatch, definitions);
+    const allowances = filterPayrollAllowances(payrollPatch.allowances ?? {}, definitions);
+    const wages = buildPayrollWageFields(
+      {
+        basicSalary: 0,
+        fringeBenefits: 0,
+        allowances: {},
+        retroactivePay: null,
+      },
+      {
+        basicSalary: payrollPatch.basicSalary,
+        fringeBenefits: payrollPatch.fringeBenefits,
+        allowances,
+        retroactivePay: payrollPatch.retroactivePay,
+      },
+      definitions,
+    );
 
     const payrollData: PayrollData = {
       basicSalary: payrollPatch.basicSalary ?? 0,
       fringeBenefits: payrollPatch.fringeBenefits ?? 0,
       fixedWage: wages.fixedWage,
       variableWage: wages.variableWage,
-      allowances: payrollPatch.allowances ?? {},
+      allowances,
       retroactivePay: payrollPatch.retroactivePay ?? 0,
     };
 
@@ -521,4 +525,3 @@ export class MonthlyListImportService {
     return Number.isNaN(num) ? null : num;
   }
 }
-
